@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { X, ShieldAlert, Cpu, Database, Compass, Globe } from 'lucide-react';
+import { X, ShieldAlert } from 'lucide-react';
+import { Spacecraft, OpticalAperture, SignatureStar, OrbitalTrajectory } from '../common/CelestialIcons';
 
 export type DestinationType = 'mission-control' | 'space-imagery';
 
@@ -42,8 +43,8 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
         left: 0,
         width: '100vw',
         height: '100vh',
-        backgroundColor: 'rgba(8, 9, 12, 0.85)',
-        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(5, 6, 8, 0.88)',
+        backdropFilter: 'blur(16px)',
         zIndex: 100,
         display: 'flex',
         alignItems: 'center',
@@ -62,11 +63,12 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
         ref={modalRef}
         style={{
           width: '100%',
-          maxWidth: '580px',
-          backgroundColor: 'var(--color-panel)',
+          maxWidth: '600px',
+          backgroundColor: 'var(--color-panel-translucent)',
+          backdropFilter: 'blur(20px)',
           border: '1px solid var(--color-border-active)',
           borderRadius: 'var(--radius-sm)',
-          boxShadow: '0 24px 64px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 229, 255, 0.08)',
+          boxShadow: '0 32px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.05)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
@@ -75,35 +77,47 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
         {/* Modal Header */}
         <div
           style={{
-            padding: '16px 20px',
-            borderBottom: '1px solid var(--color-border-subtle)',
+            padding: '20px 24px',
+            borderBottom: '1px solid var(--color-border-hairline)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             background: 'var(--color-ground)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div
-              style={{
-                width: '6px',
-                height: '6px',
-                backgroundColor: isMissionControl ? 'var(--color-cyan)' : 'var(--color-orbit-blue)',
-                borderRadius: '50%',
-              }}
-            />
-            <span
-              id="entry-modal-title"
-              style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: '15px',
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                color: 'var(--color-text-primary)',
-              }}
-            >
-              {isMissionControl ? 'MISSION CONTROL // PRE-FLIGHT BRIEFING' : 'SPACE IMAGERY // ARCHIVE GATEWAY'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ color: isMissionControl ? 'var(--color-earth-cyan)' : 'var(--color-earth-blue)' }}>
+              {isMissionControl ? (
+                <Spacecraft size={18} strokeWidth={1.5} />
+              ) : (
+                <OpticalAperture size={18} strokeWidth={1.5} />
+              )}
+            </div>
+            <div>
+              <span
+                id="entry-modal-title"
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--color-text-display)',
+                  display: 'block',
+                }}
+              >
+                {isMissionControl ? 'I. Mission Control — Flight Readiness' : 'II. Space Imagery — Astronomical Archives'}
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10px',
+                  color: 'var(--color-text-ghost)',
+                  letterSpacing: '0.08em',
+                }}
+              >
+                {isMissionControl ? 'SYS_GATE_02 // ORBITAL TELEMETRY & FAILURE SIMULATION' : 'SYS_GATE_05 // NASA GIBS & IMAGE ARCHIVE GATEWAY'}
+              </span>
+            </div>
           </div>
 
           <button
@@ -111,12 +125,13 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
             onClick={onClose}
             style={{
               padding: '6px',
-              color: 'var(--color-text-secondary)',
+              color: 'var(--color-text-muted)',
               borderRadius: 'var(--radius-xs)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              transition: 'var(--transition-fast)',
+              transition: 'var(--transition-quick)',
+              cursor: 'pointer',
             }}
             aria-label="Close modal dialog"
           >
@@ -125,85 +140,92 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
         </div>
 
         {/* Modal Content */}
-        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          {/* Status Alert Banner */}
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Engineering Stage Gate Banner */}
           <div
             style={{
               display: 'flex',
               alignItems: 'flex-start',
               gap: '12px',
-              padding: '12px 14px',
-              backgroundColor: 'rgba(255, 179, 0, 0.08)',
-              border: '1px solid rgba(255, 179, 0, 0.3)',
+              padding: '14px 16px',
+              backgroundColor: 'rgba(245, 158, 11, 0.06)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
               borderRadius: 'var(--radius-xs)',
               color: 'var(--color-advisory)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '12px',
-              lineHeight: 1.5,
+              fontFamily: 'var(--font-sans)',
+              fontSize: '13px',
+              lineHeight: 1.55,
             }}
           >
             <ShieldAlert size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
             <div>
-              <strong style={{ display: 'block', marginBottom: '2px', color: 'var(--color-text-primary)' }}>
-                {isMissionControl ? 'ENGINEERING STAGE GATE: PHASE 2' : 'ENGINEERING STAGE GATE: PHASE 5'}
+              <strong style={{ display: 'block', marginBottom: '3px', color: 'var(--color-text-display)', fontFamily: 'var(--font-mono)', fontSize: '11px', letterSpacing: '0.08em' }}>
+                {isMissionControl ? 'ENGINEERING STAGE GATE: PHASE 2 IN PROGRESS' : 'ENGINEERING STAGE GATE: PHASE 5 SCHEDULED'}
               </strong>
-              {isMissionControl
-                ? 'The authoritative server simulation engine and WebSocket telemetry broker are currently scheduled for Phase 2 implementation. The live 3D orbital scene you are observing represents the landing foundation milestone.'
-                : 'The NASA Image & Video Library REST client and NASA GIBS WMTS proxy are scheduled for Phase 5 implementation. Authentic NASA archives will stream directly into the high-resolution inspector.'}
+              <span style={{ color: 'var(--color-text-body)' }}>
+                {isMissionControl
+                  ? 'The authoritative Keplerian + J2 orbital propagation engine and bidirectional WebSocket telemetry broker are currently scheduled for Phase 2 implementation. The live 3D planetary renderer in this view represents the complete Prompt 3 art-direction milestone.'
+                  : 'The NASA Image & Video Library REST client and NASA GIBS WMTS layer browser are scheduled for Phase 5 implementation. Deep-space imaging will stream directly into the high-resolution optical inspector.'}
+              </span>
             </div>
           </div>
 
-          {/* Planned Domain Modules */}
+          {/* Planned Architectural Modules */}
           <div>
-            <h4
+            <div
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
                 fontFamily: 'var(--font-mono)',
-                fontSize: '11px',
-                color: 'var(--color-text-secondary)',
-                letterSpacing: '0.08em',
-                marginBottom: '10px',
+                fontSize: '10px',
+                color: 'var(--color-text-ghost)',
+                letterSpacing: '0.12em',
+                marginBottom: '12px',
                 textTransform: 'uppercase',
               }}
             >
-              Architectural Specifications in Progress
-            </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <SignatureStar size={11} color="var(--color-earth-cyan)" strokeWidth={1.5} />
+              <span>Architectural Specifications</span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               {isMissionControl ? (
                 <>
                   <div
                     style={{
-                      padding: '10px',
+                      padding: '12px 14px',
                       backgroundColor: 'var(--color-ground)',
-                      border: '1px solid var(--color-border-subtle)',
+                      border: '1px solid var(--color-border-hairline)',
                       borderRadius: 'var(--radius-xs)',
                       fontFamily: 'var(--font-mono)',
                       fontSize: '11px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-cyan)', marginBottom: '4px' }}>
-                      <Cpu size={14} />
-                      <strong>Sim Core (10 Hz)</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-earth-cyan)', marginBottom: '6px' }}>
+                      <OrbitalTrajectory size={14} strokeWidth={1.5} />
+                      <strong style={{ color: 'var(--color-text-display)' }}>Sim Core (10 Hz)</strong>
                     </div>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
-                      Deterministic Keplerian two-body + J2 propagator with monotonic time.
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '11px', lineHeight: 1.45, display: 'block', fontFamily: 'var(--font-sans)' }}>
+                      Deterministic Keplerian two-body + J2 perturbation propagator with monotonic tick timing.
                     </span>
                   </div>
                   <div
                     style={{
-                      padding: '10px',
+                      padding: '12px 14px',
                       backgroundColor: 'var(--color-ground)',
-                      border: '1px solid var(--color-border-subtle)',
+                      border: '1px solid var(--color-border-hairline)',
                       borderRadius: 'var(--radius-xs)',
                       fontFamily: 'var(--font-mono)',
                       fontSize: '11px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-nominal)', marginBottom: '4px' }}>
-                      <Compass size={14} />
-                      <strong>Failure Lab</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-nominal)', marginBottom: '6px' }}>
+                      <SignatureStar size={14} strokeWidth={1.5} />
+                      <strong style={{ color: 'var(--color-text-display)' }}>Failure Lab</strong>
                     </div>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
-                      Six-domain anomaly state machines (EPS, TCS, ADCS, COMMS, PROP, OBC).
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '11px', lineHeight: 1.45, display: 'block', fontFamily: 'var(--font-sans)' }}>
+                      Six-domain anomaly state machines (EPS, TCS, ADCS, COMMS, PROP, OBC) with emergency recovery trees.
                     </span>
                   </div>
                 </>
@@ -211,38 +233,38 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
                 <>
                   <div
                     style={{
-                      padding: '10px',
+                      padding: '12px 14px',
                       backgroundColor: 'var(--color-ground)',
-                      border: '1px solid var(--color-border-subtle)',
+                      border: '1px solid var(--color-border-hairline)',
                       borderRadius: 'var(--radius-xs)',
                       fontFamily: 'var(--font-mono)',
                       fontSize: '11px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-orbit-blue)', marginBottom: '4px' }}>
-                      <Globe size={14} />
-                      <strong>NASA Images API</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-earth-blue)', marginBottom: '6px' }}>
+                      <OpticalAperture size={14} strokeWidth={1.5} />
+                      <strong style={{ color: 'var(--color-text-display)' }}>NASA Images API</strong>
                     </div>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
-                      Unrestricted public REST search across JWST, Hubble, Apollo, and Mars rover missions.
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '11px', lineHeight: 1.45, display: 'block', fontFamily: 'var(--font-sans)' }}>
+                      Direct public REST queries across JWST, Hubble, Apollo, Mars rover, and Solar Dynamics archives.
                     </span>
                   </div>
                   <div
                     style={{
-                      padding: '10px',
+                      padding: '12px 14px',
                       backgroundColor: 'var(--color-ground)',
-                      border: '1px solid var(--color-border-subtle)',
+                      border: '1px solid var(--color-border-hairline)',
                       borderRadius: 'var(--radius-xs)',
                       fontFamily: 'var(--font-mono)',
                       fontSize: '11px',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-cyan)', marginBottom: '4px' }}>
-                      <Database size={14} />
-                      <strong>NASA GIBS WMTS</strong>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-earth-cyan)', marginBottom: '6px' }}>
+                      <OrbitalTrajectory size={14} strokeWidth={1.5} />
+                      <strong style={{ color: 'var(--color-text-display)' }}>NASA GIBS WMTS</strong>
                     </div>
-                    <span style={{ color: 'var(--color-text-secondary)', fontSize: '10px' }}>
-                      Full-resolution daily Earth science satellite tiles and VIIRS Black Marble layers.
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: '11px', lineHeight: 1.45, display: 'block', fontFamily: 'var(--font-sans)' }}>
+                      Full-resolution daily Earth science satellite tiles and VIIRS Black Marble nighttime composites.
                     </span>
                   </div>
                 </>
@@ -250,35 +272,36 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
             </div>
           </div>
 
-          {/* Engineering Reference Link */}
+          {/* Engineering Reference Link & Return Action */}
           <div
             style={{
-              paddingTop: '12px',
-              borderTop: '1px solid var(--color-border-subtle)',
+              paddingTop: '16px',
+              borderTop: '1px solid var(--color-border-hairline)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               fontFamily: 'var(--font-mono)',
               fontSize: '11px',
-              color: 'var(--color-text-secondary)',
+              color: 'var(--color-text-muted)',
             }}
           >
-            <span>Documentation Reference: docs/ROADMAP.md</span>
+            <span>DOCUMENTATION: docs/ROADMAP.md</span>
             <button
               onClick={onClose}
               style={{
-                padding: '8px 16px',
-                backgroundColor: 'var(--color-raised)',
+                padding: '10px 20px',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid var(--color-border-active)',
                 borderRadius: 'var(--radius-xs)',
-                color: 'var(--color-text-primary)',
+                color: 'var(--color-text-display)',
                 fontFamily: 'var(--font-mono)',
-                fontSize: '12px',
+                fontSize: '11px',
+                letterSpacing: '0.08em',
                 cursor: 'pointer',
-                transition: 'var(--transition-fast)',
+                transition: 'var(--transition-quick)',
               }}
             >
-              ACKNOWLEDGE & RETURN
+              ACKNOWLEDGE &amp; RETURN
             </button>
           </div>
         </div>
@@ -286,3 +309,4 @@ export const EntryModal: React.FC<EntryModalProps> = ({ destination, onClose }) 
     </div>
   );
 };
+

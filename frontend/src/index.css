@@ -8,15 +8,20 @@
   padding: 0;
 }
 
-html, body {
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-void);
+}
+
+body {
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   overflow-x: hidden;
   background-color: var(--color-void);
-  color: var(--color-text-primary);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.5;
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -29,12 +34,12 @@ html, body {
   background-color: var(--color-void);
 }
 
-/* Typography Base Rules */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--color-text-primary);
+/* Editorial Typography */
+h1, h2, h3, h4 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-text-display);
 }
 
 a {
@@ -50,20 +55,30 @@ button {
   cursor: pointer;
 }
 
-/* Tabular Numerals for Monospace Telemetry */
+/* Monospace Telemetry & Technical Notation */
 .font-mono, [data-telemetry] {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* Subtle, Elegant Selection */
+::selection {
+  background-color: rgba(56, 189, 248, 0.25);
+  color: var(--color-text-display);
 }
 
 /* Focus Visibility & Accessibility */
 :focus-visible {
-  outline: 2px solid var(--color-cyan);
-  outline-offset: 2px;
+  outline: 1px solid var(--color-text-accent);
+  outline-offset: 3px;
 }
 
 /* Reduced Motion Mode */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
@@ -72,16 +87,16 @@ button {
   }
 }
 
-/* Custom Tactical Scrollbar */
+/* Tactical, Quiet Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--color-ground);
+  background: var(--color-void);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-border-subtle);
+  background: var(--color-border-hairline);
   border-radius: var(--radius-xs);
 }
 ::-webkit-scrollbar-thumb:hover {

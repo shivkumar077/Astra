@@ -1,52 +1,51 @@
 /* ==============================================================================
    ASTRA DESIGN TOKENS
-   Anchored in docs/DESIGN_DIRECTION.md: "Instrument-Grade Depth"
+   Art Direction: Cinematic Editorial Futurism x Authentic Orbital Engineering
    ============================================================================== */
 
 :root {
-  /* Surface & Spatial Layering */
-  --color-void: #08090C;
-  --color-ground: #0D1117;
-  --color-panel: #161B22;
-  --color-panel-translucent: rgba(22, 27, 34, 0.85);
-  --color-raised: #1F242C;
-  --color-raised-translucent: rgba(31, 36, 44, 0.95);
+  /* Cosmic Surface & Atmospheric Layering */
+  --color-void: #050608;
+  --color-abyss: #080A0E;
+  --color-ground: #0D1016;
+  --color-panel: #131720;
+  --color-panel-translucent: rgba(13, 16, 22, 0.72);
+  --color-raised: #1A1F2C;
+  --color-raised-translucent: rgba(26, 31, 44, 0.88);
 
-  /* Border Architecture */
-  --color-border-subtle: #2D333B;
-  --color-border-active: #444C56;
-  --color-border-accent: #00E5FF;
-  --color-border-hover: rgba(0, 229, 255, 0.35);
+  /* Delicate Architectural Borders & Separators */
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-hairline: rgba(255, 255, 255, 0.12);
+  --color-border-active: rgba(255, 255, 255, 0.22);
+  --color-border-accent: rgba(56, 189, 248, 0.5);
 
-  /* Functional Accents */
-  --color-cyan: #00E5FF;
-  --color-cyan-glow: rgba(0, 229, 255, 0.15);
-  --color-orbit-blue: #0A84FF;
-  --color-orbit-blue-glow: rgba(10, 132, 255, 0.2);
-  --color-deep-indigo: #5856D6;
-  --color-solar-gold: #FFD600;
+  /* Restrained Planetary & Stellar Accents */
+  --color-star-ivory: #EDECE8;
+  --color-star-warm: #FDE68A;
+  --color-earth-blue: #3874CB;
+  --color-earth-cyan: #38BDF8;
+  --color-earth-glow: rgba(56, 189, 248, 0.12);
+  --color-solar-flare: #F59E0B;
 
-  /* Semantic Telemetry & Alarms */
-  --color-nominal: #00E676;
-  --color-nominal-glow: rgba(0, 230, 118, 0.15);
-  --color-advisory: #FFB300;
-  --color-advisory-glow: rgba(255, 179, 0, 0.15);
-  --color-critical: #FF3D00;
-  --color-critical-glow: rgba(255, 61, 0, 0.2);
-  --color-override: #D500F9;
-  --color-offline: #6E7681;
+  /* Editorial Text Hierarchy */
+  --color-text-display: #F7F7F8;
+  --color-text-body: #C9D1D9;
+  --color-text-muted: #808896;
+  --color-text-ghost: #4B5262;
+  --color-text-accent: #38BDF8;
 
-  /* Text & Contrast Hierarchy */
-  --color-text-primary: #F0F6FC;
-  --color-text-secondary: #8B949E;
-  --color-text-tertiary: #484F58;
-  --color-text-accent: #00E5FF;
+  /* Semantic Status (Quiet & Purposeful) */
+  --color-nominal: #10B981;
+  --color-nominal-subtle: rgba(16, 185, 129, 0.15);
+  --color-advisory: #F59E0B;
+  --color-critical: #EF4444;
 
-  /* Typography */
-  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  /* Refined Typographic Triad */
+  --font-serif: 'Cormorant Garamond', Garamond, Georgia, serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
 
-  /* Spacing Grid (4px Base Rhythm) */
+  /* Spatial Scale */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -57,14 +56,17 @@
   --space-10: 40px;
   --space-12: 48px;
   --space-16: 64px;
+  --space-24: 96px;
 
-  /* Geometry (Crisp, Aerospace-Grade Max 4px) */
+  /* Restrained Geometry (Crisp, Fine Aerospace Lines) */
   --radius-xs: 2px;
   --radius-sm: 4px;
+  --radius-md: 6px;
 
-  /* Motion & Transitions */
-  --ease-mechanical: cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-fast: 150ms var(--ease-mechanical);
-  --transition-normal: 250ms var(--ease-mechanical);
-  --transition-slow: 400ms var(--ease-mechanical);
+  /* Motion & Cinematic Easing */
+  --ease-cinematic: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-soft: cubic-bezier(0.25, 1, 0.5, 1);
+  --transition-quick: 200ms var(--ease-soft);
+  --transition-cinematic: 600ms var(--ease-cinematic);
+  --transition-slow: 1000ms var(--ease-cinematic);
 }

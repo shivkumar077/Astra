@@ -8,6 +8,7 @@ import { EntryModal, DestinationType } from './components/ui/EntryModal';
 export const App: React.FC = () => {
   const [selectedDestination, setSelectedDestination] = useState<DestinationType | null>(null);
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
+  const [scrollProgress, setScrollProgress] = useState<number>(0);
 
   useEffect(() => {
     // Detect system reduced motion preference
@@ -24,6 +25,27 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          const progress = docHeight > 0 ? Math.min(Math.max(window.scrollY / docHeight, 0), 1) : 0;
+          setScrollProgress(progress);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const handleToggleReducedMotion = () => {
     setReducedMotion((prev) => !prev);
   };
@@ -38,12 +60,12 @@ export const App: React.FC = () => {
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'var(--color-void)',
-        overflow: 'hidden',
+        overflowX: 'hidden',
       }}
       data-testid="astra-app"
     >
-      {/* Real-Time Rendered 3D Earth Scene (Right-Anchored Canvas) */}
-      <EarthCanvas reducedMotion={reducedMotion} />
+      {/* Real-Time Rendered 3D Earth Scene (Coordinated Scroll Camera) */}
+      <EarthCanvas scrollProgress={scrollProgress} reducedMotion={reducedMotion} />
 
       {/* Primary Structural Layout */}
       <Header
@@ -51,7 +73,11 @@ export const App: React.FC = () => {
         onToggleReducedMotion={handleToggleReducedMotion}
       />
 
-      <HeroSection onSelectDestination={setSelectedDestination} />
+      <HeroSection
+        scrollProgress={scrollProgress}
+        reducedMotion={reducedMotion}
+        onSelectDestination={setSelectedDestination}
+      />
 
       <Footer />
 
@@ -65,3 +91,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

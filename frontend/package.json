@@ -12,7 +12,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.1.1",
+    "@fontsource/inter": "^5.3.0",
     "@fontsource/space-grotesk": "^5.1.1",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",

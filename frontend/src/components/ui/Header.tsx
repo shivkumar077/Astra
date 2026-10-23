@@ -1,18 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { SignatureStar } from '../common/CelestialIcons';
 
 interface HeaderProps {
   reducedMotion: boolean;
   onToggleReducedMotion: () => void;
+  visible?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ reducedMotion, onToggleReducedMotion }) => {
+export const Header: React.FC<HeaderProps> = ({
+  reducedMotion,
+  onToggleReducedMotion,
+  visible = true,
+}) => {
   const [utcTime, setUtcTime] = useState<string>('');
 
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      setUtcTime(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
+      const yr = now.getUTCFullYear();
+      const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
+      const da = String(now.getUTCDate()).padStart(2, '0');
+      const hr = String(now.getUTCHours()).padStart(2, '0');
+      const mi = String(now.getUTCMinutes()).padStart(2, '0');
+      const sc = String(now.getUTCSeconds()).padStart(2, '0');
+      setUtcTime(`${yr}.${mo}.${da} — ${hr}:${mi}:${sc} UTC`);
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
@@ -23,134 +34,85 @@ export const Header: React.FC<HeaderProps> = ({ reducedMotion, onToggleReducedMo
     <header
       className="astra-header"
       style={{
-        position: 'relative',
-        zIndex: 20,
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        zIndex: 50,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '16px 28px',
-        borderBottom: '1px solid var(--color-border-subtle)',
-        background: 'rgba(8, 9, 12, 0.75)',
-        backdropFilter: 'blur(12px)',
+        padding: '24px 44px',
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0)' : 'translateY(-10px)',
+        transition: 'opacity 600ms cubic-bezier(0.19, 1, 0.22, 1), transform 600ms cubic-bezier(0.19, 1, 0.22, 1)',
+        pointerEvents: visible ? 'auto' : 'none',
       }}
       data-testid="astra-header"
     >
-      {/* Brand Identity & Wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div
+      {/* Brand Monogram & Signature Star */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <SignatureStar size={16} color="var(--color-star-ivory)" strokeWidth={1.5} />
+        <span
           style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: 'var(--radius-xs)',
-            border: '1px solid var(--color-cyan)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0, 229, 255, 0.08)',
+            fontFamily: 'var(--font-serif)',
+            fontSize: '17px',
+            fontWeight: 600,
+            letterSpacing: '0.18em',
+            color: 'var(--color-text-display)',
+            textTransform: 'uppercase',
           }}
-          aria-hidden="true"
         >
-          <div
-            style={{
-              width: '8px',
-              height: '8px',
-              backgroundColor: 'var(--color-cyan)',
-              borderRadius: '50%',
-              boxShadow: '0 0 8px var(--color-cyan)',
-            }}
-          />
-        </div>
-        <div>
-          <span
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: '18px',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              color: 'var(--color-text-primary)',
-            }}
-          >
-            ASTRA
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'var(--color-text-secondary)',
-              letterSpacing: '0.05em',
-              marginLeft: '10px',
-              borderLeft: '1px solid var(--color-border-subtle)',
-              paddingLeft: '10px',
-            }}
-          >
-            GROUND OPERATIONS & MISSION SIM
-          </span>
-        </div>
+          ASTRA
+        </span>
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px',
+            color: 'var(--color-text-ghost)',
+            letterSpacing: '0.08em',
+            marginLeft: '8px',
+          }}
+        >
+          // FLIGHT OPERATIONS
+        </span>
       </div>
 
-      {/* System Telemetry Badges & Clock */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-        {/* UTC System Clock */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '12px',
-            color: 'var(--color-text-primary)',
-            padding: '4px 10px',
-            background: 'var(--color-panel)',
-            border: '1px solid var(--color-border-subtle)',
-            borderRadius: 'var(--radius-xs)',
-          }}
-          title="Authoritative Universal Time Coordinate"
-        >
-          <Clock size={13} color="var(--color-cyan)" />
-          <span data-telemetry="utc-clock">{utcTime || 'SYNCHRONIZING...'}</span>
-        </div>
+      {/* Quiet Operational Metadata & Accessible Controls */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '24px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: '11px',
+          color: 'var(--color-text-muted)',
+        }}
+      >
+        {/* UTC Timekeeper */}
+        <span data-telemetry="utc-clock" style={{ letterSpacing: '0.06em' }}>
+          {utcTime || 'SYNCHRONIZING UTC...'}
+        </span>
 
-        {/* System Integrity Annunciator */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            color: 'var(--color-nominal)',
-            padding: '4px 10px',
-            background: 'rgba(0, 230, 118, 0.08)',
-            border: '1px solid rgba(0, 230, 118, 0.3)',
-            borderRadius: 'var(--radius-xs)',
-          }}
-          title="Telemetry Bus Status"
-        >
-          <ShieldCheck size={13} />
-          <span>LINK: NOMINAL</span>
-        </div>
+        <span style={{ color: 'var(--color-border-hairline)' }}>|</span>
 
-        {/* Reduced Motion Toggle Button */}
+        {/* Refined Motion Preference Toggle */}
         <button
           onClick={onToggleReducedMotion}
           style={{
+            color: reducedMotion ? 'var(--color-star-warm)' : 'var(--color-text-muted)',
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            letterSpacing: '0.04em',
+            transition: 'var(--transition-quick)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            color: reducedMotion ? 'var(--color-advisory)' : 'var(--color-text-secondary)',
-            padding: '4px 10px',
-            background: reducedMotion ? 'rgba(255, 179, 0, 0.1)' : 'var(--color-panel)',
-            border: `1px solid ${reducedMotion ? 'var(--color-advisory)' : 'var(--color-border-subtle)'}`,
-            borderRadius: 'var(--radius-xs)',
-            transition: 'var(--transition-fast)',
+            padding: '2px 6px',
           }}
           aria-label={reducedMotion ? 'Disable reduced motion mode' : 'Enable reduced motion mode'}
-          title="Toggle 3D orbital animation and transition intensity"
         >
-          {reducedMotion ? <EyeOff size={13} /> : <Eye size={13} />}
-          <span>{reducedMotion ? 'MOTION: REDUCED' : 'MOTION: ACTIVE'}</span>
+          <span>[ motion: {reducedMotion ? 'reduced' : 'active'} ]</span>
         </button>
       </div>
     </header>

@@ -54,20 +54,38 @@ This manifest records all external visual, texture, and multimedia assets acquir
 
 ## 2. Typography Assets (Self-Hosted)
 
-In accordance with Section 3 ("Use local font packages or another suitable self-hosted approach... Avoid making the primary typography dependent on a third-party font server at runtime"), fonts are bundled directly via standard npm `@fontsource` packages:
+In accordance with Prompt 3 ("Self-host suitable font files when licensing and availability permit, and provide appropriate fallbacks. Avoid third-party runtime font servers"), fonts are bundled directly via standard npm `@fontsource` packages with zero runtime CDN requests:
 
-- **Display & Headings:** `@fontsource/space-grotesk` (Weights: 400, 600, 700)
+- **Editorial Serif & Wordmark:** `@fontsource/cormorant-garamond` (Weights: 400, 400i, 600, 700)
   - Licence: SIL Open Font License 1.1
-  - Purpose: High-contrast aerospace headers, ASTRA wordmark, primary navigation labels.
+  - Purpose: ASTRA wordmark, monumental cinematic opening frame, editorial headlines, and refined category markers.
+- **Body & Operational Sans-Serif:** `@fontsource/inter` (Weights: 300, 400, 500, 600)
+  - Licence: SIL Open Font License 1.1
+  - Purpose: Highly readable, balanced editorial body copy, narrative descriptions, and modal interfaces.
 - **Technical & Telemetry Monospace:** `@fontsource/ibm-plex-mono` (Weights: 400, 500, 600)
   - Licence: SIL Open Font License 1.1
-  - Purpose: System telemetry readouts, status codes, coordinates, and metadata labels.
+  - Purpose: Genuine operational telemetry, coordinates, UTC timestamps, and stage gate status codes.
 
 ---
 
-## 3. Directory Conventions
+## 3. Bespoke Celestial Icon Family (`frontend/src/components/common/CelestialIcons.tsx`)
+
+A cohesive, fine-line SVG celestial symbol suite designed in the visual language of classical astronomical atlases:
+- **`SignatureStar`**: 4-point radiant diamond star with acute tapered vertices, central core, and delicate diagonal ticks. Acts as the visual anchor of the ASTRA identity.
+- **`TerrestrialPlanet`**: Spherical body with latitude contours and subtle terminator arc.
+- **`RingedPlanet`**: Saturnian body intersected by fine elliptical ring arcs.
+- **`GasGiant`**: Banded atmospheric striation lines with cyclonic vortex.
+- **`MoonCrater`**: Cratered natural satellite with phase terminator.
+- **`Spacecraft`**: Engineering satellite with articulated solar arrays, high-gain antenna dish, and thruster bell.
+- **`OrbitalTrajectory`**: Conic section ellipse with central body and periapsis vector marker.
+- **`OpticalAperture`**: Concentric telescopic aperture for astronomical observation.
+
+---
+
+## 4. Directory Conventions
 
 - `frontend/public/assets/earth/`: Equirectangular planetary maps and cloud layers.
 - `frontend/public/assets/space/`: Star fields, background skymaps, and celestial skyboxes.
 - `frontend/public/assets/textures/`: Shared rendering maps (normal, specular, noise).
 - `frontend/public/assets/video/`: Reserved for future cinematic background footage.
+

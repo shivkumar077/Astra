@@ -1,8 +1,9 @@
 # ASTRA Frontend Client
 
-**Stack:** React 18 | TypeScript | Vite 6 | Three.js | Vitest | Testing Library
+**Stack:** React 18 | TypeScript | Vite 6 | Three.js | Vitest | Testing Library  
+**Art Direction:** Cinematic Editorial Futurism &times; Authentic Orbital Engineering &times; Restrained Luxury
 
-The ASTRA frontend client delivers an aerospace-grade mission simulation console and an authentic space imagery discovery portal. It pairs mathematical state telemetry with a real-time rendered Three.js interactive 3D Earth, self-hosted typography, and strict aerospace design tokens.
+The ASTRA frontend client delivers a space-operations console and astronomical discovery portal. It couples mathematical telemetry with a real-time rendered Three.js interactive Earth, editorial typography, a bespoke celestial icon family, and a cinematic opening sequence.
 
 ---
 
@@ -17,7 +18,7 @@ The ASTRA frontend client delivers an aerospace-grade mission simulation console
 # Navigate to frontend workspace
 cd frontend
 
-# Install dependencies (creates package-lock.json)
+# Install dependencies
 npm install
 
 # Start local development server (Vite on http://localhost:5173)
@@ -38,64 +39,52 @@ npm run preview
 
 ---
 
-## 2. Architecture & Directory Layout
+## 2. Visual Identity & Creative Direction (Prompt 3 Overhaul)
 
-```
-frontend/
- ├── public/
- │    ├── assets/
- │    │    ├── earth/          # Validated 2048x1024 Blue Marble textures
- │    │    │    ├── earth_2048.jpg         # NASA Visible Earth diffuse map (332 KB)
- │    │    │    ├── earth_lights_2048.jpg  # NASA GSFC/DMSP night lights (274 KB)
- │    │    │    └── earth_clouds_2048.jpg  # Atmospheric cloud layer (965 KB)
- │    │    ├── space/          # Reserved for deep space starfield textures (.gitkeep)
- │    │    ├── textures/       # Reserved for shared surface & normal maps (.gitkeep)
- │    │    └── video/          # Reserved for future mission footage (.gitkeep)
- │    └── favicon.svg          # Tactical vector radar favicon
- ├── src/
- │    ├── components/
- │    │    ├── earth/
- │    │    │    └── EarthCanvas.tsx  # Interactive Three.js 3D Earth scene
- │    │    └── ui/
- │    │         ├── Header.tsx       # UTC clock, status annunciators, reduced motion toggle
- │    │         ├── HeroSection.tsx  # Product statement & exactly 2 primary entry points
- │    │         ├── EntryModal.tsx   # Pre-flight briefing and roadmap status modal
- │    │         └── Footer.tsx       # System telemetry & texture attribution
- │    ├── styles/
- │    │    └── tokens.css      # Design tokens (colors, monospace typography, 4px grid)
- │    ├── test/
- │    │    ├── setup.ts        # JSDOM canvas & media match mocks
- │    │    └── EarthLanding.test.tsx # Automated unit & integration tests
- │    ├── App.tsx              # Primary layout orchestrator
- │    ├── index.css            # Tactical CSS resets and accessible focus treatment
- │    └── main.tsx             # Application bootstrap & self-hosted font imports
- ├── index.html                # Entry HTML with aerospace metadata
- ├── package.json              # NPM dependencies & scripts
- ├── tsconfig.json             # TypeScript strict configuration
- └── vite.config.ts            # Vite bundler & Vitest test runner configuration
-```
+Prompt 3 established a comprehensive visual identity overhaul, moving away from generic SaaS dashboards and neon sci-fi cliches toward a restrained, cinematic editorial design system:
+
+### 2.1 Typographic Triad (100% Self-Hosted via `@fontsource`)
+- **Display & Headlines (`var(--font-serif)`):** `Cormorant Garamond` (Weights: 400, 400i, 600, 700). High-contrast editorial serif delivering monumental scale and elegance to the ASTRA wordmark, opening narrative, and destination headers.
+- **Body (`var(--font-sans)`):** `Inter` (Weights: 300, 400, 500, 600). Neutral, highly legible sans-serif for descriptions, paragraphs, and briefing modals.
+- **Technical Telemetry (`var(--font-mono)`):** `IBM Plex Mono` (Weights: 400, 500, 600). Reserved strictly for genuine operational readouts, coordinate systems, and UTC timestamps.
+
+### 2.2 Bespoke Celestial Icon Family (`CelestialIcons.tsx`)
+Fine-line SVG symbols crafted in the tradition of classical astronomical atlases:
+- `SignatureStar`: Four-point radiant diamond star acting as the core visual anchor of the ASTRA identity.
+- `TerrestrialPlanet`, `RingedPlanet`, `GasGiant`, `MoonCrater`: Planetary bodies with accurate contouring.
+- `Spacecraft`, `OrbitalTrajectory`, `OpticalAperture`: Technical symbols for telemetry and observation modes.
+
+### 2.3 Color Palette & Surfaces
+- Cosmic tones: Void (`#050608`), Abyss (`#080A0E`), Ground (`#0D1016`), Translucent Panel (`rgba(13, 16, 22, 0.72)`).
+- Planetary accents: Soft Star Ivory (`#EDECE8`), Warm Stellar Glow (`#FDE68A`), Earth Cyan (`#38BDF8`), Earth Blue (`#3874CB`).
+- Removal of artificial neon halos, thick electric-blue outlines, and arbitrary decorative cards.
 
 ---
 
-## 3. Real-Time 3D Earth Rendering Approach
+## 3. Cinematic Opening Journey & Three.js Earth Architecture
 
-The landing page features a real-time rendered 3D Earth anchored on the right side of the hero composition:
-- **Renderer:** Three.js `WebGLRenderer` with `ACESFilmicToneMapping` and device-pixel-ratio clamped to 2.0.
-- **Surface Geometry & Shading:** A `SphereGeometry(2, 64, 64)` mapped with NASA's Blue Marble true-color composite.
-- **Emissive Twilight Terminator:** Night city lights are rendered on the unlit hemisphere using a custom GLSL shader extension (`onBeforeCompile`), fading smoothly across the twilight boundary as the Earth rotates.
-- **Atmospheric Limb Rim:** A secondary outer sphere running a custom Fresnel shader with additive blending, emitting an authentic cyan (`#00E5FF`) and orbital blue (`#0A84FF`) halo along the planetary horizon.
-- **Atmospheric Clouds:** A semi-transparent outer shell (`SphereGeometry(2.025)`) rotating at 1.18× the planetary surface rate to create dynamic atmospheric drift.
-- **Starfield:** Procedural 1,000-point particle cloud placed at radii 60–100 units with authentic stellar spectral color variances.
-- **Orbital Vector Ring:** A subtle dashed vector circle orbiting at $51.6^\circ$ inclination (standard LEO / ISS inclination).
+### 3.1 Coordinated Scroll Timeline
+Natural document scrolling drives a single coordinated journey:
+1. **Opening Frame ($t = 0.0$):** Earth begins serene and distant in a deep-space starfield. The ASTRA editorial wordmark and signature star establish a quiet, confident mood.
+2. **Scroll Journey ($0.0 < t < 0.8$):** The camera approaches Earth, which smoothly expands in perspective. Stars shift across three distinct depths (`deep`, `mid`, `fore`) creating optical parallax.
+3. **Signature Star Trajectory ($0.08 < t < 0.75$):** A bespoke 3D star detaches from the wordmark coordinate and travels along a Bézier trajectory toward the planetary horizon, dissolving gracefully into the atmospheric limb.
+4. **Layered Depth Interaction:** Earth's curved atmospheric horizon passes behind/across typography, creating spatial depth without sacrificing legibility.
+5. **Settled Operational Frame ($t \rightarrow 1.0$):** The camera settles into an orbital view, revealing the two primary editorial destinations (`I. MISSION CONTROL` and `II. SPACE IMAGERY`).
+
+### 3.2 3D Earth Shader & Rendering Details
+- **Daylight/Night Terminator:** City lights smoothly emerge on the night side via a custom GLSL shader extension (`onBeforeCompile`), clamped and attenuated across the twilight transition.
+- **Atmospheric Limb Scattering:** Delicate Mie/Rayleigh limb scattering shader clamped to the illuminated hemisphere (`smoothstep(-0.15, 0.35, sunCos)`), eliminating bright outlines on the unshadowed side.
+- **Atmospheric Cloud Layer:** Semi-transparent outer mesh rotating at $1.15\times$ base speed for independent atmospheric drift.
+- **Meteors:** Rare, subtle meteors streak across deep space at randomized intervals (16–30s).
 
 ---
 
 ## 4. Accessibility, Motion & Fallback Behaviour
 
-- **Self-Hosted Typography:** Powered by `@fontsource/space-grotesk` and `@fontsource/ibm-plex-mono`. No runtime network requests to third-party font servers (Google Fonts) are required.
-- **Reduced Motion:** Fully honors `prefers-reduced-motion` at both the CSS level and inside the Three.js render loop. Can also be toggled manually via the header button (`MOTION: ACTIVE` / `MOTION: REDUCED`).
-- **Graceful WebGL Fallback:** If WebGL hardware acceleration is unavailable (or in headless test environments), `EarthCanvas` falls back to a tactical 2D vector display mode with radial depth shading and diagnostic notices without crashing or interrupting user interaction.
-- **Page Visibility:** When the browser tab is hidden (`document.hidden`), the animation loop pauses automatically to eliminate unnecessary GPU/CPU utilization.
+- **Reduced Motion:** Fully honors `prefers-reduced-motion` at the CSS level, jumps the camera timeline directly to the settled frame, disables pointer parallax and particle velocity, and provides a manual header toggle (`[ motion: active ]` / `[ motion: reduced ]`).
+- **Tactical 2D Fallback:** If WebGL is unavailable or fails context creation, `EarthCanvas` falls back gracefully to a tactical 2D vector display mode with diagnostic indicators without crashing the application.
+- **GPU Throttling:** Animation loop pauses automatically on `document.hidden` (inactive browser tabs) to eliminate unnecessary GPU work.
+- **Keyboard Navigation:** Full tab order, focus ring treatments (`:focus-visible`), and Escape key dialog dismissal.
 - **Pointer Damping:** Mouse movement subtly shifts the camera within strict clamped bounds ($<0.25\text{ rad}$) with LERP damping, ensuring the Earth never drifts out of composition.
 
 ---
