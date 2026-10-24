@@ -5,6 +5,11 @@ package org.astra.commands;
  */
 public enum CommandStatus {
     /**
+     * Telecommand received, validated, and staged for execution.
+     */
+    ACCEPTED,
+
+    /**
      * Telecommand passed validation and was executed successfully on authoritative state.
      */
     EXECUTED,

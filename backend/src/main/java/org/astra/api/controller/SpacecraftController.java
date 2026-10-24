@@ -64,11 +64,16 @@ public class SpacecraftController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Spacecraft not found: " + id);
         }
 
+        java.util.Map<String, String> params = new java.util.HashMap<>(request.parameters());
+        if (request.clientCommandId() != null && !request.clientCommandId().isBlank()) {
+            params.put("clientCommandId", request.clientCommandId());
+        }
+
         CommandRequest cmdReq = new CommandRequest(
-                null,
+                request.clientCommandId(),
                 id,
                 request.type(),
-                request.parameters(),
+                params,
                 Instant.now()
         );
 

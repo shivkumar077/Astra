@@ -1,6 +1,9 @@
 package org.astra.simulation.engine;
 
+import org.astra.anomalies.AnomalyManager;
 import org.astra.core.domain.*;
+import org.astra.events.SimulationEventPublisher;
+import org.astra.events.SimulationEventType;
 import org.astra.simulation.orbital.KeplerianPropagator;
 import org.astra.simulation.orbital.OrbitalPropagator;
 import org.astra.telemetry.TelemetryService;
@@ -25,6 +28,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  *   <li>Owns the deterministic simulation clock decoupled from system wall-clock time.</li>
  *   <li>Coordinates synchronous, multi-spacecraft orbital state propagation.</li>
  *   <li>Emits immutable telemetry snapshots to the telemetry buffer.</li>
+ *   <li>Publishes authoritative simulation and fleet telemetry events.</li>
  *   <li>Guarantees concurrent-safe atomic updates via read-write synchronization.</li>
  * </ul>
  */
@@ -33,6 +37,9 @@ public class SimulationEngine {
 
     private final OrbitalPropagator orbitalPropagator;
     private final TelemetryService telemetryService;
+    private final SimulationEventPublisher eventPublisher;
+    private final AnomalyManager anomalyManager;
+    private final org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster;
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
     private SimulationClock clock;
@@ -46,9 +53,19 @@ public class SimulationEngine {
     @Autowired
     public SimulationEngine(
             TelemetryService telemetryService,
+            Optional<SimulationEventPublisher> eventPublisher,
+            Optional<AnomalyManager> anomalyManager,
+            Optional<org.astra.websocket.TelemetryStreamBroadcaster> telemetryBroadcaster,
             @Value("${astra.simulation.initial-epoch:2026-10-24T00:00:00Z}") String initialEpochStr
     ) {
-        this(new KeplerianPropagator(), telemetryService, Instant.parse(initialEpochStr));
+        this(
+                new KeplerianPropagator(),
+                telemetryService,
+                eventPublisher.orElse(null),
+                anomalyManager.orElse(null),
+                telemetryBroadcaster.orElse(null),
+                Instant.parse(initialEpochStr)
+        );
     }
 
     public SimulationEngine(
@@ -56,8 +73,22 @@ public class SimulationEngine {
             TelemetryService telemetryService,
             Instant initialEpoch
     ) {
+        this(orbitalPropagator, telemetryService, null, null, null, initialEpoch);
+    }
+
+    public SimulationEngine(
+            OrbitalPropagator orbitalPropagator,
+            TelemetryService telemetryService,
+            SimulationEventPublisher eventPublisher,
+            AnomalyManager anomalyManager,
+            org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster,
+            Instant initialEpoch
+    ) {
         this.orbitalPropagator = Objects.requireNonNull(orbitalPropagator, "orbitalPropagator must not be null");
         this.telemetryService = Objects.requireNonNull(telemetryService, "telemetryService must not be null");
+        this.eventPublisher = eventPublisher;
+        this.anomalyManager = anomalyManager;
+        this.telemetryBroadcaster = telemetryBroadcaster;
         this.baseEpoch = Objects.requireNonNull(initialEpoch, "initialEpoch must not be null");
         this.clock = new SimulationClock(initialEpoch);
         this.lifecycle = SimulationLifecycle.CREATED;
@@ -114,6 +145,22 @@ public class SimulationEngine {
             registerSpacecraft(solisRelay, solisElements);
 
             this.lifecycle = SimulationLifecycle.RUNNING;
+
+            if (eventPublisher != null) {
+                eventPublisher.publish(
+                        SimulationEventType.SIMULATION_INITIALIZED,
+                        baseEpoch,
+                        null,
+                        "Authoritative simulation fleet initialized with " + fleet.size() + " spacecraft",
+                        Map.of("epoch", baseEpoch.toString(), "spacecraftCount", fleet.size())
+                );
+            }
+
+            if (telemetryBroadcaster != null) {
+                telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
+                        lifecycle, baseEpoch, baseEpoch, 0.0, fleet.size()
+                ));
+            }
         } finally {
             rwLock.writeLock().unlock();
         }
@@ -148,6 +195,7 @@ public class SimulationEngine {
             Instant targetEpoch = clock.advance(delta);
 
             // Propagate all spacecraft synchronously to the exact target epoch
+            List<TelemetrySnapshot> snapshots = new ArrayList<>();
             for (Spacecraft sc : fleet.values()) {
                 KeplerianElements initialEl = baseElements.get(sc.getId());
                 if (initialEl != null) {
@@ -158,8 +206,35 @@ public class SimulationEngine {
                     updateSubsystemPowerMetrics(sc, updatedState, delta);
 
                     // Emit authoritative telemetry snapshot
-                    telemetryService.recordSnapshot(TelemetrySnapshot.fromSpacecraft(sc));
+                    TelemetrySnapshot snap = TelemetrySnapshot.fromSpacecraft(sc);
+                    telemetryService.recordSnapshot(snap);
+                    snapshots.add(snap);
                 }
+            }
+
+            if (eventPublisher != null) {
+                double deltaSec = delta.toNanos() / 1.0e9;
+                eventPublisher.publish(
+                        SimulationEventType.SIMULATION_ADVANCED,
+                        targetEpoch,
+                        null,
+                        "Simulation clock advanced by " + deltaSec + "s to " + targetEpoch,
+                        Map.of("deltaSeconds", deltaSec, "epoch", targetEpoch.toString(), "fleetCount", fleet.size())
+                );
+                eventPublisher.publish(
+                        SimulationEventType.FLEET_TELEMETRY_UPDATE,
+                        targetEpoch,
+                        null,
+                        "Fleet telemetry update synchronized at " + targetEpoch,
+                        Map.of("epoch", targetEpoch.toString(), "snapshots", snapshots)
+                );
+            }
+
+            if (telemetryBroadcaster != null) {
+                telemetryBroadcaster.broadcastFleetTelemetry(targetEpoch, clock.getElapsedSeconds(), lifecycle, snapshots);
+                telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
+                        lifecycle, targetEpoch, baseEpoch, clock.getElapsedSeconds(), fleet.size()
+                ));
             }
 
             return targetEpoch;
@@ -190,6 +265,12 @@ public class SimulationEngine {
                 case SCIENCE_OPERATION -> 1350.0;
                 default -> 1200.0;
             };
+
+            // Factor in Failure Lab subsystem modifiers if active
+            if (anomalyManager != null) {
+                solarWatts *= anomalyManager.getEffectivePowerMultiplier(sc.getId());
+            }
+
             // Charge battery back towards 100%
             batterySoc = Math.min(100.0, batterySoc + 3.0 * deltaHours);
         }
@@ -202,6 +283,20 @@ public class SimulationEngine {
         try {
             if (lifecycle == SimulationLifecycle.RUNNING) {
                 lifecycle = SimulationLifecycle.PAUSED;
+                if (eventPublisher != null) {
+                    eventPublisher.publish(
+                            SimulationEventType.SIMULATION_PAUSED,
+                            clock.getCurrentEpoch(),
+                            null,
+                            "Simulation advancement suspended (PAUSED)",
+                            Map.of("lifecycle", lifecycle.name())
+                    );
+                }
+                if (telemetryBroadcaster != null) {
+                    telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
+                            lifecycle, clock.getCurrentEpoch(), baseEpoch, clock.getElapsedSeconds(), fleet.size()
+                    ));
+                }
             }
         } finally {
             rwLock.writeLock().unlock();
@@ -213,6 +308,20 @@ public class SimulationEngine {
         try {
             if (lifecycle == SimulationLifecycle.PAUSED || lifecycle == SimulationLifecycle.CREATED) {
                 lifecycle = SimulationLifecycle.RUNNING;
+                if (eventPublisher != null) {
+                    eventPublisher.publish(
+                            SimulationEventType.SIMULATION_RESUMED,
+                            clock.getCurrentEpoch(),
+                            null,
+                            "Simulation advancement resumed (RUNNING)",
+                            Map.of("lifecycle", lifecycle.name())
+                    );
+                }
+                if (telemetryBroadcaster != null) {
+                    telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
+                            lifecycle, clock.getCurrentEpoch(), baseEpoch, clock.getElapsedSeconds(), fleet.size()
+                    ));
+                }
             }
         } finally {
             rwLock.writeLock().unlock();
@@ -223,6 +332,20 @@ public class SimulationEngine {
         rwLock.writeLock().lock();
         try {
             lifecycle = SimulationLifecycle.STOPPED;
+            if (eventPublisher != null) {
+                eventPublisher.publish(
+                        SimulationEventType.SIMULATION_STOPPED,
+                        clock.getCurrentEpoch(),
+                        null,
+                        "Simulation stopped",
+                        Map.of("lifecycle", lifecycle.name())
+                );
+            }
+            if (telemetryBroadcaster != null) {
+                telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
+                        lifecycle, clock.getCurrentEpoch(), baseEpoch, clock.getElapsedSeconds(), fleet.size()
+                ));
+            }
         } finally {
             rwLock.writeLock().unlock();
         }

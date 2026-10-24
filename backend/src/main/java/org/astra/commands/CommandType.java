@@ -27,5 +27,10 @@ public enum CommandType {
     /**
      * Resumes simulation clock and vehicle propagation.
      */
-    RESUME_SIMULATION
+    RESUME_SIMULATION,
+
+    /**
+     * Requests a simulated optical payload image capture when physical & operational conditions allow.
+     */
+    REQUEST_OPTICAL_CAPTURE
 }

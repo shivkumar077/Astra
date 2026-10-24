@@ -295,3 +295,51 @@ The backend utilizes SLF4J with Logback configured for structured JSON output in
 - `POST /api/v1/spacecraft/{id}/commands` — Dispatch telecommands (`SET_OPERATIONAL_MODE`, `TRIGGER_SAFE_MODE`, etc.).
 - `GET /api/v1/spacecraft/{id}/telemetry` — Retrieve in-memory circular ring buffer telemetry history (with limit parameter).
 
+---
+
+## 9. Phase 3 Implementation Architecture: Real-Time Telemetry Streaming & Operations
+
+### 9.1 WebSocket Streaming & STOMP Protocol
+- **Transport Endpoints:**
+  - Standard WebSocket: `ws://localhost:8080/ws/simulation`
+  - SockJS Fallback: `http://localhost:8080/ws/simulation`
+- **Topic Hierarchy:**
+  - `/topic/simulation`: Lifecycle changes, clock epoch updates, full fleet summaries.
+  - `/topic/telemetry`: Synchronized fleet telemetry frame (`FleetTelemetryFrame`).
+  - `/topic/telemetry/{id}`: Single spacecraft telemetry snapshots (`TelemetrySnapshot`).
+  - `/topic/events`: Ordered stream of simulation, vehicle, command, and anomaly events (`SimulationEvent`).
+- **Subscription Handshake:**
+  - `WebSocketSubscriptionListener` immediately intercepts STOMP `SessionSubscribeEvent` for `/topic/simulation` and `/topic/telemetry`, broadcasting the current authoritative frame directly to the newly subscribed client.
+- **Resource Protection:**
+  - Inbound and outbound buffers are bounded: 128 KB max message size, 512 KB session buffer, 10-second send timeout. Slow or disconnected consumers are dropped without accumulating unbounded memory or stalling physics propagation.
+
+### 9.2 Zero-Skew Fleet Synchronization Policy
+- In `SimulationEngine.step()`, all vehicles are propagated inside a write lock to the exact same simulation target epoch $t$.
+- The resulting `FleetTelemetryFrame` encapsulates all vehicles evaluated at that shared epoch, guaranteeing zero inter-satellite time skew across frontend 3D viewports and strip charts.
+
+### 9.3 Command Execution Lifecycle & Idempotency
+- **Lifecycle States:** `ACCEPTED`, `EXECUTED`, `REJECTED`, `FAILED`.
+- **Idempotency Strategy:** `CommandHistoryService` indexes records by both internal `commandId` and optional client-generated `clientCommandId`. If a client resubmits a command with the same idempotency key, the cached result is returned with `idempotentReplay: true` and a message prefix `[IDEMPOTENT REPLAY]`, preventing duplicate mutations.
+- **Audit Ledger:** Maintains a bounded circular buffer (1,000 capacity) of command records queryable via `/api/v1/commands`.
+
+### 9.4 Truthful Optical Capture Contract (`REQUEST_OPTICAL_CAPTURE`)
+- Spacecraft can execute optical imaging only when physical constraints permit:
+  1. Spacecraft is in sunlight (not in Earth cylindrical eclipse).
+  2. Battery SoC $\ge 30.0\%$.
+  3. Spacecraft is in `NOMINAL` or `SCIENCE_OPERATION` mode (rejected in `SAFE_MODE`, `LOW_POWER`, or `DECOMMISSIONED`).
+  4. Spacecraft is not in an active COMMS blackout anomaly.
+- Upon approval, the simulation deducts synthetic sensor power (0.3% SoC), calculates Ground Sample Distance ($GSD = h \times 0.0012$), logs an auditable entry, and emits an `IMAGING_CAPTURE_COMPLETED` event.
+
+### 9.5 Failure Lab Subsystem Extension Points
+- Minimal subsystem boundaries implemented: `EPS`, `TCS`, `ADCS`, `COMMS`, `PROP`, `OBC`, `PAYLOAD`.
+- `AnomalyManager` tracks active `AnomalyModifier` instances:
+  - `COMMS` blackout blocks all uplink telecommands to targeted spacecraft.
+  - `EPS` degradation compounds solar array power generation multipliers.
+  - Rest API endpoints (`/api/v1/anomalies`, `/api/v1/anomalies/inject`, `/api/v1/anomalies/{id}`) allow operator fault injection and clearance.
+
+### 9.6 Decoupled Continuous Simulation Scheduler
+- `ContinuousSimulationScheduler` runs on an isolated daemon background worker thread, advancing the simulation at a configurable tick rate (default 1 Hz, 1s step).
+- Controllable via `/api/v1/simulation/continuous/status`, `/start`, and `/stop`.
+- The core physics engine remains strictly deterministic and discrete; no `Thread.sleep` or wall-clock dependencies exist within domain logic.
+
+

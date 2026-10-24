@@ -4,23 +4,30 @@ import jakarta.validation.Valid;
 import org.astra.api.dto.AdvanceSimulationRequest;
 import org.astra.api.dto.SimulationStatusResponse;
 import org.astra.simulation.engine.SimulationEngine;
+import org.astra.simulation.scheduler.ContinuousSimulationScheduler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
-import java.time.Instant;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1/simulation")
 public class SimulationController {
 
     private final SimulationEngine simulationEngine;
+    private final ContinuousSimulationScheduler scheduler;
 
     @Autowired
-    public SimulationController(SimulationEngine simulationEngine) {
+    public SimulationController(
+            SimulationEngine simulationEngine,
+            Optional<ContinuousSimulationScheduler> scheduler
+    ) {
         this.simulationEngine = Objects.requireNonNull(simulationEngine, "simulationEngine must not be null");
+        this.scheduler = scheduler.orElse(null);
     }
 
     @GetMapping("/status")
@@ -58,5 +65,34 @@ public class SimulationController {
     public ResponseEntity<SimulationStatusResponse> resumeSimulation() {
         simulationEngine.resume();
         return getStatus();
+    }
+
+    @GetMapping("/continuous/status")
+    public ResponseEntity<Map<String, Object>> getContinuousStatus() {
+        if (scheduler == null) {
+            return ResponseEntity.ok(Map.of("supported", false));
+        }
+        return ResponseEntity.ok(scheduler.getStatus());
+    }
+
+    @PostMapping("/continuous/start")
+    public ResponseEntity<Map<String, Object>> startContinuous(
+            @RequestParam(defaultValue = "1.0") double tickRateHz,
+            @RequestParam(defaultValue = "1.0") double stepSeconds
+    ) {
+        if (scheduler == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Continuous scheduler not enabled"));
+        }
+        scheduler.start(tickRateHz, stepSeconds);
+        return ResponseEntity.ok(scheduler.getStatus());
+    }
+
+    @PostMapping("/continuous/stop")
+    public ResponseEntity<Map<String, Object>> stopContinuous() {
+        if (scheduler == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Continuous scheduler not enabled"));
+        }
+        scheduler.stop();
+        return ResponseEntity.ok(scheduler.getStatus());
     }
 }
