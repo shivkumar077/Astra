@@ -270,13 +270,21 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   name,
   type,
   reducedMotion = false,
-  scaleProgress = 1.0,
+  scaleProgress: _scaleProgress = 1.0,
   onToggleExpand,
   onSelect,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
   const [isHovered, setIsHovered] = useState<boolean>(false);
+
+  // Keep callback refs stable to prevent unmounting/re-creating WebGL renderer
+  const onToggleExpandRef = useRef(onToggleExpand);
+  const onSelectRef = useRef(onSelect);
+  useEffect(() => {
+    onToggleExpandRef.current = onToggleExpand;
+    onSelectRef.current = onSelect;
+  });
 
   const normId = destinationId.toLowerCase();
   const config = PLANET_CONFIGS[normId] || PLANET_CONFIGS.earth;
@@ -522,6 +530,168 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       scene.add(ambientLight);
     }
 
+    // -------------------------------------------------------------------------
+    // 4B. EXTRAVAGANT CELESTIAL DISINTEGRATION & STELLAR EMBER SYSTEM
+    // (Core collapse, shockwave ring & 420 radial cosmic particles)
+    // -------------------------------------------------------------------------
+    const emberCount = 420;
+    const emberPositions = new Float32Array(emberCount * 3);
+    const emberVelocities = new Float32Array(emberCount * 3);
+    const emberSpeeds = new Float32Array(emberCount);
+    const emberSizes = new Float32Array(emberCount);
+    const emberSeeds = new Float32Array(emberCount);
+
+    for (let i = 0; i < emberCount; i++) {
+      const u = Math.random();
+      const v = Math.random();
+      const theta = u * 2.0 * Math.PI;
+      const phi = Math.acos(2.0 * v - 1.0);
+      const r = sphereRadius * (0.95 + Math.random() * 0.1);
+
+      const sinPhi = Math.sin(phi);
+      const x = r * sinPhi * Math.cos(theta);
+      const y = r * sinPhi * Math.sin(theta);
+      const z = r * Math.cos(phi);
+
+      emberPositions[i * 3] = x;
+      emberPositions[i * 3 + 1] = y;
+      emberPositions[i * 3 + 2] = z;
+
+      const normLen = Math.sqrt(x * x + y * y + z * z) || 1.0;
+      const vx = x / normLen + (Math.random() - 0.5) * 0.45;
+      const vy = y / normLen + (Math.random() - 0.5) * 0.45;
+      const vz = z / normLen + (Math.random() - 0.5) * 0.45;
+      const vLen = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1.0;
+
+      emberVelocities[i * 3] = vx / vLen;
+      emberVelocities[i * 3 + 1] = vy / vLen;
+      emberVelocities[i * 3 + 2] = vz / vLen;
+
+      emberSpeeds[i] = 3.2 + Math.random() * 4.6;
+      emberSizes[i] = 0.8 + Math.random() * 1.5;
+      emberSeeds[i] = Math.random();
+    }
+
+    const emberGeometry = new THREE.BufferGeometry();
+    emberGeometry.setAttribute('position', new THREE.BufferAttribute(emberPositions, 3));
+    emberGeometry.setAttribute('aVelocity', new THREE.BufferAttribute(emberVelocities, 3));
+    emberGeometry.setAttribute('aSpeed', new THREE.BufferAttribute(emberSpeeds, 1));
+    emberGeometry.setAttribute('aSize', new THREE.BufferAttribute(emberSizes, 1));
+    emberGeometry.setAttribute('aSeed', new THREE.BufferAttribute(emberSeeds, 1));
+
+    const coreColor = config.isStar
+      ? new THREE.Color(0xfffbeb)
+      : new THREE.Color(config.atmosphereColor || config.secondaryColor);
+    const outerColor = config.isStar
+      ? new THREE.Color(0xea580c)
+      : new THREE.Color(config.primaryColor);
+
+    const disintegrationUniforms = {
+      uProgress: { value: 0.0 },
+      uTime: { value: 0.0 },
+      uSize: { value: 26.0 * Math.min(window.devicePixelRatio || 1, 1.75) },
+      uColorCore: { value: coreColor },
+      uColorOuter: { value: outerColor },
+    };
+
+    const emberMaterial = new THREE.ShaderMaterial({
+      uniforms: disintegrationUniforms,
+      vertexShader: `
+        uniform float uProgress;
+        uniform float uTime;
+        uniform float uSize;
+        attribute vec3 aVelocity;
+        attribute float aSpeed;
+        attribute float aSize;
+        attribute float aSeed;
+        varying float vAlpha;
+        varying float vLife;
+
+        void main() {
+          float t = pow(uProgress, 1.15) * aSpeed;
+          vec3 turbulentOffset = vec3(
+            sin(uTime * 3.5 + aSeed * 25.0),
+            cos(uTime * 3.2 + aSeed * 30.0),
+            sin(uTime * 2.8 + aSeed * 18.0)
+          ) * (uProgress * 0.45);
+
+          vec3 currentPos = position + aVelocity * t + turbulentOffset;
+          float fade = clamp(1.0 - (uProgress - 0.22) / 0.78, 0.0, 1.0);
+          float emergence = clamp(uProgress / 0.06, 0.0, 1.0);
+          float flicker = 0.75 + 0.25 * sin(uTime * 14.0 + aSeed * 45.0);
+
+          vAlpha = fade * emergence * flicker;
+          vLife = uProgress;
+
+          vec4 mvPosition = modelViewMatrix * vec4(currentPos, 1.0);
+          gl_PointSize = uSize * aSize * (1.0 - uProgress * 0.35) * (320.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 uColorCore;
+        uniform vec3 uColorOuter;
+        varying float vAlpha;
+        varying float vLife;
+
+        void main() {
+          vec2 coord = gl_PointCoord - vec2(0.5);
+          float dist = length(coord);
+          if (dist > 0.5) discard;
+
+          float radial = smoothstep(0.5, 0.0, dist);
+          vec3 col = mix(uColorCore, uColorOuter, clamp(dist * 1.4 + vLife * 0.7, 0.0, 1.0));
+          gl_FragColor = vec4(col, radial * vAlpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const emberPoints = new THREE.Points(emberGeometry, emberMaterial);
+    celestialGroup.add(emberPoints);
+
+    // Shockwave Coronal Flare Ring
+    const shockwaveGeo = new THREE.RingGeometry(sphereRadius * 0.75, sphereRadius * 1.25, 48);
+    const shockwaveMat = new THREE.MeshBasicMaterial({
+      color: config.isStar ? 0xffb74d : new THREE.Color(config.primaryColor),
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const shockwaveMesh = new THREE.Mesh(shockwaveGeo, shockwaveMat);
+    shockwaveMesh.visible = false;
+    celestialGroup.add(shockwaveMesh);
+
+    // Disintegration State Management (Driven via zero-overhead direct DOM calls)
+    let currentDisintegration = 0.0;
+    (container as any).__setDisintegration = (val: number) => {
+      currentDisintegration = Math.max(0.0, Math.min(1.0, val));
+    };
+
+    let burstAnimId: number | null = null;
+    (container as any).__triggerDisintegrationBurst = (onComplete?: () => void) => {
+      if (burstAnimId) cancelAnimationFrame(burstAnimId);
+      const startTime = performance.now();
+      const duration = 380; // Instant 380ms cinematic poof
+
+      const runBurst = (now: number) => {
+        const elapsed = now - startTime;
+        const p = Math.min(1.0, elapsed / duration);
+        currentDisintegration = p;
+        if (p < 1.0) {
+          burstAnimId = requestAnimationFrame(runBurst);
+        } else {
+          burstAnimId = null;
+          onComplete?.();
+        }
+      };
+      burstAnimId = requestAnimationFrame(runBurst);
+    };
+
     // 5. Interactive Pointer Gestures (Drag-to-rotate vs Click-to-expand)
     let isPointerDown = false;
     let startX = 0;
@@ -566,8 +736,8 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
 
       // If drag was very small (< 6px), treat as an intentional click/tap
       if (totalDragDist < 6) {
-        onToggleExpand?.();
-        onSelect?.();
+        onToggleExpandRef.current?.();
+        onSelectRef.current?.();
       }
     };
 
@@ -579,23 +749,57 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
     domElement.addEventListener('pointerup', handlePointerUp);
     domElement.addEventListener('pointercancel', handlePointerUp);
 
-    // 6. Animation Loop (Active only when visible in viewport)
+    // 6. Animation Loop (Active only when visible in viewport - pauses completely when offscreen)
     const rotationSpeed = reducedMotion ? 0.0006 : 0.0025;
     const clock = new THREE.Clock();
 
     const animate = () => {
-      if (isDisposed) return;
-
-      // Skip render calculations when off-screen
-      if (!isVisible) {
-        animId = requestAnimationFrame(animate);
-        return;
-      }
+      if (isDisposed || !isVisible) return;
 
       const elapsedTime = clock.getElapsedTime();
 
       if (sunUniforms) {
         sunUniforms.uTime.value = elapsedTime;
+      }
+
+      // Update Disintegration Particle System & Dynamic Core Collapse
+      const dProg = currentDisintegration;
+      disintegrationUniforms.uProgress.value = dProg;
+      disintegrationUniforms.uTime.value = elapsedTime;
+
+      if (dProg > 0.001) {
+        // "I want Sun to keep getting smaller and smaller and like poof, like disintegrate like that"
+        const coreScale = dProg < 0.6 ? Math.max(0.001, Math.pow(1.0 - dProg * 1.65, 2.0)) : 0.001;
+        sphereMesh.scale.set(coreScale, coreScale, coreScale);
+
+        if (glowMesh) {
+          const glowScale = dProg < 0.4 ? 1.0 + dProg * 1.2 : Math.max(0.001, (1.0 - dProg) * 2.2);
+          glowMesh.scale.set(glowScale, glowScale, glowScale);
+          glowMesh.visible = dProg < 0.75;
+        }
+
+        if (shockwaveMesh) {
+          if (dProg > 0.06 && dProg < 0.9) {
+            const s = 0.8 + (dProg - 0.06) * 4.2;
+            shockwaveMesh.scale.set(s, s, s);
+            shockwaveMat.opacity = Math.sin((dProg - 0.06) / 0.84 * Math.PI) * 0.85;
+            shockwaveMesh.visible = true;
+          } else {
+            shockwaveMesh.visible = false;
+          }
+        }
+
+        if (cloudsMesh) cloudsMesh.visible = dProg < 0.5;
+        if (ringMesh) ringMesh.visible = dProg < 0.55;
+      } else {
+        sphereMesh.scale.set(1, 1, 1);
+        if (glowMesh) {
+          glowMesh.scale.set(1, 1, 1);
+          glowMesh.visible = true;
+        }
+        if (shockwaveMesh) shockwaveMesh.visible = false;
+        if (cloudsMesh) cloudsMesh.visible = true;
+        if (ringMesh) ringMesh.visible = true;
       }
 
       if (!isPointerDown) {
@@ -624,6 +828,24 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       animId = requestAnimationFrame(animate);
     };
 
+    // 7. Visibility Culling via IntersectionObserver (Zero idle RAF loop)
+    if (typeof IntersectionObserver !== 'undefined') {
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            const wasVisible = isVisible;
+            isVisible = entry.isIntersecting;
+            if (!wasVisible && isVisible && !isDisposed) {
+              clock.start();
+              animId = requestAnimationFrame(animate);
+            }
+          }
+        },
+        { rootMargin: '60px' }
+      );
+      observer.observe(container);
+    }
+
     animate();
 
     const handleResize = () => {
@@ -637,9 +859,10 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
 
     window.addEventListener('resize', handleResize);
 
-    // 7. Complete Resource Disposal on Unmount
+    // 8. Complete Resource Disposal on Unmount
     return () => {
       isDisposed = true;
+      if (burstAnimId) cancelAnimationFrame(burstAnimId);
       if (observer) {
         observer.disconnect();
       }
@@ -673,16 +896,18 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
           cloudsMesh.material.dispose();
         }
       }
+
+      emberGeometry.dispose();
+      emberMaterial.dispose();
+      shockwaveGeo.dispose();
+      shockwaveMat.dispose();
+
       renderer.dispose();
       if (container && renderer.domElement && container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement);
       }
     };
-  }, [normId, config, reducedMotion, onToggleExpand, onSelect]);
-
-  // Continuous scroll scale-and-fade calculation
-  const clampedScale = reducedMotion ? 1.0 : Math.max(0.5, Math.min(1.0, 0.5 + 0.5 * (scaleProgress ?? 1.0)));
-  const clampedOpacity = reducedMotion ? 1.0 : Math.max(0.0, Math.min(1.0, (scaleProgress ?? 1.0) * 1.35));
+  }, [normId, reducedMotion]);
 
   return (
     <div
@@ -692,15 +917,11 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       role="button"
       tabIndex={0}
       aria-label={`Interactive 3D model of ${name} (${type}). Drag to rotate. Click to explore mission dossier.`}
-      style={{
-        transform: `scale(${clampedScale})`,
-        opacity: clampedOpacity,
-      }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          onToggleExpand?.();
-          onSelect?.();
+          onToggleExpandRef.current?.();
+          onSelectRef.current?.();
         }
       }}
       onMouseEnter={() => setIsHovered(true)}
@@ -735,8 +956,8 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
             cursor: 'pointer',
           }}
           onClick={() => {
-            onToggleExpand?.();
-            onSelect?.();
+            onToggleExpandRef.current?.();
+            onSelectRef.current?.();
           }}
         >
           {config.hasRings && (

@@ -18,6 +18,9 @@ export const PlanetaryScrollSection: React.FC<PlanetaryScrollSectionProps> = Rea
   reducedMotion = false,
 }) => {
   const isSun = destination.id.toLowerCase() === 'sun';
+  const handleToggleExpand = React.useCallback(() => {
+    onOpenDossier(destination);
+  }, [destination, onOpenDossier]);
 
   return (
     <section
@@ -46,7 +49,7 @@ export const PlanetaryScrollSection: React.FC<PlanetaryScrollSectionProps> = Rea
 
           <div className="astra-imagery-action-zone">
             <button
-              onClick={() => onOpenDossier(destination)}
+              onClick={handleToggleExpand}
               className="astra-hero-expand-btn"
               data-testid={`expand-world-${destination.id.toLowerCase()}`}
               aria-label={`Explore ${destination.name} mission dossier`}
@@ -83,7 +86,7 @@ export const PlanetaryScrollSection: React.FC<PlanetaryScrollSectionProps> = Rea
             type={destination.type}
             scaleProgress={scaleProgress}
             reducedMotion={reducedMotion}
-            onToggleExpand={() => onOpenDossier(destination)}
+            onToggleExpand={handleToggleExpand}
           />
         </div>
       </div>

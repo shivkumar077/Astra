@@ -313,11 +313,11 @@
 .astra-cinematic-planet-stage {
   position: relative;
   width: 100%;
-  min-height: 100vh;
+  min-height: 88vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 100px 48px;
+  padding: 60px 48px;
   box-sizing: border-box;
 }
 
@@ -1261,7 +1261,8 @@
 
 @media (max-width: 768px) {
   .astra-cinematic-planet-stage {
-    padding: 90px 20px 40px;
+    min-height: 80vh;
+    padding: 70px 20px 30px;
   }
 
   .astra-stage-title {

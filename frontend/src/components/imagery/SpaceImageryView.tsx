@@ -174,18 +174,28 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
             bgEl.style.opacity = `${bgProgress.toFixed(3)}`;
           }
 
-          // 2. Direct GPU transform/opacity updates for 3D visual model
+          // 2. Direct GPU transform/opacity updates for 3D visual model & Celestial Disintegration
           const visualEl = el.querySelector<HTMLElement>('.astra-planet-visual-root');
           if (visualEl) {
             if (reducedMotion) {
               visualEl.style.transform = 'none';
               visualEl.style.opacity = dist < vh * 0.7 ? '1.0' : '0.2';
+              if (typeof (visualEl as any).__setDisintegration === 'function') {
+                (visualEl as any).__setDisintegration(0.0);
+              }
             } else {
               // 3-Phase Cinematic Choreography: Departure, Celestial Passage, Arrival
-              const normDist = Math.min(1.0, dist / (vh * 0.85));
+              const normDist = Math.min(1.0, dist / (vh * 0.75));
               const progress = Math.max(0.0, 1.0 - normDist);
 
               const isDeparting = centerOffset < 0; // scrolled past, moving upwards
+
+              // Extravagant Celestial Disintegration ("poof, like disintegrate like that")
+              if (typeof (visualEl as any).__setDisintegration === 'function') {
+                const disProg = isDeparting ? Math.min(1.0, Math.max(0.0, (normDist - 0.08) / 0.58)) : 0.0;
+                (visualEl as any).__setDisintegration(disProg);
+              }
+
               const yOffset = isDeparting ? -28 * normDist : 28 * normDist;
               const zOffset = -140 * Math.pow(normDist, 1.3); // Authentic 3D depth recession/emergence
               const scale = 0.52 + 0.48 * Math.pow(progress, 1.4);
@@ -240,20 +250,32 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [destinations, reducedMotion]);
 
-  // Jump to Celestial Destination via smooth scrolling
+  // Jump to Celestial Destination via smooth scrolling with instant disintegration burst
   const handleSelectDestination = (destId: string) => {
-    setActiveDestinationId(destId.toLowerCase());
-    const element = document.getElementById(`destination-${destId.toLowerCase()}`);
+    const targetKey = destId.toLowerCase();
+    if (targetKey === activeDestinationIdRef.current) return;
+
+    // Trigger instant disintegration burst on currently departing world ("poof!")
+    const currentEl = document.getElementById(`destination-${activeDestinationIdRef.current}`);
+    const currentVisual = currentEl?.querySelector<HTMLElement>('.astra-planet-visual-root');
+    if (currentVisual && typeof (currentVisual as any).__triggerDisintegrationBurst === 'function') {
+      (currentVisual as any).__triggerDisintegrationBurst();
+    }
+
+    activeDestinationIdRef.current = targetKey;
+    setActiveDestinationId(targetKey);
+
+    const element = document.getElementById(`destination-${targetKey}`);
     if (element && typeof element.scrollIntoView === 'function') {
       element.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
     }
   };
 
   // Open Expanded Exploration Dossier for a Destination
-  const handleOpenDossier = (dest: PlanetaryDestination) => {
+  const handleOpenDossier = React.useCallback((dest: PlanetaryDestination) => {
     setDossierDestination(dest);
     setDossierOpen(true);
-  };
+  }, []);
 
   // Open Dedicated Imagery Archive Drawer
   const handleOpenArchive = (dest: PlanetaryDestination, query?: string) => {
@@ -479,7 +501,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
             <PlanetaryScrollSection
               key={dest.id}
               destination={dest}
-              scaleProgress={dest.id.toLowerCase() === activeDestinationId ? 1.0 : 0.6}
+              scaleProgress={1.0}
               onOpenDossier={handleOpenDossier}
               reducedMotion={reducedMotion}
             />
