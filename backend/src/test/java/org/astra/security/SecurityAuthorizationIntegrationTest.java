@@ -51,6 +51,20 @@ class SecurityAuthorizationIntegrationTest {
         mockMvc.perform(get("/api/v1/faults/scenarios"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(13)));
+
+        // HEAD requests on public read-only and health endpoints
+        mockMvc.perform(head("/actuator/health"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(head("/api/v1/imagery/destinations"))
+                .andExpect(status().isOk());
+
+        // CORS preflight OPTIONS request
+        mockMvc.perform(options("/api/v1/imagery/destinations")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "GET"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
     }
 
     @Test

@@ -99,14 +99,29 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler())
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // 1. Actuator health & info endpoints
-                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
+                        // 1. CORS Preflight OPTIONS requests
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                        // 2. WebSocket & STOMP transport
+                        // 2. Actuator health & info endpoints
+                        .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/actuator/health", "/actuator/info").permitAll()
+
+                        // 3. WebSocket & STOMP transport
                         .requestMatchers("/ws/**").permitAll()
 
-                        // 3. Public read-only queries (telemetry, spacecraft, simulation status, scenarios, space imagery)
+                        // 4. Public read-only queries (telemetry, spacecraft, simulation status, scenarios, space imagery)
                         .requestMatchers(HttpMethod.GET,
+                                "/api/v1/simulation/status",
+                                "/api/v1/simulation/continuous/status",
+                                "/api/v1/spacecraft/**",
+                                "/api/v1/faults/scenarios",
+                                "/api/v1/faults/**",
+                                "/api/v1/commands/**",
+                                "/api/v1/events/**",
+                                "/api/v1/anomalies/**",
+                                "/api/v1/imagery/**"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.HEAD,
                                 "/api/v1/simulation/status",
                                 "/api/v1/simulation/continuous/status",
                                 "/api/v1/spacecraft/**",

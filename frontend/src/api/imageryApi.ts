@@ -11,7 +11,18 @@ import {
   SpaceImagerySearchResult,
 } from '../types/imagery';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1';
+/**
+ * Resolves the API base URL.
+ * In development, defaults to relative '/api/v1' so requests are handled seamlessly by the Vite dev server proxy.
+ * Can be overridden via the VITE_API_BASE_URL environment variable when targeting a dedicated backend host.
+ */
+export function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+    return envUrl.trim().replace(/\/+$/, '');
+  }
+  return '/api/v1';
+}
 
 export class ImageryApiError extends Error {
   public readonly status: number;
@@ -25,30 +36,59 @@ export class ImageryApiError extends Error {
   }
 }
 
-async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      ...options?.headers,
-    },
-    ...options,
-  });
+export async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const baseUrl = getApiBaseUrl();
+  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${baseUrl}${normalizedEndpoint}`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        ...options?.headers,
+      },
+      ...options,
+    });
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    throw new ImageryApiError(
+      0,
+      `Unable to connect to ASTRA Gateway (${url}): ${errorMsg}. Ensure backend is running on port 8080.`,
+      endpoint
+    );
+  }
 
   if (!response.ok) {
     let errorMessage = `HTTP error ${response.status}: ${response.statusText}`;
     try {
-      const errorJson = await response.json();
-      if (errorJson && errorJson.message) {
-        errorMessage = errorJson.message;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const errorJson = await response.json();
+        if (errorJson && errorJson.message) {
+          errorMessage = errorJson.message;
+        }
+      } else {
+        const text = await response.text();
+        if (text && text.length > 0 && text.length < 300) {
+          errorMessage = text;
+        }
       }
     } catch {
-      // Ignore JSON parse errors for non-JSON responses
+      // Ignore body parsing failures
     }
     throw new ImageryApiError(response.status, errorMessage, endpoint);
   }
 
-  return response.json() as Promise<T>;
+  try {
+    return (await response.json()) as T;
+  } catch (err: unknown) {
+    throw new ImageryApiError(
+      response.status,
+      `Malformed JSON response from ASTRA Gateway at ${endpoint}: ${err instanceof Error ? err.message : String(err)}`,
+      endpoint
+    );
+  }
 }
 
 /**
