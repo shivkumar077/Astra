@@ -36,7 +36,11 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
 
   // Synchronized destination tracking with continuous scroll
   const [activeDestinationId, setActiveDestinationId] = useState<string>('sun');
-  const [scrollScales, setScrollScales] = useState<Record<string, number>>({});
+  const activeDestinationIdRef = useRef<string>('sun');
+
+  useEffect(() => {
+    activeDestinationIdRef.current = activeDestinationId;
+  }, [activeDestinationId]);
 
   // Active Exploration Dossier Drawer (Triggered by clicking 3D model or explore button)
   const [dossierDestination, setDossierDestination] = useState<PlanetaryDestination | null>(null);
@@ -102,7 +106,8 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   }, [selectedImage, drawerOpen, searchPanelOpen, dossierOpen, onReturnHome]);
 
   // -------------------------------------------------------------
-  // CONTINUOUS SCROLL MONITORING & SCALE-AND-FADE INTERPOLATION
+  // CONTINUOUS SCROLL MONITORING & DIRECT DOM INTERPOLATION
+  // (Prevents per-frame React re-renders while preserving smooth 60fps transitions)
   // -------------------------------------------------------------
   useEffect(() => {
     if (typeof window === 'undefined' || destinations.length === 0) return;
@@ -117,32 +122,36 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         const vh = window.innerHeight;
         const vCenter = vh * 0.5;
 
-        let closestId = activeDestinationId;
+        let closestId = activeDestinationIdRef.current;
         let minDistance = Infinity;
-        const newScales: Record<string, number> = {};
 
         destinations.forEach((dest) => {
-          const el = document.getElementById(`destination-${dest.id.toLowerCase()}`);
-          if (!el) {
-            newScales[dest.id.toLowerCase()] = 1.0;
-            return;
-          }
+          const normKey = dest.id.toLowerCase();
+          const el = document.getElementById(`destination-${normKey}`);
+          if (!el) return;
           const rect = el.getBoundingClientRect();
           const elCenter = rect.top + rect.height * 0.5;
           const dist = Math.abs(elCenter - vCenter);
 
           if (dist < minDistance) {
             minDistance = dist;
-            closestId = dest.id.toLowerCase();
+            closestId = normKey;
           }
 
-          // Continuous normalized progress: 1.0 at center, smoothly drops to 0.0 at vh away
+          // Direct DOM transform/opacity update (GPU composited, zero React reconciliation overhead)
           const progress = Math.max(0.0, Math.min(1.0, 1.0 - dist / (vh * 0.85)));
-          newScales[dest.id.toLowerCase()] = progress;
+          const visualEl = el.querySelector<HTMLElement>('.astra-planet-visual-root');
+          if (visualEl) {
+            const scale = reducedMotion ? 1.0 : Math.max(0.5, Math.min(1.0, 0.5 + 0.5 * progress));
+            const opacity = reducedMotion ? 1.0 : Math.max(0.0, Math.min(1.0, progress * 1.35));
+            visualEl.style.transform = `scale(${scale})`;
+            visualEl.style.opacity = `${opacity}`;
+          }
         });
 
-        setScrollScales(newScales);
-        if (closestId && closestId !== activeDestinationId) {
+        // Only trigger React state update when active destination actually changes
+        if (closestId && closestId !== activeDestinationIdRef.current) {
+          activeDestinationIdRef.current = closestId;
           setActiveDestinationId(closestId);
         }
 
@@ -154,7 +163,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     handleScroll();
 
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [destinations, activeDestinationId]);
+  }, [destinations, reducedMotion]);
 
   // Jump to Celestial Destination via smooth scrolling
   const handleSelectDestination = (destId: string) => {
@@ -385,7 +394,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
             <PlanetaryScrollSection
               key={dest.id}
               destination={dest}
-              scaleProgress={scrollScales[dest.id.toLowerCase()] ?? 1.0}
+              scaleProgress={dest.id.toLowerCase() === activeDestinationId ? 1.0 : 0.6}
               onOpenDossier={handleOpenDossier}
               reducedMotion={reducedMotion}
             />

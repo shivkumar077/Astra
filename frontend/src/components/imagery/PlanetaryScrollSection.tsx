@@ -11,7 +11,7 @@ interface PlanetaryScrollSectionProps {
   reducedMotion?: boolean;
 }
 
-export const PlanetaryScrollSection: React.FC<PlanetaryScrollSectionProps> = ({
+export const PlanetaryScrollSection: React.FC<PlanetaryScrollSectionProps> = React.memo(({
   destination,
   scaleProgress,
   onOpenDossier,
@@ -89,4 +89,4 @@ export const PlanetaryScrollSection: React.FC<PlanetaryScrollSectionProps> = ({
       </div>
     </section>
   );
-};
+});
