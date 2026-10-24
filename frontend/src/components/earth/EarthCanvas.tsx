@@ -435,6 +435,99 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     earthGroup.add(atmosphereMesh);
 
+    // 8b. Keplerian Orbital Trajectory System (LEO & GTO Mission Kinematics)
+    // Authentic aerospace orbital shells establishing the platform's satellite mission context
+    const orbitalGroup = new THREE.Group();
+    earthGroup.add(orbitalGroup);
+
+    // Track 1: LEO Polar/Inclined Orbital Shell (51.6 deg inclination, 2.42 units radius)
+    const leoPointsCount = 180;
+    const leoRadius = sphereRadius + 0.42; // R = 2.42
+    const leoPositions = new Float32Array((leoPointsCount + 1) * 3);
+    for (let i = 0; i <= leoPointsCount; i++) {
+      const theta = (i / leoPointsCount) * Math.PI * 2;
+      leoPositions[i * 3] = leoRadius * Math.cos(theta);
+      leoPositions[i * 3 + 1] = 0;
+      leoPositions[i * 3 + 2] = leoRadius * Math.sin(theta);
+    }
+    const leoGeom = new THREE.BufferGeometry();
+    leoGeom.setAttribute('position', new THREE.BufferAttribute(leoPositions, 3));
+    const leoMat = new THREE.LineBasicMaterial({
+      color: 0x90c5ff,
+      transparent: true,
+      opacity: 0.24,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const leoLine = new THREE.Line(leoGeom, leoMat);
+    const leoRingGroup = new THREE.Group();
+    leoRingGroup.rotation.x = THREE.MathUtils.degToRad(51.6);
+    leoRingGroup.rotation.z = THREE.MathUtils.degToRad(18.0);
+    leoRingGroup.add(leoLine);
+    orbitalGroup.add(leoRingGroup);
+
+    // Track 2: GTO (Geostationary Transfer Orbit) Eccentric Arc (28.5 deg inclination, semi-major 2.95)
+    const gtoPointsCount = 180;
+    const gtoPositions = new Float32Array((gtoPointsCount + 1) * 3);
+    const gtoA = sphereRadius + 0.95; // 2.95
+    const gtoE = 0.20; // Eccentricity
+    for (let i = 0; i <= gtoPointsCount; i++) {
+      const theta = (i / gtoPointsCount) * Math.PI * 2;
+      const r = (gtoA * (1.0 - gtoE * gtoE)) / (1.0 + gtoE * Math.cos(theta));
+      gtoPositions[i * 3] = r * Math.cos(theta);
+      gtoPositions[i * 3 + 1] = 0;
+      gtoPositions[i * 3 + 2] = r * Math.sin(theta);
+    }
+    const gtoGeom = new THREE.BufferGeometry();
+    gtoGeom.setAttribute('position', new THREE.BufferAttribute(gtoPositions, 3));
+    const gtoMat = new THREE.LineBasicMaterial({
+      color: 0xfde68a,
+      transparent: true,
+      opacity: 0.16,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const gtoLine = new THREE.Line(gtoGeom, gtoMat);
+    const gtoRingGroup = new THREE.Group();
+    gtoRingGroup.rotation.x = THREE.MathUtils.degToRad(28.5);
+    gtoRingGroup.rotation.y = THREE.MathUtils.degToRad(-35.0);
+    gtoRingGroup.add(gtoLine);
+    orbitalGroup.add(gtoRingGroup);
+
+    // Satellite Mission Node Beacon (Active transponder marker in LEO orbit)
+    const satBeaconGeom = new THREE.BufferGeometry();
+    satBeaconGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array([leoRadius, 0, 0]), 3));
+    const satBeaconMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2.0) },
+        uTime: { value: 0.0 },
+      },
+      vertexShader: `
+        uniform float uPixelRatio;
+        void main() {
+          gl_PointSize = clamp(6.0 * uPixelRatio, 4.0, 16.0);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float uTime;
+        void main() {
+          float r = length(gl_PointCoord - vec2(0.5));
+          if (r > 0.5) discard;
+          float core = exp(-r * r * 28.0);
+          float halo = exp(-r * 7.0) * 0.45;
+          float pulse = 0.82 + 0.18 * sin(uTime * 3.8);
+          vec3 beaconColor = vec3(1.0, 0.98, 0.92);
+          gl_FragColor = vec4(beaconColor, (core + halo) * pulse);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    const satBeacon = new THREE.Points(satBeaconGeom, satBeaconMat);
+    leoRingGroup.add(satBeacon);
+
     // 9. Rebuilt Meteor System: Incandescent Diamond Core & Emerging Diagonal Path
     // Trajectory spans from Upper-Left (-7.0, 4.8) through behind Earth to Lower-Right (7.0, -4.8)
     // Passing BEHIND Earth: situated at z = -3.2 with depthTest: true so it is occluded by Earth
@@ -632,20 +725,22 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     scene.add(ambientLight);
 
     // 12. Responsive Group Layout Calculations
-    // Mobile: Earth anchored in the lower 35% of the viewport (Y: -1.65 -> -1.35)
-    // Desktop: Earth anchored in the right hemisphere (X: 1.35 -> 1.68)
+    // Mobile: Earth anchored in the lower 35% of the viewport (Y: -1.55 -> -1.28)
+    // Desktop: Earth commands the right hemisphere (X: 1.28 -> 1.35, scale: 0.86 -> 1.18)
     const getLayoutParameters = (w: number, t: number) => {
       if (w >= 1024) {
-        // Desktop
-        const startX = 1.35;
-        const startY = -0.06;
-        const startZ = -1.6;
-        const startScale = 0.65;
+        // Desktop (>= 1024px): Balanced right-hemisphere presence
+        // Opening (t=0): Earth holds the right 50% with majestic scale (scale: 0.86, z: -0.95)
+        // Settled (t=1): Earth advances smoothly to frame the destination cards (scale: 1.18, z: 0.22)
+        const startX = 1.28;
+        const startY = -0.04;
+        const startZ = -0.95;
+        const startScale = 0.86;
 
-        const endX = 1.68;
+        const endX = 1.35;
         const endY = 0.02;
-        const endZ = 0.0;
-        const endScale = 1.0;
+        const endZ = 0.22;
+        const endScale = 1.18;
 
         return {
           x: THREE.MathUtils.lerp(startX, endX, t),
@@ -654,20 +749,20 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
           scale: THREE.MathUtils.lerp(startScale, endScale, t),
         };
       } else if (w >= 768) {
-        // Tablet
+        // Tablet (768px - 1023px): Harmonious right/center offset
         return {
-          x: THREE.MathUtils.lerp(0.95, 1.15, t),
-          y: THREE.MathUtils.lerp(-0.15, -0.10, t),
-          z: THREE.MathUtils.lerp(-2.0, -0.3, t),
-          scale: THREE.MathUtils.lerp(0.55, 0.85, t),
+          x: THREE.MathUtils.lerp(0.80, 1.02, t),
+          y: THREE.MathUtils.lerp(-0.08, -0.04, t),
+          z: THREE.MathUtils.lerp(-1.3, -0.15, t),
+          scale: THREE.MathUtils.lerp(0.68, 0.95, t),
         };
       } else {
         // Mobile (320px - 767px): framed strictly below the wordmark
         return {
           x: 0,
-          y: THREE.MathUtils.lerp(-1.65, -1.35, t),
-          z: THREE.MathUtils.lerp(-2.2, -0.8, t),
-          scale: THREE.MathUtils.lerp(0.52, 0.76, t),
+          y: THREE.MathUtils.lerp(-1.55, -1.28, t),
+          z: THREE.MathUtils.lerp(-1.8, -0.6, t),
+          scale: THREE.MathUtils.lerp(0.60, 0.85, t),
         };
       }
     };
@@ -757,6 +852,15 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       // Continuous axial rotation (Earth west-to-east)
       earthMesh.rotation.y += baseRotationSpeed;
       cloudMesh.rotation.y += baseRotationSpeed * cloudRotationMultiplier;
+
+      // Update active satellite beacon transponder along its Keplerian orbital track
+      satBeaconMat.uniforms.uTime.value = now * 0.001;
+      const satAngle = now * 0.00035;
+      satBeacon.position.set(
+        leoRadius * Math.cos(satAngle),
+        0,
+        leoRadius * Math.sin(satAngle)
+      );
 
       // Pointer parallax damping
       if (!reducedMotion) {
@@ -900,6 +1004,9 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       earthGeometry.dispose();
       cloudGeometry.dispose();
       atmosphereGeometry.dispose();
+      leoGeom.dispose();
+      gtoGeom.dispose();
+      satBeaconGeom.dispose();
       meteorGeometry.dispose();
       starTrailGeometry.dispose();
       starSparkGeometry.dispose();
@@ -912,6 +1019,9 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       earthMaterial.dispose();
       cloudMaterial.dispose();
       atmosphereMaterial.dispose();
+      leoMat.dispose();
+      gtoMat.dispose();
+      satBeaconMat.dispose();
       meteorMaterial.dispose();
       meteorPool.forEach((m) => m.material.dispose());
       starTrailMaterial.dispose();

@@ -71,6 +71,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           position: 'fixed',
           top: 0,
           left: 0,
+          right: 0,
           width: '100%',
           height: '100vh',
           zIndex: 2,
@@ -83,8 +84,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           transform: `translateY(${introTranslateY}px) scale(${introScale})`,
           pointerEvents: introOpacity > 0.08 ? 'auto' : 'none',
           transition: 'opacity 250ms cubic-bezier(0.16, 1, 0.3, 1)',
-          padding: '0 64px',
-          maxWidth: '1280px',
+          padding: '0 80px',
+          maxWidth: '1440px',
           margin: '0 auto',
         }}
       >
@@ -168,7 +169,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           )}
 
           <AstraWordmark
-            height="clamp(44px, 5.8vw, 76px)"
+            height="clamp(48px, 6.0vw, 80px)"
             color="var(--color-star-ivory)"
             accentColor="var(--color-star-warm)"
             style={{
@@ -183,12 +184,12 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           className="astra-editorial-statement"
           style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(17px, 2.1vw, 23px)',
+            fontSize: 'clamp(18px, 2.2vw, 24px)',
             fontStyle: 'italic',
             color: 'var(--color-text-muted)',
-            marginTop: '22px',
-            maxWidth: '520px',
-            lineHeight: 1.45,
+            marginTop: '24px',
+            maxWidth: '560px',
+            lineHeight: 1.48,
             filter: 'drop-shadow(0 2px 16px rgba(0, 0, 0, 0.8))',
             opacity: Math.max(1.0 - t * 3.5, 0),
             transition: 'opacity 250ms ease-out',
@@ -203,7 +204,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           style={{
             position: 'absolute',
             bottom: '48px',
-            left: '64px',
+            left: '80px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
@@ -249,12 +250,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           position: 'fixed',
           top: 0,
           left: 0,
+          right: 0,
           width: '100%',
+          maxWidth: '1440px',
+          margin: '0 auto',
           height: '100vh',
           zIndex: 10,
           display: 'flex',
           alignItems: 'center',
-          padding: '0 56px',
+          padding: '0 80px',
           opacity: settledOpacity,
           transform: `translateY(${settledTranslateY}px)`,
           pointerEvents: settledOpacity > 0.1 ? 'auto' : 'none',
@@ -265,7 +269,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           className="astra-settled-left"
           style={{
             width: '100%',
-            maxWidth: '640px',
+            maxWidth: '740px',
             display: 'flex',
             flexDirection: 'column',
             gap: '24px',
@@ -344,9 +348,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             className="astra-destination-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: '18px',
-              marginTop: '4px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '20px',
+              marginTop: '6px',
             }}
             data-testid="primary-entry-points"
           >
@@ -601,10 +605,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           outline: 1px solid var(--color-star-warm);
         }
 
+        /* Tablet & Laptop Framing Rules (769px - 1180px) */
+        @media (min-width: 769px) and (max-width: 1180px) {
+          .astra-intro-depth-plane,
+          .astra-settled-frame {
+            padding: 0 48px !important;
+          }
+          .astra-scroll-cue {
+            left: 48px !important;
+          }
+        }
+
         /* Responsive Mobile Framing Rules (320px - 768px) */
         @media (max-width: 768px) {
           .astra-intro-depth-plane {
-            padding: 0 20px !important;
+            padding: 0 24px !important;
             justify-content: flex-start !important;
             padding-top: clamp(74px, 12vh, 96px) !important;
             align-items: center !important;
@@ -631,7 +646,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             align-items: center !important;
           }
           .astra-settled-frame {
-            padding: 80px 20px 70px 20px !important;
+            padding: 80px 24px 70px 24px !important;
             overflow-y: auto !important;
             align-items: flex-start !important;
           }
