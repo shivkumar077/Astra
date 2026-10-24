@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { PlanetaryDestination, SpaceImageryItem, SpaceImagerySearchResult } from '../../types/imagery';
-import { getPlanetaryDestinations, searchImagery } from '../../api/imageryApi';
+import { PlanetaryDestination, SpaceImageryItem } from '../../types/imagery';
+import { getPlanetaryDestinations } from '../../api/imageryApi';
 import { SolarSystemNavigator } from './SolarSystemNavigator';
 import { PlanetaryScrollSection } from './PlanetaryScrollSection';
 import { PlanetaryDossierDrawer } from './PlanetaryDossierDrawer';
 import { DedicatedImageryDrawer } from './DedicatedImageryDrawer';
 import { ImageDetailModal } from './ImageDetailModal';
 import { preloadPlanetaryTexture } from './PlanetTextureGenerator';
-import { ArrowLeft, Search, RefreshCw, AlertCircle, Eye, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface SpaceImageryViewProps {
   onReturnHome: () => void;
@@ -82,15 +82,6 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   const [drawerDestination, setDrawerDestination] = useState<PlanetaryDestination | null>(null);
   const [drawerQuery, setDrawerQuery] = useState<string | undefined>(undefined);
 
-  // Compact Scientific Instrument Search
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [searching, setSearching] = useState<boolean>(false);
-  const [searchResults, setSearchResults] = useState<SpaceImagerySearchResult | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchPanelOpen, setSearchPanelOpen] = useState<boolean>(false);
-
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
   const loadDestinations = () => {
     setLoading(true);
     setError(null);
@@ -120,8 +111,6 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
           setSelectedImage(null);
         } else if (drawerOpen) {
           setDrawerOpen(false);
-        } else if (searchPanelOpen) {
-          setSearchPanelOpen(false);
         } else if (dossierOpen) {
           setDossierOpen(false);
         } else {
@@ -131,7 +120,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, drawerOpen, searchPanelOpen, dossierOpen, onReturnHome]);
+  }, [selectedImage, drawerOpen, dossierOpen, onReturnHome]);
 
   // Jump to Celestial Destination via direct smooth scrolling
   const handleSelectDestination = React.useCallback((destId: string) => {
@@ -248,7 +237,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
 
     const handleWheel = (e: WheelEvent) => {
       // Allow natural scroll inside drawers and modal overlays
-      if (dossierOpen || drawerOpen || searchPanelOpen || selectedImage) return;
+      if (dossierOpen || drawerOpen || selectedImage) return;
 
       if (Math.abs(e.deltaY) < 18) return;
 
@@ -289,7 +278,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (dossierOpen || drawerOpen || searchPanelOpen || selectedImage) return;
+      if (dossierOpen || drawerOpen || selectedImage) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
@@ -308,7 +297,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (dossierOpen || drawerOpen || searchPanelOpen || selectedImage) return;
+      if (dossierOpen || drawerOpen || selectedImage) return;
       if (e.changedTouches.length === 0) return;
       const touchEndY = e.changedTouches[0].clientY;
       const deltaY = touchStartY - touchEndY;
@@ -348,7 +337,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       window.removeEventListener('touchend', handleTouchEnd);
       if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
     };
-  }, [destinations, dossierOpen, drawerOpen, searchPanelOpen, selectedImage, handleSelectDestination]);
+  }, [destinations, dossierOpen, drawerOpen, selectedImage, handleSelectDestination]);
 
   // Open Expanded Exploration Dossier for a Destination
   const handleOpenDossier = React.useCallback((dest: PlanetaryDestination) => {
@@ -361,33 +350,6 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     setDrawerDestination(dest);
     setDrawerQuery(query);
     setDrawerOpen(true);
-  };
-
-  // Execute Compact Scientific Archive Search
-  const handleExecuteSearch = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    setSearching(true);
-    setSearchError(null);
-    setSearchPanelOpen(true);
-
-    searchImagery({ query: searchQuery.trim(), pageSize: 12 })
-      .then((data) => {
-        setSearchResults(data);
-        setSearching(false);
-      })
-      .catch((err) => {
-        setSearchError(err.message || 'Search request failed.');
-        setSearching(false);
-      });
-  };
-
-  const handleClearSearch = () => {
-    setSearchQuery('');
-    setSearchResults(null);
-    setSearchError(null);
-    setSearchPanelOpen(false);
   };
 
   return (
@@ -423,46 +385,11 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         <ArrowLeft size={16} />
       </button>
 
-      {/* 2. CENTERED SCIENTIFIC SEARCH INSTRUMENT */}
-      <header className="astra-floating-instrument-bar" role="banner">
-        <form onSubmit={handleExecuteSearch} className="astra-compact-search-instrument" role="search">
-          <Search size={14} className="astra-search-icon" aria-hidden="true" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search NASA scientific archive (e.g. 'Curiosity selfie', 'Jupiter Red Spot')..."
-            className="astra-compact-search-input"
-            aria-label="Search NASA multimedia archive"
-            data-testid="search-archive-input"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              className="astra-compact-clear-btn"
-              aria-label="Clear query"
-            >
-              <X size={12} />
-            </button>
-          )}
-          <button
-            type="submit"
-            className="astra-compact-submit-btn"
-            data-testid="search-archive-button"
-            aria-label="Dispatch NASA archive query"
-          >
-            DISPATCH
-          </button>
-        </form>
-
-        {/* Discreet Gateway Telemetry Indicator */}
-        <div className="astra-telemetry-badge" data-testid="gateway-status">
-          <span className="astra-telemetry-dot" />
-          <span>GATEWAY: NASA IMAGES API [CONNECTED]</span>
-        </div>
-      </header>
+      {/* 2. DISCREET NASA GATEWAY TELEMETRY BADGE */}
+      <div className="astra-floating-telemetry" data-testid="gateway-status">
+        <span className="astra-telemetry-dot" />
+        <span className="astra-telemetry-text">GATEWAY: NASA IMAGES API [CONNECTED]</span>
+      </div>
 
       {/* 3. COMPACT PLANETARY SIDEBAR (Synchronized with active scroll destination) */}
       {destinations.length > 0 && (
@@ -471,83 +398,6 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
           activeDestinationId={activeDestinationId}
           onSelectDestination={handleSelectDestination}
         />
-      )}
-
-      {/* 4. SEARCH RESULTS OVERLAY PANEL */}
-      {searchPanelOpen && (
-        <div
-          className="astra-search-overlay-backdrop"
-          data-testid="search-results-panel"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setSearchPanelOpen(false);
-          }}
-        >
-          <div className="astra-search-overlay-content">
-            <div className="astra-search-overlay-header">
-              <div>
-                <span className="astra-search-tag">[ NASA ARCHIVAL QUERY RESULTS ]</span>
-                <h3 className="astra-search-heading">
-                  Query: "{searchResults?.query || searchQuery}"
-                  {searchResults && ` (${searchResults.totalHits.toLocaleString()} records)`}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSearchPanelOpen(false)}
-                className="astra-drawer-close-btn"
-                aria-label="Close search overlay"
-              >
-                <X size={16} />
-                <span>CLOSE</span>
-              </button>
-            </div>
-
-            {searching && (
-              <div style={{ padding: '32px' }} data-testid="search-loading">
-                <div className="astra-skeleton" style={{ width: '100%', height: '220px' }} />
-              </div>
-            )}
-
-            {searchError && (
-              <div className="astra-error-banner" style={{ margin: '24px 0' }}>
-                <AlertCircle size={16} color="var(--color-critical)" />
-                <span>{searchError}</span>
-              </div>
-            )}
-
-            {!searching && searchResults && searchResults.items.length === 0 && (
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--color-text-muted)', padding: '24px' }}>
-                No records matched your query in NASA's public media library.
-              </p>
-            )}
-
-            {!searching && searchResults && searchResults.items.length > 0 && (
-              <div className="astra-imagery-grid" style={{ padding: '24px 0' }}>
-                {searchResults.items.map((item) => (
-                  <button
-                    key={item.nasaId}
-                    onClick={() => setSelectedImage(item)}
-                    className="astra-imagery-card"
-                    aria-label={`Inspect ${item.title}`}
-                  >
-                    <div className="astra-card-image-wrap">
-                      <img src={item.thumbnailUrl || ''} alt={item.title} className="astra-card-img" />
-                      <span className="astra-card-badge">{item.nasaId}</span>
-                    </div>
-                    <div className="astra-card-content">
-                      <span className="astra-card-title">{item.title}</span>
-                      <div className="astra-card-meta">
-                        <span>{item.center || 'NASA'}</span>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Eye size={11} /> Inspect
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       )}
 
       {/* 5. DESTINATIONS SKELETON LOADING */}

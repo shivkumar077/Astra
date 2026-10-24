@@ -286,23 +286,26 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
     expect(screen.queryByTestId('image-detail-modal')).not.toBeInTheDocument();
   });
 
-  it('executes global archive search and displays results in overlay drawer', async () => {
+  it('renders interactive 3D miniature celestial world with matching background theme when expanding dossier', async () => {
     render(<SpaceImageryView onReturnHome={vi.fn()} />);
 
-    const searchInput = screen.getByTestId('search-archive-input');
-    const searchBtn = screen.getByTestId('search-archive-button');
-
-    fireEvent.change(searchInput, { target: { value: 'Jupiter Europa' } });
-    fireEvent.click(searchBtn);
-
     await waitFor(() => {
-      expect(imageryApi.searchImagery).toHaveBeenCalledWith(
-        expect.objectContaining({ query: 'Jupiter Europa' })
-      );
-      expect(screen.getByTestId('search-results-panel')).toBeInTheDocument();
+      expect(screen.getByTestId('expand-world-sun')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Query: "Jupiter Europa"/i)).toBeInTheDocument();
+    // Expand Sun dossier
+    fireEvent.click(screen.getByTestId('expand-world-sun'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dossier-overlay-sun')).toBeInTheDocument();
+      expect(screen.getByTestId('dossier-miniature-sun')).toBeInTheDocument();
+      expect(screen.getByTestId('planet-visual-mini-sun')).toBeInTheDocument();
+    });
+
+    // Verify verified metrics strip and telemetry inside dossier
+    const sunDossier = screen.getByTestId('dossier-overlay-sun');
+    expect(within(sunDossier).getByText(/1 VERIFIED MISSIONS/i)).toBeInTheDocument();
+    expect(within(sunDossier).getByText(/INTERACTIVE 3D MINIATURE/i)).toBeInTheDocument();
   });
 
   it('handles destination loading failure with retry button', async () => {

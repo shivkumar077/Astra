@@ -6,6 +6,7 @@ import {
 } from '../../types/imagery';
 import { getFeaturedImagery, searchImagery } from '../../api/imageryApi';
 import { RoverShowcase } from './RoverShowcase';
+import { PlanetVisual } from './PlanetVisual';
 import { SignatureStar } from '../common/CelestialIcons';
 import {
   Sparkles,
@@ -15,6 +16,8 @@ import {
   AlertCircle,
   Filter,
   X,
+  Compass,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface PlanetaryDossierDrawerProps {
@@ -24,6 +27,69 @@ interface PlanetaryDossierDrawerProps {
   onOpenArchive: (destination: PlanetaryDestination, query?: string) => void;
   onSelectImage: (item: SpaceImageryItem) => void;
 }
+
+// Environmental visual color palette & atmospheric glow matching each celestial body
+const DESTINATION_THEMES: Record<string, {
+  accentColor: string;
+  glowColor: string;
+  bgGradient: string;
+  cardBorder: string;
+}> = {
+  sun: {
+    accentColor: 'var(--color-star-warm)',
+    glowColor: 'rgba(245, 158, 11, 0.40)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(251, 191, 36, 0.28) 0%, rgba(245, 158, 11, 0.12) 45%, rgba(20, 12, 4, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(245, 158, 11, 0.35)',
+  },
+  mercury: {
+    accentColor: '#a8a29e',
+    glowColor: 'rgba(168, 162, 158, 0.25)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(168, 162, 158, 0.22) 0%, rgba(120, 113, 108, 0.10) 45%, rgba(10, 9, 8, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(168, 162, 158, 0.25)',
+  },
+  venus: {
+    accentColor: '#fde68a',
+    glowColor: 'rgba(227, 187, 123, 0.35)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(253, 230, 138, 0.26) 0%, rgba(227, 187, 123, 0.12) 45%, rgba(16, 12, 5, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(227, 187, 123, 0.30)',
+  },
+  earth: {
+    accentColor: 'var(--color-earth-cyan)',
+    glowColor: 'rgba(56, 189, 248, 0.35)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.26) 0%, rgba(37, 99, 235, 0.14) 45%, rgba(4, 8, 22, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(56, 189, 248, 0.30)',
+  },
+  mars: {
+    accentColor: '#f97316',
+    glowColor: 'rgba(234, 88, 12, 0.35)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(234, 88, 12, 0.28) 0%, rgba(194, 65, 12, 0.14) 45%, rgba(16, 7, 5, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(234, 88, 12, 0.32)',
+  },
+  jupiter: {
+    accentColor: '#fbbf24',
+    glowColor: 'rgba(201, 144, 57, 0.35)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.26) 0%, rgba(201, 144, 57, 0.12) 45%, rgba(16, 10, 5, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(201, 144, 57, 0.30)',
+  },
+  saturn: {
+    accentColor: '#fde047',
+    glowColor: 'rgba(226, 191, 125, 0.35)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(254, 240, 138, 0.25) 0%, rgba(217, 119, 6, 0.12) 45%, rgba(16, 13, 7, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(226, 191, 125, 0.30)',
+  },
+  uranus: {
+    accentColor: '#38bdf8',
+    glowColor: 'rgba(112, 214, 255, 0.35)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(125, 211, 252, 0.26) 0%, rgba(56, 189, 248, 0.12) 45%, rgba(4, 14, 24, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(112, 214, 255, 0.30)',
+  },
+  neptune: {
+    accentColor: '#60a5fa',
+    glowColor: 'rgba(59, 130, 246, 0.38)',
+    bgGradient: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.28) 0%, rgba(29, 78, 216, 0.14) 45%, rgba(3, 6, 24, 0.6) 80%, rgba(10, 14, 22, 0.95) 100%)',
+    cardBorder: 'rgba(59, 130, 246, 0.32)',
+  },
+};
 
 export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
   destination,
@@ -90,38 +156,37 @@ export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
 
   if (!destination || !isOpen) return null;
 
-  const isSun = destination.id.toLowerCase() === 'sun';
+  const destKey = destination.id.toLowerCase();
+  const isSun = destKey === 'sun';
+  const theme = DESTINATION_THEMES[destKey] || DESTINATION_THEMES.sun;
 
   return (
     <div
       className="astra-dossier-overlay-backdrop"
-      data-testid={`dossier-overlay-${destination.id.toLowerCase()}`}
+      data-testid={`dossier-overlay-${destKey}`}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div className="astra-dossier-overlay-panel" role="dialog" aria-modal="true" aria-label={`${destination.name} Exploration Dossier`}>
-        {/* TOP BAR */}
+        {/* TOP BAR WITH CLOSE ACTION */}
         <div className="astra-dossier-panel-header">
-          <div>
-            <div className="astra-classification-row">
-              <SignatureStar
-                size={12}
-                color={isSun ? 'var(--color-star-warm)' : 'var(--color-earth-cyan)'}
-              />
-              <span className="astra-classification-text">
-                {destination.orbitalOrder === 0
-                  ? '[ 00 // CENTRAL STAR // SOLAR SYSTEM CORONA ]'
-                  : `[ 0${destination.orbitalOrder} // ${destination.type.replace('_', ' ')} // ${destination.name.toUpperCase()} SYSTEM ]`}
-              </span>
-            </div>
-            <h2 className="astra-dossier-panel-title">{destination.name} Exploration Dossier</h2>
+          <div className="astra-classification-row">
+            <SignatureStar
+              size={12}
+              color={theme.accentColor}
+            />
+            <span className="astra-classification-text" style={{ color: theme.accentColor }}>
+              {destination.orbitalOrder === 0
+                ? '[ 00 // CENTRAL STAR // SOLAR SYSTEM CORONA ]'
+                : `[ 0${destination.orbitalOrder} // ${destination.type.replace('_', ' ')} // ${destination.name.toUpperCase()} SYSTEM ]`}
+            </span>
           </div>
 
           <button
             onClick={onClose}
             className="astra-collapse-pill-btn"
-            data-testid={`collapse-world-${destination.id.toLowerCase()}`}
+            data-testid={`collapse-world-${destKey}`}
             aria-label="Close dossier and return to planetary journey"
           >
             <X size={14} />
@@ -129,9 +194,64 @@ export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
           </button>
         </div>
 
-        <p className="astra-world-summary" style={{ marginBottom: '24px' }}>
-          {destination.summary}
-        </p>
+        {/* HERO SHOWCASE: EDITORIAL INFO (LEFT) & MINIATURE 3D CELESTIAL WORLD (RIGHT) */}
+        <div
+          className="astra-dossier-hero-showcase"
+          style={{
+            borderColor: theme.cardBorder,
+          }}
+        >
+          {/* Left Column: Summary, Briefing, Verified Metrics */}
+          <div className="astra-dossier-hero-info">
+            <h2 className="astra-dossier-panel-title">{destination.name} Exploration Dossier</h2>
+            <p className="astra-world-summary">
+              {destination.summary}
+            </p>
+
+            <div className="astra-dossier-telemetry-strip">
+              <span className="astra-metric-pill">
+                <Compass size={11} />
+                <span>{destination.historicalMissions?.length || 0} VERIFIED MISSIONS</span>
+              </span>
+              {destination.activeRovers && destination.activeRovers.length > 0 && (
+                <span className="astra-metric-pill">
+                  <CheckCircle2 size={11} color="var(--color-nominal)" />
+                  <span>{destination.activeRovers.length} SURFACE ROVERS</span>
+                </span>
+              )}
+              <span className="astra-metric-pill">
+                <span>CLASSIFICATION: {destination.type.replace('_', ' ')}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Right Column: Miniature 3D Globe with Matching Background Scheme & Turn-in Animation */}
+          <div
+            className="astra-dossier-miniature-card"
+            style={{
+              background: theme.bgGradient,
+              borderColor: theme.cardBorder,
+              boxShadow: `0 8px 32px rgba(0, 0, 0, 0.6), 0 0 28px ${theme.glowColor}`,
+            }}
+            data-testid={`dossier-miniature-${destKey}`}
+          >
+            <div className="astra-dossier-miniature-canvas-wrap">
+              <PlanetVisual
+                destinationId={destination.id}
+                name={destination.name}
+                type={destination.type}
+                isExpanded={true}
+              />
+            </div>
+            <div className="astra-dossier-miniature-caption">
+              <span
+                className="astra-hud-pulse"
+                style={{ background: theme.accentColor, boxShadow: `0 0 8px ${theme.accentColor}` }}
+              />
+              <span>INTERACTIVE 3D MINIATURE</span>
+            </div>
+          </div>
+        </div>
 
         {/* 1. BOXED MISSION DOSSIER CARDS */}
         {destination.historicalMissions && destination.historicalMissions.length > 0 && (

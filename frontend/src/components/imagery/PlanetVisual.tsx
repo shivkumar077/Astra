@@ -269,6 +269,7 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   destinationId,
   name,
   type,
+  isExpanded = false,
   reducedMotion = false,
   scaleProgress: _scaleProgress = 1.0,
   onToggleExpand,
@@ -660,11 +661,11 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   return (
     <div
       ref={mountRef}
-      className={`astra-planet-visual-root ${config.isStar ? 'sun-visual-root' : ''}`.trim()}
-      data-testid={`planet-visual-${normId}`}
+      className={`astra-planet-visual-root ${config.isStar ? 'sun-visual-root' : ''} ${isExpanded ? 'is-miniature' : ''}`.trim()}
+      data-testid={isExpanded ? `planet-visual-mini-${normId}` : `planet-visual-${normId}`}
       role="button"
       tabIndex={0}
-      aria-label={`Interactive 3D model of ${name} (${type}). Drag to rotate. Click to explore mission dossier.`}
+      aria-label={`Interactive 3D model of ${name} (${type}). Drag to rotate.${!isExpanded ? ' Click to explore mission dossier.' : ''}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
@@ -675,14 +676,16 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Interactive HUD Cue */}
-      <div
-        className={`astra-planet-hud-cue ${isHovered ? 'visible' : ''}`}
-        aria-hidden="true"
-      >
-        <span className="astra-hud-pulse" />
-        <span className="astra-hud-label">CLICK CELESTIAL BODY TO EXPLORE DOSSIER</span>
-      </div>
+      {/* Interactive HUD Cue (Only displayed in large full-stage mode) */}
+      {!isExpanded && (
+        <div
+          className={`astra-planet-hud-cue ${isHovered ? 'visible' : ''}`}
+          aria-hidden="true"
+        >
+          <span className="astra-hud-pulse" />
+          <span className="astra-hud-label">CLICK CELESTIAL BODY TO EXPLORE DOSSIER</span>
+        </div>
+      )}
 
       {/* Tactical 2D Fallback for JSDOM / WebGL disabled environments */}
       {!webglAvailable && (
