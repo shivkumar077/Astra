@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: astra-backend
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+astra:
+  simulation:
+    initial-epoch: "2026-10-24T00:00:00Z"
+    default-step-seconds: 1.0
+    auto-start: true

@@ -257,3 +257,41 @@ The backend utilizes SLF4J with Logback configured for structured JSON output in
   - Simulation loop drift (jitter in ms between scheduled tick and execution).
   - WebSocket active subscriber count per spacecraft topic.
   - NASA external gateway latency and circuit breaker status.
+
+---
+
+## 8. Phase 2 Implementation Architecture: Deterministic Simulation Engine
+
+### 8.1 Astrodynamics & Coordinate Conventions
+- **Central Body:** Earth modeled with WGS 84 / EGM96 gravitational parameter $\mu_\oplus = 398600.4418 \text{ km}^3/\text{s}^2$ and equatorial mean radius $R_\oplus = 6378.137\text{ km}$.
+- **Standard Units:**
+  - Length / Distance: Kilometers [$\text{km}$]
+  - Velocity: Kilometers per second [$\text{km/s}$]
+  - Angles: Degrees [${}^\circ$] for human/domain contracts; Radians [$\text{rad}$] for internal trigonometric evaluation.
+- **Coordinate Reference Frames:**
+  - `ECI_J2000`: Earth-Centered Inertial (origin at Earth barycentre, fundamental plane along mean equator of J2000, X towards vernal equinox $\Upsilon$, Z towards celestial north pole).
+  - `PERIFOCAL_PQW`: Perifocal coordinate system centered on Earth with $\mathbf{P}$ towards periapsis, $\mathbf{Q}$ at $90^\circ$ in orbital plane, $\mathbf{W}$ normal to orbit.
+
+### 8.2 Analytical Keplerian Propagation & Solver
+- **Propagation Model:** Solves the two-body central-force Keplerian problem analytically from base epoch orbital elements $(a, e, i, \Omega, \omega, \nu_0)$ at $t_0$.
+- **Kepler Equation Solver:** Solves $M = E - e \sin E$ using Newton-Raphson iteration with quadratic convergence, tolerance $\epsilon = 10^{-12}\text{ rad}$, and a maximum iteration threshold of 100.
+- **Discretization Invariance:** Because propagation is evaluated analytically against the spacecraft's baseline orbital parameters, stepping $N$ seconds in 1 large jump versus $K$ small steps yields identical position and velocity vectors to within machine precision ($< 10^{-6}\text{ km}$), eliminating cumulative Runge-Kutta numerical integration drift.
+- **Physical Invariants:** Specific mechanical energy $\mathcal{E} = -\frac{\mu}{2a}$ and orbital period $T = 2\pi\sqrt{a^3/\mu}$ are strictly conserved.
+- **Eclipse Shadow Detection:** Implements a cylindrical shadow model along the anti-solar axis to determine orbital eclipse ingress/egress, dynamically driving simulated EPS solar array generation and battery discharge.
+
+### 8.3 Concurrency & Server-Authoritative State Management
+- **Synchronization:** `SimulationEngine` enforces thread safety via `ReentrantReadWriteLock`. Concurrent HTTP readers inspect authoritative state concurrently without locks colliding with synchronous batch simulation time advancements.
+- **Deterministic Simulation Clock:** `SimulationClock` is decoupled from the JVM wall-clock (`System.currentTimeMillis()`), progressing strictly through explicit `step(Duration)` invocations.
+
+### 8.4 REST API & DTO Endpoints Available
+- `GET /actuator/health` — Spring Boot system health status (`UP`).
+- `GET /api/v1/simulation/status` — Current authoritative simulation lifecycle, current epoch, elapsed time, and fleet count.
+- `POST /api/v1/simulation/advance` — Advance simulation clock and propagate all fleet satellites by `durationSeconds`.
+- `POST /api/v1/simulation/pause` — Pause simulation lifecycle.
+- `POST /api/v1/simulation/resume` — Resume simulation lifecycle.
+- `POST /api/v1/simulation/initialize` — Reset and populate baseline 3-vehicle fleet (`AURA-1`, `TERRA-OBS`, `SOLIS-RELAY`).
+- `GET /api/v1/spacecraft` — List summary of all active spacecraft.
+- `GET /api/v1/spacecraft/{id}` — Detailed physical, orbital state, and power metrics for spacecraft.
+- `POST /api/v1/spacecraft/{id}/commands` — Dispatch telecommands (`SET_OPERATIONAL_MODE`, `TRIGGER_SAFE_MODE`, etc.).
+- `GET /api/v1/spacecraft/{id}/telemetry` — Retrieve in-memory circular ring buffer telemetry history (with limit parameter).
+

@@ -1,0 +1,69 @@
+package org.astra.core.math;
+
+/**
+ * Fundamental astrodynamical and physical constants for planetary satellite simulation.
+ * <p>
+ * Reference Standards:
+ * <ul>
+ *   <li>WGS 84 / EGM96 Earth Gravitational Model</li>
+ *   <li>IERS Numerical Standards</li>
+ * </ul>
+ */
+public final class AstroConstants {
+
+    private AstroConstants() {
+        // Prevent instantiation of constants utility
+    }
+
+    /**
+     * Standard gravitational parameter of Earth (&mu; = GM_earth) in km^3 / s^2.
+     * WGS 84 / IERS 2010 standard value.
+     */
+    public static final double EARTH_MU_KM3_S2 = 398600.4418;
+
+    /**
+     * Equatorial radius of the Earth (WGS 84 semi-major axis) in kilometers [km].
+     */
+    public static final double EARTH_EQUATORIAL_RADIUS_KM = 6378.137;
+
+    /**
+     * Earth flattening factor (WGS 84).
+     */
+    public static final double EARTH_FLATTENING = 1.0 / 298.257223563;
+
+    /**
+     * Earth polar radius in kilometers [km].
+     */
+    public static final double EARTH_POLAR_RADIUS_KM = EARTH_EQUATORIAL_RADIUS_KM * (1.0 - EARTH_FLATTENING);
+
+    /**
+     * Mean solar radius in kilometers [km].
+     */
+    public static final double SUN_RADIUS_KM = 696340.0;
+
+    /**
+     * Astronomical Unit in kilometers [km].
+     */
+    public static final double ASTRONOMICAL_UNIT_KM = 149597870.7;
+
+    /**
+     * Standard vacuum speed of light in kilometers per second [km/s].
+     */
+    public static final double SPEED_OF_LIGHT_KM_S = 299792.458;
+
+    /**
+     * Standard solar flux constant at 1 AU in Watts per square meter [W/m^2].
+     */
+    public static final double SOLAR_FLUX_1AU_W_M2 = 1361.0;
+
+    /**
+     * Seconds in one standard Julian day.
+     */
+    public static final double SECONDS_PER_DAY = 86400.0;
+
+    /**
+     * Earth rotational angular velocity (&omega;_earth) in radians per second [rad/s].
+     * (360 degrees per sidereal day: 86164.0905 seconds)
+     */
+    public static final double EARTH_ROTATION_RATE_RAD_S = 7.292115e-5;
+}
