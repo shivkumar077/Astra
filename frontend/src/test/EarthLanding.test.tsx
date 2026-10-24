@@ -2,6 +2,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../App';
 import { EarthCanvas } from '../components/earth/EarthCanvas';
+import { EntryModal } from '../components/ui/EntryModal';
 import {
   SignatureStar,
   TerrestrialPlanet,
@@ -67,27 +68,27 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
     expect(within(spaceImageryBtn).getByText(/II\. SPACE IMAGERY/i)).toBeInTheDocument();
   });
 
-  it('opens and closes the mission control briefing modal and transitions to space imagery exploration', () => {
+  it('transitions to mission control operations console and space imagery exploration', () => {
     render(<App />);
 
-    // Initially modal is not open
-    expect(screen.queryByTestId('entry-modal')).not.toBeInTheDocument();
+    // Initially views are not open
+    expect(screen.queryByTestId('mission-control-view')).not.toBeInTheDocument();
     expect(screen.queryByTestId('space-imagery-view')).not.toBeInTheDocument();
 
-    // Click Mission Control
+    // Click Mission Control -> Transitions directly to Mission Control Operations Console
     const missionControlBtn = screen.getByTestId('entry-mission-control');
     fireEvent.click(missionControlBtn);
 
-    // Modal opens with Mission Control briefing
-    const mcModal = screen.getByTestId('entry-modal');
-    expect(mcModal).toBeInTheDocument();
-    expect(within(mcModal).getByText(/Flight Readiness/i)).toBeInTheDocument();
-    expect(within(mcModal).getByText(/ENGINEERING STAGE GATE: PHASE 2 IN PROGRESS/i)).toBeInTheDocument();
+    const mcView = screen.getByTestId('mission-control-view');
+    expect(mcView).toBeInTheDocument();
+    expect(within(mcView).getByTestId('mission-control-header')).toBeInTheDocument();
+    expect(within(mcView).getByTestId('return-to-landing')).toBeInTheDocument();
 
-    // Close via acknowledge button
-    const ackButton = within(mcModal).getByRole('button', { name: /ACKNOWLEDGE & RETURN/i });
-    fireEvent.click(ackButton);
-    expect(screen.queryByTestId('entry-modal')).not.toBeInTheDocument();
+    // Return to Landing via Return button
+    const returnFromMc = within(mcView).getByTestId('return-to-landing');
+    fireEvent.click(returnFromMc);
+    expect(screen.queryByTestId('mission-control-view')).not.toBeInTheDocument();
+    expect(screen.getByTestId('entry-mission-control')).toBeInTheDocument();
 
     // Click Space Imagery -> Transitions to Space Imagery exploration experience
     const spaceImageryBtn = screen.getByTestId('entry-space-imagery');
@@ -126,14 +127,38 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
     expect(screen.queryByText(/motion: reduced/i)).not.toBeInTheDocument();
   });
 
-  it('handles Escape key to dismiss the entry modal', () => {
+  it('handles Escape key to return from mission control', () => {
     render(<App />);
 
     const missionControlBtn = screen.getByTestId('entry-mission-control');
     fireEvent.click(missionControlBtn);
-    expect(screen.getByTestId('entry-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('mission-control-view')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByTestId('mission-control-view')).not.toBeInTheDocument();
+    expect(screen.getByTestId('entry-mission-control')).toBeInTheDocument();
+  });
+
+  it('renders entry modal briefing and closes via acknowledge or escape when modal is used', () => {
+    const handleClose = vi.fn();
+    const { rerender } = render(<EntryModal destination="mission-control" onClose={handleClose} />);
+
+    const modal = screen.getByTestId('entry-modal');
+    expect(modal).toBeInTheDocument();
+    expect(within(modal).getByText(/Flight Readiness/i)).toBeInTheDocument();
+    expect(within(modal).getByText(/ENGINEERING STAGE GATE: PHASE 2 IN PROGRESS/i)).toBeInTheDocument();
+
+    // Close via acknowledge button
+    const ackBtn = within(modal).getByRole('button', { name: /ACKNOWLEDGE & RETURN/i });
+    fireEvent.click(ackBtn);
+    expect(handleClose).toHaveBeenCalledTimes(1);
+
+    // Escape key
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(handleClose).toHaveBeenCalledTimes(2);
+
+    // Null destination renders nothing
+    rerender(<EntryModal destination={null} onClose={handleClose} />);
     expect(screen.queryByTestId('entry-modal')).not.toBeInTheDocument();
   });
 

@@ -1,0 +1,1001 @@
+/* ==============================================================================
+   ASTRA MISSION CONTROL — FUTURISTIC VISUAL IDENTITY & AEROSPACE STYLES
+   Art Direction: Precision-Engineered Spacecraft Operations × Cinematic Telemetry
+   ============================================================================== */
+
+/* ------------------------------------------------------------------------------
+   1. ROOT OPERATIONAL WORKSPACE
+   ------------------------------------------------------------------------------ */
+.astra-mc-root {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background-color: #04060a;
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  background-image: 
+    radial-gradient(1px 1px at 24px 32px, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1px 1px at 120px 80px, rgba(56, 189, 248, 0.3), transparent),
+    radial-gradient(1px 1px at 260px 180px, rgba(255, 255, 255, 0.25), transparent),
+    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+  background-size: 320px 320px, 480px 480px, 360px 360px, 40px 40px, 40px 40px;
+}
+
+/* Subtle aerospace scanline ambiance */
+.astra-mc-root::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(56, 189, 248, 0.008) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  z-index: 99;
+}
+
+/* ------------------------------------------------------------------------------
+   2. TOP COMMAND HEADER & TACTICAL TELEMETRY BAR
+   ------------------------------------------------------------------------------ */
+.astra-mc-header {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: rgba(6, 9, 14, 0.88);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75);
+}
+
+.astra-mc-header-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.astra-mc-return-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 6px 14px;
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.astra-mc-return-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: var(--color-earth-cyan);
+  color: var(--color-earth-cyan);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+}
+
+.astra-mc-title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.astra-mc-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-mc-brand-name {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--color-text-display);
+}
+
+.astra-mc-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  padding: 2px 7px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: var(--color-earth-cyan);
+}
+
+.astra-mc-subtitle {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-ghost);
+  text-transform: uppercase;
+}
+
+.astra-mc-header-center {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.astra-mc-clock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.astra-mc-clock-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--color-text-ghost);
+}
+
+.astra-mc-clock-val {
+  font-size: 12px;
+  color: var(--color-text-display);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.astra-mc-header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.astra-mc-gateway-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(10, 14, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-muted);
+}
+
+.astra-mc-gateway-chip.status-connected {
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #34d399;
+}
+
+.astra-mc-gateway-chip.status-connecting {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+}
+
+.astra-mc-gateway-chip.status-disconnected,
+.astra-mc-gateway-chip.status-error {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #f87171;
+}
+
+.astra-mc-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: astraPulse 2s infinite ease-in-out;
+}
+
+@keyframes astraPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
+
+.astra-mc-sim-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  padding: 3px 6px;
+}
+
+.astra-mc-sim-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 4px 8px;
+  border-radius: 2px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.astra-mc-sim-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-text-display);
+}
+
+.astra-mc-sim-btn.active {
+  background: rgba(56, 189, 248, 0.16);
+  border: 1px solid var(--color-earth-cyan);
+  color: var(--color-earth-cyan);
+}
+
+/* ------------------------------------------------------------------------------
+   3. OPERATIONAL GRID LAYOUT (TRI-CHAMBER SYSTEM)
+   ------------------------------------------------------------------------------ */
+.astra-mc-main-workspace {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 340px 1fr 430px;
+  height: calc(100vh - 66px);
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------------------
+   4. LEFT COLUMN: FLEET ROSTER & ACTIVE CRAFT SELECTION
+   ------------------------------------------------------------------------------ */
+.astra-mc-fleet-panel {
+  background: rgba(8, 11, 18, 0.92);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  position: relative;
+  z-index: 20;
+}
+
+.astra-mc-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 16, 26, 0.8);
+}
+
+.astra-mc-panel-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--color-text-display);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-mc-fleet-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-earth-cyan);
+}
+
+.astra-mc-craft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 14px;
+}
+
+.astra-mc-craft-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 16px;
+  background: rgba(14, 18, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+}
+
+.astra-mc-craft-card:hover {
+  background: rgba(22, 28, 44, 0.75);
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateX(2px);
+}
+
+.astra-mc-craft-card.active {
+  background: rgba(20, 28, 46, 0.95);
+  border-color: rgba(56, 189, 248, 0.4);
+  border-left: 3px solid var(--color-earth-cyan);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 24px rgba(56, 189, 248, 0.06);
+}
+
+.astra-mc-craft-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.astra-mc-craft-callsign {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-display);
+  line-height: 1.1;
+}
+
+.astra-mc-craft-name {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.astra-mc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.astra-mc-status-pill.status-nominal {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.astra-mc-status-pill.status-degraded {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.astra-mc-status-pill.status-critical {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.astra-mc-craft-metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.astra-mc-craft-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.astra-mc-metric-k {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-ghost);
+  letter-spacing: 0.08em;
+}
+
+.astra-mc-metric-v {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------------------
+   5. CENTER STAGE: 3D ORBITAL VISUALIZATION VIEWPORT
+   ------------------------------------------------------------------------------ */
+.astra-mc-center-viewport {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #030407;
+  overflow: hidden;
+  height: 100%;
+}
+
+.astra-mc-canvas-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.astra-mc-canvas-container:active {
+  cursor: grabbing;
+}
+
+/* Viewport HUD Overlays */
+.astra-mc-viewport-hud {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.astra-mc-hud-target-card {
+  pointer-events: auto;
+  background: rgba(10, 14, 22, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.astra-mc-hud-target-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--color-earth-cyan);
+  text-transform: uppercase;
+}
+
+.astra-mc-hud-target-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-text-display);
+  line-height: 1.1;
+}
+
+.astra-mc-hud-controls {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-mc-hud-btn {
+  background: rgba(10, 14, 22, 0.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 6px 12px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.astra-mc-hud-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-display);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.astra-mc-hud-btn.active {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: var(--color-earth-cyan);
+  color: var(--color-earth-cyan);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+/* Bottom HUD Telemetry Strip */
+.astra-mc-viewport-bottom-hud {
+  position: absolute;
+  bottom: 16px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.astra-mc-orbital-metrics-bar {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: rgba(10, 14, 22, 0.88);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 8px 18px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+.astra-mc-hud-metric-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.astra-mc-hud-metric-k {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-ghost);
+  letter-spacing: 0.12em;
+}
+
+.astra-mc-hud-metric-v {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------------------------
+   6. RIGHT COLUMN: TABBED OPERATIONS CONSOLE
+   ------------------------------------------------------------------------------ */
+.astra-mc-ops-panel {
+  background: rgba(8, 11, 18, 0.94);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  z-index: 20;
+}
+
+.astra-mc-nav-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 16, 26, 0.9);
+  padding: 0 8px;
+}
+
+.astra-mc-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 180ms ease;
+  text-transform: uppercase;
+}
+
+.astra-mc-tab-btn:hover {
+  color: var(--color-text-display);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.astra-mc-tab-btn.active {
+  color: var(--color-earth-cyan);
+  border-bottom-color: var(--color-earth-cyan);
+  background: rgba(56, 189, 248, 0.06);
+}
+
+.astra-mc-tab-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ------------------------------------------------------------------------------
+   7. TELEMETRY MATRIX & SUBSYSTEM GAUGES
+   ------------------------------------------------------------------------------ */
+.astra-mc-telemetry-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.astra-mc-section-legend {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-text-ghost);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-mc-subsystems-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.astra-mc-subsystem-box {
+  background: rgba(14, 19, 30, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astra-mc-subsystem-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.astra-mc-subsystem-name {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--color-text-display);
+}
+
+.astra-mc-subsystem-metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.astra-mc-subsystem-metric-label {
+  color: var(--color-text-ghost);
+}
+
+.astra-mc-subsystem-metric-value {
+  color: var(--color-text-display);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------------------
+   8. COMMAND & CONTROL TERMINAL
+   ------------------------------------------------------------------------------ */
+.astra-mc-command-console {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.astra-mc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astra-mc-form-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-ghost);
+  text-transform: uppercase;
+}
+
+.astra-mc-select,
+.astra-mc-input {
+  background: rgba(14, 18, 28, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  outline: none;
+  transition: all 160ms ease;
+}
+
+.astra-mc-select:focus,
+.astra-mc-input:focus {
+  border-color: var(--color-earth-cyan);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+}
+
+.astra-mc-btn-dispatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.2), rgba(14, 165, 233, 0.3));
+  border: 1px solid var(--color-earth-cyan);
+  border-radius: var(--radius-xs);
+  padding: 12px 18px;
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  box-shadow: 0 4px 18px rgba(56, 189, 248, 0.2);
+}
+
+.astra-mc-btn-dispatch:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.35), rgba(14, 165, 233, 0.5));
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(56, 189, 248, 0.35);
+}
+
+.astra-mc-btn-dispatch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.astra-mc-command-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.astra-mc-history-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(12, 16, 24, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
+}
+
+.astra-mc-history-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.astra-mc-history-cmd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-display);
+}
+
+.astra-mc-history-msg {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* ------------------------------------------------------------------------------
+   9. FAILURE LAB & ANOMALY DRAWER
+   ------------------------------------------------------------------------------ */
+.astra-mc-failure-lab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.astra-mc-active-faults-banner {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius-xs);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.astra-mc-fault-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(20, 10, 12, 0.85);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+}
+
+.astra-mc-fault-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.astra-mc-fault-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: #f87171;
+}
+
+.astra-mc-fault-desc {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--color-text-body);
+}
+
+.astra-mc-fault-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.astra-mc-btn-recover {
+  background: rgba(16, 185, 129, 0.16);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-xs);
+  padding: 4px 10px;
+  color: #34d399;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.astra-mc-btn-recover:hover {
+  background: rgba(16, 185, 129, 0.3);
+  color: #fff;
+}
+
+.astra-mc-btn-clear-alert {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  padding: 4px 10px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.astra-mc-btn-clear-alert:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-text-display);
+}
+
+/* ------------------------------------------------------------------------------
+   10. EVENT TIMELINE FEED
+   ------------------------------------------------------------------------------ */
+.astra-mc-event-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.astra-mc-event-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(12, 16, 26, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 2px solid rgba(56, 189, 248, 0.4);
+  border-radius: var(--radius-xs);
+}
+
+.astra-mc-event-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.astra-mc-event-type {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--color-earth-cyan);
+}
+
+.astra-mc-event-time {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-ghost);
+}
+
+.astra-mc-event-summary {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--color-text-body);
+  line-height: 1.4;
+}
+
+/* ------------------------------------------------------------------------------
+   11. RESPONSIVE DESIGN BREAKPOINTS
+   ------------------------------------------------------------------------------ */
+@media (max-width: 1280px) {
+  .astra-mc-main-workspace {
+    grid-template-columns: 280px 1fr 380px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .astra-mc-main-workspace {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow-y: auto;
+  }
+
+  .astra-mc-fleet-panel {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    max-height: 240px;
+  }
+
+  .astra-mc-center-viewport {
+    height: 480px;
+    min-height: 480px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .astra-mc-ops-panel {
+    border-left: none;
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 640px) {
+  .astra-mc-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .astra-mc-header-center {
+    display: none;
+  }
+
+  .astra-mc-center-viewport {
+    height: 340px;
+    min-height: 340px;
+  }
+
+  .astra-mc-subsystems-matrix {
+    grid-template-columns: 1fr;
+  }
+
+  .astra-mc-orbital-metrics-bar {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   12. ACCESSIBILITY & PREFERS-REDUCED-MOTION
+   ------------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .astra-mc-pulse-dot,
+  .astra-mc-root::after {
+    animation: none !important;
+  }
+}

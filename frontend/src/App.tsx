@@ -5,11 +5,17 @@ import { Footer } from './components/ui/Footer';
 import { EarthCanvas } from './components/earth/EarthCanvas';
 import { EntryModal, DestinationType } from './components/ui/EntryModal';
 import { SpaceImageryView } from './components/imagery/SpaceImageryView';
+import { MissionControlView } from './components/missionControl/MissionControlView';
 
 export const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'landing' | 'space-imagery'>(() => {
-    if (typeof window !== 'undefined' && window.location.hash === '#space-imagery') {
-      return 'space-imagery';
+  const [viewMode, setViewMode] = useState<'landing' | 'space-imagery' | 'mission-control'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.hash === '#space-imagery') {
+        return 'space-imagery';
+      }
+      if (window.location.hash === '#mission-control') {
+        return 'mission-control';
+      }
     }
     return 'landing';
   });
@@ -38,6 +44,8 @@ export const App: React.FC = () => {
       if (typeof window !== 'undefined') {
         if (window.location.hash === '#space-imagery') {
           setViewMode('space-imagery');
+        } else if (window.location.hash === '#mission-control') {
+          setViewMode('mission-control');
         } else {
           setViewMode('landing');
         }
@@ -75,6 +83,11 @@ export const App: React.FC = () => {
       if (typeof window !== 'undefined') {
         window.location.hash = 'space-imagery';
       }
+    } else if (dest === 'mission-control') {
+      setViewMode('mission-control');
+      if (typeof window !== 'undefined') {
+        window.location.hash = 'mission-control';
+      }
     } else {
       setMissionControlModalOpen(true);
     }
@@ -90,6 +103,15 @@ export const App: React.FC = () => {
   if (viewMode === 'space-imagery') {
     return (
       <SpaceImageryView
+        onReturnHome={handleReturnHome}
+        reducedMotion={reducedMotion}
+      />
+    );
+  }
+
+  if (viewMode === 'mission-control') {
+    return (
+      <MissionControlView
         onReturnHome={handleReturnHome}
         reducedMotion={reducedMotion}
       />
