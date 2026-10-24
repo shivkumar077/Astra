@@ -427,5 +427,47 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
     const visualElement = screen.getByTestId('planet-visual-sun');
     expect(visualElement).toBeInTheDocument();
   });
+
+  it('renders dedicated mobile 3D celestial world showcase inside dossier drawer for phone view', async () => {
+    render(<SpaceImageryView onReturnHome={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('expand-world-sun')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTestId('expand-world-sun'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dossier-mobile-sun')).toBeInTheDocument();
+      expect(screen.getByTestId('planet-visual-mobile-sun')).toBeInTheDocument();
+    });
+
+    const mobileShowcase = screen.getByTestId('dossier-mobile-sun');
+    expect(mobileShowcase).toHaveClass('astra-dossier-mobile-planet-showcase');
+    expect(within(mobileShowcase).getByText(/3D MODEL/i)).toBeInTheDocument();
+  });
+
+  it('supports single-step wheel jumping between celestial worlds and dampens inertia', async () => {
+    render(<SpaceImageryView onReturnHome={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('nav-item-sun')).toBeInTheDocument();
+    });
+
+    const scrollIntoViewMock = vi.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
+
+    // Wheel down once: jumps forward from Sun to Mercury
+    fireEvent.wheel(window, { deltaY: 80 });
+    expect(scrollIntoViewMock).toHaveBeenCalledWith(
+      expect.objectContaining({ behavior: 'smooth', block: 'start' })
+    );
+
+    // Rapid secondary wheel jitter during active lock is damped
+    fireEvent.wheel(window, { deltaY: 60 });
+    // Still only called for the single destination step
+    expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+  });
 });
+
 

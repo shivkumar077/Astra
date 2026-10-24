@@ -208,13 +208,15 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
 
   // -------------------------------------------------------------
   // DIRECT DESTINATION SNAPPING CONTROLLER
-  // (Instant, discrete destination hopping with no dead transition zone)
+  // (Instant, discrete single-step destination hopping with no runaway inertia)
   // -------------------------------------------------------------
   useEffect(() => {
     if (typeof window === 'undefined' || destinations.length === 0) return;
 
     let isSnapping = false;
-    let snapCooldownTimer: NodeJS.Timeout | null = null;
+    let minLockActive = false;
+    let minLockTimer: NodeJS.Timeout | null = null;
+    let inertiaSettleTimer: NodeJS.Timeout | null = null;
     let touchStartY = 0;
 
     const snapToNext = () => {
@@ -239,40 +241,48 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       // Allow natural scroll inside drawers and modal overlays
       if (dossierOpen || drawerOpen || selectedImage) return;
 
-      if (Math.abs(e.deltaY) < 18) return;
+      // Always prevent page from freely drifting or scrolling past Neptune
+      e.preventDefault();
 
-      if (isSnapping) {
-        e.preventDefault();
-        return;
-      }
+      // Extend inertia settle timer on every wheel event
+      if (inertiaSettleTimer) clearTimeout(inertiaSettleTimer);
+      inertiaSettleTimer = setTimeout(() => {
+        if (!minLockActive) {
+          isSnapping = false;
+        }
+      }, 220);
+
+      // If already mid-step or within minimum lock window, ignore further step triggers
+      if (isSnapping) return;
+
+      // Filter micro-jitter
+      if (Math.abs(e.deltaY) < 14) return;
+
+      const currentIdx = destinations.findIndex(
+        (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
+      );
 
       if (e.deltaY > 0) {
-        // Scrolling down -> snap directly to next destination
-        const currentIdx = destinations.findIndex(
-          (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
-        );
-        if (currentIdx < destinations.length - 1) {
-          e.preventDefault();
+        // Scrolling down -> jump exactly ONE planet forward (e.g. Jupiter to Saturn)
+        if (currentIdx !== -1 && currentIdx < destinations.length - 1) {
           isSnapping = true;
+          minLockActive = true;
+          if (minLockTimer) clearTimeout(minLockTimer);
+          minLockTimer = setTimeout(() => {
+            minLockActive = false;
+          }, 600);
           snapToNext();
-          if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
-          snapCooldownTimer = setTimeout(() => {
-            isSnapping = false;
-          }, 460);
         }
       } else if (e.deltaY < 0) {
-        // Scrolling up -> snap directly to previous destination
-        const currentIdx = destinations.findIndex(
-          (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
-        );
+        // Scrolling up -> jump exactly ONE planet backward (e.g. Saturn to Jupiter)
         if (currentIdx > 0) {
-          e.preventDefault();
           isSnapping = true;
+          minLockActive = true;
+          if (minLockTimer) clearTimeout(minLockTimer);
+          minLockTimer = setTimeout(() => {
+            minLockActive = false;
+          }, 600);
           snapToPrev();
-          if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
-          snapCooldownTimer = setTimeout(() => {
-            isSnapping = false;
-          }, 460);
         }
       }
     };
@@ -302,26 +312,30 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       const touchEndY = e.changedTouches[0].clientY;
       const deltaY = touchStartY - touchEndY;
 
-      if (Math.abs(deltaY) < 45) return;
+      if (Math.abs(deltaY) < 40) return;
 
       if (isSnapping) return;
 
       if (deltaY > 0) {
         // Swiped up -> snap down to next world
         isSnapping = true;
-        snapToNext();
-        if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
-        snapCooldownTimer = setTimeout(() => {
+        minLockActive = true;
+        if (minLockTimer) clearTimeout(minLockTimer);
+        minLockTimer = setTimeout(() => {
+          minLockActive = false;
           isSnapping = false;
-        }, 460);
+        }, 550);
+        snapToNext();
       } else {
         // Swiped down -> snap up to previous world
         isSnapping = true;
-        snapToPrev();
-        if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
-        snapCooldownTimer = setTimeout(() => {
+        minLockActive = true;
+        if (minLockTimer) clearTimeout(minLockTimer);
+        minLockTimer = setTimeout(() => {
+          minLockActive = false;
           isSnapping = false;
-        }, 460);
+        }, 550);
+        snapToPrev();
       }
     };
 
@@ -335,7 +349,8 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
-      if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
+      if (minLockTimer) clearTimeout(minLockTimer);
+      if (inertiaSettleTimer) clearTimeout(inertiaSettleTimer);
     };
   }, [destinations, dossierOpen, drawerOpen, selectedImage, handleSelectDestination]);
 

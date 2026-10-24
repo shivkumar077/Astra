@@ -235,7 +235,38 @@ export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
           </button>
         </div>
 
-        {/* HERO BRIEFING: EDITORIAL INFO & VERIFIED METRICS (Picture moved to generous left stage) */}
+        {/* MOBILE-ONLY IN-DRAWER 3D CELESTIAL WORLD (Appears on top in phone view, scrolls up naturally) */}
+        <div
+          className="astra-dossier-mobile-planet-showcase"
+          data-testid={`dossier-mobile-${destKey}`}
+          style={{
+            background: theme.bgGradient,
+            borderColor: theme.cardBorder,
+            boxShadow: `0 8px 32px rgba(0, 0, 0, 0.6), 0 0 24px ${theme.glowColor}`,
+          }}
+        >
+          <div className="astra-dossier-mobile-canvas-wrap">
+            <PlanetVisual
+              destinationId={destination.id}
+              name={destination.name}
+              type={destination.type}
+              isExpanded={true}
+              customTestId={`planet-visual-mobile-${destKey}`}
+            />
+          </div>
+          <div className="astra-dossier-stage-tag" style={{ borderColor: theme.cardBorder, marginTop: '8px' }}>
+            <span
+              className="astra-hud-pulse"
+              style={{ background: theme.accentColor, boxShadow: `0 0 8px ${theme.accentColor}` }}
+            />
+            <span style={{ color: theme.accentColor, fontWeight: 600 }}>
+              {destination.name.toUpperCase()}
+            </span>
+            <span style={{ color: 'var(--color-text-ghost)' }}>// 3D MODEL</span>
+          </div>
+        </div>
+
+        {/* HERO BRIEFING: EDITORIAL INFO & VERIFIED METRICS (Picture moved to generous left stage on PC) */}
         <div
           className="astra-dossier-hero-briefing"
           style={{

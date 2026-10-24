@@ -11,6 +11,7 @@ export interface PlanetVisualProps {
   scaleProgress?: number; // 0.0 (departed) -> 1.0 (centered & prominent)
   onToggleExpand?: () => void;
   onSelect?: () => void;
+  customTestId?: string;
 }
 
 interface PlanetConfig {
@@ -274,6 +275,7 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   scaleProgress: _scaleProgress = 1.0,
   onToggleExpand,
   onSelect,
+  customTestId,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
@@ -620,11 +622,22 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
 
     window.addEventListener('resize', handleResize);
 
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(container);
+    }
+
     // 8. Complete Resource Disposal on Unmount
     return () => {
       isDisposed = true;
       if (observer) {
         observer.disconnect();
+      }
+      if (resizeObserver) {
+        resizeObserver.disconnect();
       }
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animId);
@@ -662,7 +675,7 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
     <div
       ref={mountRef}
       className={`astra-planet-visual-root ${config.isStar ? 'sun-visual-root' : ''} ${isExpanded ? 'is-miniature' : ''}`.trim()}
-      data-testid={isExpanded ? `planet-visual-mini-${normId}` : `planet-visual-${normId}`}
+      data-testid={customTestId || (isExpanded ? `planet-visual-mini-${normId}` : `planet-visual-${normId}`)}
       role="button"
       tabIndex={0}
       aria-label={`Interactive 3D model of ${name} (${type}). Drag to rotate.${!isExpanded ? ' Click to explore mission dossier.' : ''}`}
