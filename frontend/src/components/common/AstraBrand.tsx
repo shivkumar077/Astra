@@ -136,7 +136,7 @@ export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
     </g>
 
     {/* =========================================================================
-        LETTER 5: A (Closing Apex Echoing the First Letter in Perfect Balance)
+        LETTER 5: A (Closing Apex Crowned by the Signature Star)
         ========================================================================= */}
     <g transform="translate(436, 16)">
       {/* Left Diagonal Stroke with Foot Serif */}
@@ -154,6 +154,22 @@ export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
         d="M19 44 L32 44 L32 41.5 L20 41.5 Z M38 44 L58 44 L56.5 41.5 L38 41.5 Z"
         fill="url(#astra-wordmark-gradient)"
       />
+
+      {/* Signature Star Poised at the Final 'A' Apex (Anchors the Traveling Star) */}
+      <g
+        id="astra-signature-star"
+        className="astra-signature-star-anchor"
+        transform="translate(36.5, 4)"
+      >
+        {/* Luminous Diamond Flare */}
+        <path
+          d="M0 -9 L1.8 -2.2 L9 0 L1.8 2.2 L0 9 L-1.8 2.2 L-9 0 L-1.8 -2.2 Z"
+          fill="url(#astra-star-accent)"
+        />
+        {/* Core Brilliant Starlight Spark */}
+        <circle cx="0" cy="0" r="1.3" fill="#FFFFFF" />
+        <circle cx="0" cy="0" r="3.2" fill={accentColor} opacity="0.35" />
+      </g>
     </g>
 
     {/* Fine Connecting Orbital Baseline Hairline */}

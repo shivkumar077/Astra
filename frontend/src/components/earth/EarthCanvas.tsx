@@ -89,10 +89,11 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     // Natural Earth Axial Tilt: 23.4 degrees
     earthGroup.rotation.z = THREE.MathUtils.degToRad(-23.4);
 
-    // 4. Real Celestial Point Starfield (No Square Quads, Gaussian Optical Airy-Disc Profile)
+    // 4. Real Celestial Point Starfield (4 Tiers, No Square Quads, Gaussian Optical Airy-Disc Profile)
     const starMaterial = new THREE.ShaderMaterial({
       uniforms: {
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2.5) },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2.0) },
+        uTime: { value: 0.0 },
       },
       vertexShader: `
         attribute float aSize;
@@ -105,7 +106,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
           vColor = aColor;
           vAlpha = aAlpha;
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-          gl_PointSize = aSize * (160.0 / -mvPosition.z) * uPixelRatio;
+          gl_PointSize = clamp(aSize * (175.0 / -mvPosition.z) * uPixelRatio, 1.0, 36.0);
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
@@ -116,8 +117,8 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
           float r = length(gl_PointCoord - vec2(0.5));
           if (r > 0.5) discard;
           // Gaussian-like optical stellar profile: intense central pinprick with delicate halo
-          float core = exp(-r * r * 28.0);
-          float halo = exp(-r * 6.5) * 0.35;
+          float core = exp(-r * r * 30.0);
+          float halo = exp(-r * 6.0) * 0.32;
           float intensity = core + halo;
           gl_FragColor = vec4(vColor, intensity * vAlpha);
         }
@@ -127,62 +128,166 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       depthWrite: false,
     });
 
-    const createStarLayer = (count: number, minRadius: number, maxRadius: number, minSize: number, maxSize: number, minAlpha: number, maxAlpha: number) => {
+    // Optical Scintillation Shader for Prominent Celestial Navigational Stars
+    const majorStarMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2.0) },
+        uTime: { value: 0.0 },
+      },
+      vertexShader: `
+        attribute float aSize;
+        attribute vec3 aColor;
+        attribute float aPhase;
+        varying vec3 vColor;
+        varying float vPhase;
+        uniform float uPixelRatio;
+        void main() {
+          vColor = aColor;
+          vPhase = aPhase;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = clamp(aSize * (210.0 / -mvPosition.z) * uPixelRatio, 2.0, 48.0);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vColor;
+        varying float vPhase;
+        uniform float uTime;
+        void main() {
+          vec2 coord = gl_PointCoord - vec2(0.5);
+          float r = length(coord);
+          if (r > 0.5) discard;
+
+          // Cross-diffraction spikes (astronomical telescope spider vane optics)
+          float crossGlow = max(
+            exp(-abs(coord.x) * 38.0) * exp(-abs(coord.y) * 4.0),
+            exp(-abs(coord.y) * 38.0) * exp(-abs(coord.x) * 4.0)
+          );
+          float coreDisc = exp(-r * r * 32.0);
+
+          // Subtle organic scintillation breathing
+          float twinkle = 0.85 + 0.15 * sin(uTime * 2.2 + vPhase);
+          float intensity = (coreDisc * 0.95 + crossGlow * 0.55) * twinkle;
+
+          gl_FragColor = vec4(vColor, intensity);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+
+    const createStarLayer = (
+      count: number,
+      minRadius: number,
+      maxRadius: number,
+      minSize: number,
+      maxSize: number,
+      minAlpha: number,
+      maxAlpha: number,
+      excludeCorridor: boolean = false
+    ) => {
       const positions = new Float32Array(count * 3);
       const colors = new Float32Array(count * 3);
       const sizes = new Float32Array(count);
       const alphas = new Float32Array(count);
 
-      for (let i = 0; i < count; i++) {
+      let placed = 0;
+      let attempts = 0;
+      while (placed < count && attempts < count * 3) {
+        attempts++;
         const r = minRadius + Math.random() * (maxRadius - minRadius);
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.acos(2 * Math.random() - 1);
 
-        positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-        positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-        positions[i * 3 + 2] = r * Math.cos(phi);
+        const x = r * Math.sin(phi) * Math.cos(theta);
+        const y = r * Math.sin(phi) * Math.sin(theta);
+        const z = r * Math.cos(phi);
 
-        // Astronomical spectral distribution:
-        // 75% soft star ivory, 15% pale blue-white, 10% warm stellar amber
-        const spectral = Math.random();
-        if (spectral > 0.85) {
-          colors[i * 3] = 0.78;
-          colors[i * 3 + 1] = 0.89;
-          colors[i * 3 + 2] = 1.0; // Cool Blue-White (B/A class)
-        } else if (spectral > 0.75) {
-          colors[i * 3] = 1.0;
-          colors[i * 3 + 1] = 0.90;
-          colors[i * 3 + 2] = 0.72; // Warm Amber (K/M class)
-        } else {
-          colors[i * 3] = 0.95;
-          colors[i * 3 + 1] = 0.95;
-          colors[i * 3 + 2] = 0.96; // Neutral Ivory (G class)
+        // Preserve negative space around central-left typography corridor
+        if (excludeCorridor && x > -2.8 && x < 0.2 && y > 0.2 && y < 2.0 && z > -15) {
+          continue;
         }
 
-        sizes[i] = minSize + Math.random() * (maxSize - minSize);
-        alphas[i] = minAlpha + Math.random() * (maxAlpha - minAlpha);
+        positions[placed * 3] = x;
+        positions[placed * 3 + 1] = y;
+        positions[placed * 3 + 2] = z;
+
+        // Astronomical spectral distribution:
+        // 70% soft star ivory, 18% pale blue-white, 12% warm stellar amber
+        const spectral = Math.random();
+        if (spectral > 0.82) {
+          colors[placed * 3] = 0.80;
+          colors[placed * 3 + 1] = 0.90;
+          colors[placed * 3 + 2] = 1.0; // Cool Blue-White (B/A class)
+        } else if (spectral > 0.70) {
+          colors[placed * 3] = 1.0;
+          colors[placed * 3 + 1] = 0.92;
+          colors[placed * 3 + 2] = 0.74; // Warm Amber (K/M class)
+        } else {
+          colors[placed * 3] = 0.96;
+          colors[placed * 3 + 1] = 0.96;
+          colors[placed * 3 + 2] = 0.97; // Neutral Ivory (G class)
+        }
+
+        sizes[placed] = minSize + Math.random() * (maxSize - minSize);
+        alphas[placed] = minAlpha + Math.random() * (maxAlpha - minAlpha);
+        placed++;
       }
 
       const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      geom.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
-      geom.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
-      geom.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
+      geom.setAttribute('position', new THREE.BufferAttribute(positions.subarray(0, placed * 3), 3));
+      geom.setAttribute('aColor', new THREE.BufferAttribute(colors.subarray(0, placed * 3), 3));
+      geom.setAttribute('aSize', new THREE.BufferAttribute(sizes.subarray(0, placed), 1));
+      geom.setAttribute('aAlpha', new THREE.BufferAttribute(alphas.subarray(0, placed), 1));
 
       return new THREE.Points(geom, starMaterial);
     };
 
-    // Deep background starfield (800 ultra-fine pinpricks, minimal drift)
-    const deepStars = createStarLayer(800, 140, 220, 0.8, 1.4, 0.35, 0.65);
+    // Tier 1: Distant Cosmic Deep Field (1400 ultra-fine stars, minimal drift)
+    const deepStars = createStarLayer(1400, 180, 320, 0.6, 1.2, 0.22, 0.50, false);
     scene.add(deepStars);
 
-    // Midground stars (450 balanced stars, medium parallax)
-    const midStars = createStarLayer(450, 80, 130, 1.5, 2.4, 0.55, 0.85);
+    // Tier 2: Midfield Stellar Field (850 crisp stars, medium parallax)
+    const midStars = createStarLayer(850, 90, 175, 1.3, 2.2, 0.45, 0.78, true);
     scene.add(midStars);
 
-    // Foreground navigation stars (120 brighter prominent points, noticeable parallax)
-    const foreStars = createStarLayer(120, 45, 80, 2.8, 4.0, 0.80, 1.0);
+    // Tier 3: Foreground Orbital Field (350 distinct stars, strong parallax)
+    const foreStars = createStarLayer(350, 45, 88, 2.2, 3.6, 0.70, 0.95, true);
     scene.add(foreStars);
+
+    // Tier 4: Major Optical Navigational Beacons (42 prominent stars with diffraction spikes)
+    const majorStarCount = 42;
+    const majorPositions = new Float32Array(majorStarCount * 3);
+    const majorColors = new Float32Array(majorStarCount * 3);
+    const majorSizes = new Float32Array(majorStarCount);
+    const majorPhases = new Float32Array(majorStarCount);
+
+    for (let i = 0; i < majorStarCount; i++) {
+      const r = 30 + Math.random() * 55;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+
+      majorPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      majorPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      majorPositions[i * 3 + 2] = r * Math.cos(phi);
+
+      majorColors[i * 3] = 0.98;
+      majorColors[i * 3 + 1] = 0.96;
+      majorColors[i * 3 + 2] = 0.90;
+
+      majorSizes[i] = 4.2 + Math.random() * 2.8;
+      majorPhases[i] = Math.random() * Math.PI * 2;
+    }
+
+    const majorGeom = new THREE.BufferGeometry();
+    majorGeom.setAttribute('position', new THREE.BufferAttribute(majorPositions, 3));
+    majorGeom.setAttribute('aColor', new THREE.BufferAttribute(majorColors, 3));
+    majorGeom.setAttribute('aSize', new THREE.BufferAttribute(majorSizes, 1));
+    majorGeom.setAttribute('aPhase', new THREE.BufferAttribute(majorPhases, 1));
+
+    const majorStarsMesh = new THREE.Points(majorGeom, majorStarMaterial);
+    scene.add(majorStarsMesh);
 
     // 5. Texture Pipeline with Anisotropic Filtering
     const maxAnisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 16);
@@ -330,11 +435,11 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     earthGroup.add(atmosphereMesh);
 
-    // 9. Signature & Ambient Meteor System: High-Fidelity Incandescent Diamond & Ion Trail
-    // Procedural mathematical shader: zero pixelation, zero bounding boxes, pure smooth falloff
-    // Trajectory: UPPER-LEFT to LOWER-RIGHT
-    // Passing BEHIND Earth: depthTest is true and Z = -3.2 (Earth front: +2.0, Earth back: -2.0)
-    const meteorGeometry = new THREE.PlaneGeometry(0.24, 4.2, 1, 16);
+    // 9. Rebuilt Meteor System: Incandescent Diamond Core & Emerging Diagonal Path
+    // Trajectory spans from Upper-Left (-7.0, 4.8) through behind Earth to Lower-Right (7.0, -4.8)
+    // Passing BEHIND Earth: situated at z = -3.2 with depthTest: true so it is occluded by Earth
+    // and VISIBLY EMERGES on the opposite (lower-right) side before fading.
+    const meteorGeometry = new THREE.PlaneGeometry(0.26, 4.8, 1, 24);
     const meteorMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uOpacity: { value: 0.0 },
@@ -355,22 +460,22 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
           float u = vUv.y;
           float lateral = abs(vUv.x - 0.5) * 2.0;
 
-          // Smooth aerodynamic envelope tapering toward tail tip
+          // Aerodynamic envelope tapering smoothly toward tail tip
           float widthTaper = pow(u, 0.72);
-          float lateralFalloff = exp(-pow(lateral / max(widthTaper, 0.04), 2.0) * 3.8);
+          float lateralFalloff = exp(-pow(lateral / max(widthTaper, 0.04), 2.0) * 4.2);
 
-          // Longitudinal trail radiance with subtle ablation frequency
-          float ablation = 1.0 + 0.12 * sin(u * 38.0);
-          float trail = pow(u, 2.0) * ablation;
+          // Longitudinal trail radiance with fine ablation frequency
+          float ablation = 1.0 + 0.14 * sin(u * 44.0);
+          float trail = pow(u, 1.9) * ablation;
 
           // Blazing diamond head core
           float headDist = length(vec2((u - 0.96) * 7.5, lateral * 3.8));
           float headGlow = exp(-headDist * 4.8);
 
-          // Spectral coloration: incandescent white starlight core + ionized azure-cyan trail
-          vec3 headColor = vec3(1.0, 0.99, 0.95);
-          vec3 ionColor = vec3(0.28, 0.62, 0.94);
-          vec3 tailColor = vec3(0.12, 0.24, 0.62);
+          // Spectral coloration: incandescent white diamond head + ionized azure-cyan trail
+          vec3 headColor = vec3(1.0, 0.99, 0.96);
+          vec3 ionColor = vec3(0.28, 0.65, 0.96);
+          vec3 tailColor = vec3(0.12, 0.22, 0.60);
 
           vec3 color = mix(tailColor, ionColor, smoothstep(0.12, 0.82, u));
           color = mix(color, headColor, headGlow * 1.5 + step(0.96, u) * 0.4);
@@ -382,17 +487,15 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       `,
       transparent: true,
       blending: THREE.AdditiveBlending,
-      depthTest: true, // Crucial: enables WebGL hardware depth test so Earth occludes the meteor
+      depthTest: true, // Hardware depth buffer occludes meteor behind Earth
       depthWrite: false,
       side: THREE.DoubleSide,
     });
     const meteorMesh = new THREE.Mesh(meteorGeometry, meteorMaterial);
-    // Orient plane along flight trajectory (Upper-Left to Lower-Right: ~ -36.5 deg)
-    meteorMesh.rotation.z = THREE.MathUtils.degToRad(-36.5);
     meteorMesh.visible = false;
     scene.add(meteorMesh);
 
-    // 10. Scroll-Linked Signature Star Trajectory toward Planetary Horizon
+    // 10. Signature Star Trajectory: Dynamically Anchored to the Final 'A' Apex of Wordmark
     const starTrailPointsCount = 50;
     const starTrailPositions = new Float32Array(starTrailPointsCount * 3);
     const starTrailAlphas = new Float32Array(starTrailPointsCount);
@@ -405,7 +508,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
 
     const starTrailMaterial = new THREE.ShaderMaterial({
       uniforms: {
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2.5) },
+        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2.0) },
       },
       vertexShader: `
         attribute float aAlpha;
@@ -423,8 +526,8 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         void main() {
           float r = length(gl_PointCoord - vec2(0.5));
           if (r > 0.5) discard;
-          float intensity = exp(-r * r * 20.0);
-          gl_FragColor = vec4(0.98, 0.94, 0.85, intensity * vAlpha * 0.9);
+          float intensity = exp(-r * r * 22.0);
+          gl_FragColor = vec4(1.0, 0.96, 0.86, intensity * vAlpha * 0.95);
         }
       `,
       transparent: true,
@@ -444,7 +547,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       },
       vertexShader: `
         void main() {
-          gl_PointSize = 24.0;
+          gl_PointSize = 26.0;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
@@ -474,11 +577,24 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     starSparkPoint.visible = false;
     scene.add(starSparkPoint);
 
-    // Bézier path from the ASTRA monogram coordinate towards Earth's atmospheric limb
-    const curveStart = new THREE.Vector3(-2.2, 1.3, 0);
-    const curveControl = new THREE.Vector3(-0.3, 2.4, 0.5);
-    const curveEnd = new THREE.Vector3(1.25, 0.30, 0.6);
-    const starCurve = new THREE.QuadraticBezierCurve3(curveStart, curveControl, curveEnd);
+    // Dynamic unprojected Bézier path originating from the rendered wordmark's final 'A'
+    const getSignatureStarOrigin = (): THREE.Vector3 => {
+      const starEl = typeof document !== 'undefined' ? document.getElementById('astra-signature-star') : null;
+      if (starEl && camera) {
+        const rect = starEl.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          const ndcX = ((rect.left + rect.width / 2) / window.innerWidth) * 2 - 1;
+          const ndcY = -(((rect.top + rect.height / 2) / window.innerHeight) * 2 - 1);
+
+          const vec = new THREE.Vector3(ndcX, ndcY, 0.5);
+          vec.unproject(camera);
+          const dir = vec.sub(camera.position).normalize();
+          const dist = -camera.position.z / dir.z;
+          return camera.position.clone().add(dir.multiplyScalar(dist));
+        }
+      }
+      return new THREE.Vector3(width >= 1024 ? 0.35 : 0.0, width >= 1024 ? 1.05 : 1.4, 0);
+    };
 
     // 11. Directional Sun & Ambient Lighting
     const sunLight = new THREE.DirectionalLight(0xfffdf6, 2.6);
@@ -489,10 +605,11 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     scene.add(ambientLight);
 
     // 12. Responsive Group Layout Calculations
-    // Earth is positioned in the right half of the desktop viewport so ASTRA wordmark is clearly visible
+    // Mobile: Earth anchored in the lower 35% of the viewport (Y: -1.65 -> -1.35)
+    // Desktop: Earth anchored in the right hemisphere (X: 1.35 -> 1.68)
     const getLayoutParameters = (w: number, t: number) => {
       if (w >= 1024) {
-        // Desktop: start at right margin (1.35) with breathing room, settled at (1.68)
+        // Desktop
         const startX = 1.35;
         const startY = -0.06;
         const startZ = -1.6;
@@ -512,18 +629,18 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       } else if (w >= 768) {
         // Tablet
         return {
-          x: THREE.MathUtils.lerp(0.95, 1.10, t),
+          x: THREE.MathUtils.lerp(0.95, 1.15, t),
           y: THREE.MathUtils.lerp(-0.15, -0.10, t),
-          z: THREE.MathUtils.lerp(-2.2, -0.3, t),
+          z: THREE.MathUtils.lerp(-2.0, -0.3, t),
           scale: THREE.MathUtils.lerp(0.55, 0.85, t),
         };
       } else {
-        // Mobile
+        // Mobile (320px - 767px): framed strictly below the wordmark
         return {
           x: 0,
-          y: THREE.MathUtils.lerp(-0.55, -0.65, t),
-          z: THREE.MathUtils.lerp(-2.8, -1.1, t),
-          scale: THREE.MathUtils.lerp(0.50, 0.74, t),
+          y: THREE.MathUtils.lerp(-1.65, -1.35, t),
+          z: THREE.MathUtils.lerp(-2.2, -0.8, t),
+          scale: THREE.MathUtils.lerp(0.52, 0.76, t),
         };
       }
     };
@@ -553,8 +670,9 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       camera.updateProjectionMatrix();
 
       renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.5));
-      starMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2.5);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
+      starMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2.0);
+      majorStarMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2.0);
     };
     window.addEventListener('resize', handleResize);
 
@@ -565,19 +683,25 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 16. Meteor State Tracking (Upper-Left to Lower-Right, Passing Behind Earth)
+    // 16. Meteor State Tracking (Upper-Left to Lower-Right, Visibly Emerging Past Earth)
     const mountTime = performance.now();
     let openingMeteorTriggered = false;
     let meteorActive = false;
     let meteorStartTime = 0;
-    let meteorDuration = 2100; // ms: unhurried, majestic passage
+    let meteorDuration = 2600; // ms: majestic flight with visible emergence
     let nextMeteorTime = mountTime + 16000;
 
-    let meteorStartX = -4.5;
-    let meteorStartY = 3.5;
-    let meteorEndX = 4.0;
-    let meteorEndY = -2.8;
-    const meteorZ = -3.2; // Strictly behind Earth (Earth is at z: -1.6 to 0.0)
+    let meteorStartX = -7.0;
+    let meteorStartY = 4.8;
+    let meteorEndX = 7.0;
+    let meteorEndY = -4.8;
+    const meteorZ = -3.2; // Situated strictly behind Earth (Earth is at z: -1.6 to 0.0)
+
+    const updateMeteorOrientation = (sx: number, sy: number, ex: number, ey: number) => {
+      const angleRad = Math.atan2(ey - sy, ex - sx) + Math.PI / 2;
+      meteorMesh.rotation.z = angleRad;
+    };
+    updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);
 
     // 17. Animation Loop
     const baseRotationSpeed = reducedMotion ? 0.0003 : 0.001;
@@ -590,6 +714,10 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
 
       const now = performance.now();
       const currentScroll = reducedMotion ? 1.0 : scrollRef.current;
+
+      // Update shader uniforms
+      starMaterial.uniforms.uTime.value = now * 0.001;
+      majorStarMaterial.uniforms.uTime.value = now * 0.001;
 
       // Update Group Position & Scale according to scroll progression
       const layout = getLayoutParameters(width, currentScroll);
@@ -608,49 +736,50 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         earthGroup.rotation.x = currentPointerX;
         earthGroup.rotation.y = currentPointerY;
 
-        // Multi-depth Star Parallax
-        deepStars.rotation.y = currentPointerY * 0.08;
-        deepStars.rotation.x = currentPointerX * 0.06;
+        // Multi-tier Star Parallax
+        deepStars.rotation.y = currentPointerY * 0.06;
+        deepStars.rotation.x = currentPointerX * 0.04;
 
-        midStars.rotation.y = currentPointerY * 0.20;
-        midStars.rotation.x = currentPointerX * 0.15;
+        midStars.rotation.y = currentPointerY * 0.18;
+        midStars.rotation.x = currentPointerX * 0.12;
 
-        foreStars.rotation.y = currentPointerY * 0.45;
-        foreStars.rotation.x = currentPointerX * 0.35;
+        foreStars.rotation.y = currentPointerY * 0.42;
+        foreStars.rotation.x = currentPointerX * 0.30;
+
+        majorStarsMesh.rotation.y = currentPointerY * 0.32;
+        majorStarsMesh.rotation.x = currentPointerX * 0.22;
       }
 
       // Opening Frame Signature Meteor Event (Triggers at ~750ms after load)
-      // Primary trajectory: Upper-Left to Lower-Right, passing behind Earth
+      // Path: Upper-Left (-7.0, 4.8) -> traverses behind Earth -> emerges Lower-Right (7.0, -4.8)
       if (!openingMeteorTriggered && now - mountTime > 750 && !reducedMotion) {
         openingMeteorTriggered = true;
         meteorActive = true;
         meteorStartTime = now;
-        meteorDuration = 2200;
-        meteorStartX = -4.5;
-        meteorStartY = 3.5;
-        meteorEndX = 4.2;
-        meteorEndY = -2.8;
-        meteorMesh.rotation.z = THREE.MathUtils.degToRad(-36.5);
+        meteorDuration = 2600;
+        meteorStartX = -7.0;
+        meteorStartY = 4.8;
+        meteorEndX = 7.0;
+        meteorEndY = -4.8;
+        updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);
       }
 
       // Ambient Recurring Meteor System (Continues after reveal with subtle randomized variations)
       if (!meteorActive && now > nextMeteorTime && !reducedMotion) {
         meteorActive = true;
         meteorStartTime = now;
-        meteorDuration = 1800 + Math.random() * 600;
-        nextMeteorTime = now + 16000 + Math.random() * 14000; // Next meteor every 16-30 seconds
+        meteorDuration = 2300 + Math.random() * 600;
+        nextMeteorTime = now + 16000 + Math.random() * 12000; // Next meteor every 16-28 seconds
 
-        // Randomized upper-left origin to lower-right destination behind Earth
-        meteorStartX = -4.8 + Math.random() * 1.0;
-        meteorStartY = 3.2 + Math.random() * 0.8;
-        meteorEndX = 3.8 + Math.random() * 1.2;
-        meteorEndY = -2.5 - Math.random() * 0.8;
+        meteorStartX = -7.2 + Math.random() * 0.8;
+        meteorStartY = 4.4 + Math.random() * 0.8;
+        meteorEndX = 6.6 + Math.random() * 0.8;
+        meteorEndY = -4.4 - Math.random() * 0.8;
 
-        const angleRad = Math.atan2(meteorEndY - meteorStartY, meteorEndX - meteorStartX) + Math.PI / 2;
-        meteorMesh.rotation.z = angleRad;
+        updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);
       }
 
-      // Animate Meteor Flight
+      // Animate Meteor Flight (Enters upper-left, crosses behind Earth, visibly emerges lower-right)
       if (meteorActive) {
         const elapsed = now - meteorStartTime;
         const mProgress = elapsed / meteorDuration;
@@ -662,28 +791,45 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         } else {
           meteorMesh.visible = true;
 
-          // Smooth interpolation along diagonal trajectory
           const curX = THREE.MathUtils.lerp(meteorStartX, meteorEndX, mProgress);
           const curY = THREE.MathUtils.lerp(meteorStartY, meteorEndY, mProgress);
-          // Positioned strictly behind Earth at z = -3.2 with depthTest: true
           meteorMesh.position.set(curX, curY, meteorZ);
 
-          // Easing opacity envelope: smooth fade-in, peak brilliance, natural dissolution
-          const mAlpha = Math.sin(mProgress * Math.PI);
-          meteorMaterial.uniforms.uOpacity.value = Math.pow(mAlpha, 1.1) * 0.9;
+          // Sustained brilliance envelope: plateau at 1.0 so emergence on lower-right side is clearly visible
+          let mAlpha = 1.0;
+          if (mProgress < 0.10) {
+            mAlpha = mProgress / 0.10;
+          } else if (mProgress > 0.88) {
+            mAlpha = (1.0 - mProgress) / 0.12;
+          }
+          meteorMaterial.uniforms.uOpacity.value = Math.pow(mAlpha, 1.1) * 0.95;
         }
       }
 
-      // Cinematic Signature Star Flight on Scroll (Occurs between scroll 0.15 and 0.75)
-      if (currentScroll > 0.15 && currentScroll < 0.75 && !reducedMotion) {
-        const trajectoryProgress = Math.min(Math.max((currentScroll - 0.15) / 0.55, 0), 1);
-        const starPos = starCurve.getPoint(trajectoryProgress);
+      // Cinematic Signature Star Journey from Wordmark's Final 'A' Apex toward Earth
+      if (currentScroll > 0.05 && currentScroll < 0.78 && !reducedMotion) {
+        const trajectoryProgress = Math.min(Math.max((currentScroll - 0.05) / 0.70, 0), 1);
 
+        // Dynamically compute Bézier curve starting at the wordmark's final 'A' apex
+        const pStart = getSignatureStarOrigin();
+        const pEnd = new THREE.Vector3(
+          layout.x - 1.15 * layout.scale,
+          layout.y + 0.15 * layout.scale,
+          0.5
+        );
+        const pControl = new THREE.Vector3(
+          (pStart.x + pEnd.x) * 0.5,
+          Math.max(pStart.y, pEnd.y) + 0.75,
+          0.4
+        );
+        const activeStarCurve = new THREE.QuadraticBezierCurve3(pStart, pControl, pEnd);
+
+        const starPos = activeStarCurve.getPoint(trajectoryProgress);
         starSparkPoint.visible = true;
         starSparkPoint.position.copy(starPos);
 
-        // Alpha fades as it enters the atmospheric edge of Earth
-        const coreAlpha = trajectoryProgress < 0.82 ? 1.0 : 1.0 - (trajectoryProgress - 0.82) / 0.18;
+        // Alpha fades smoothly as it enters Earth's atmospheric horizon
+        const coreAlpha = trajectoryProgress < 0.84 ? 1.0 : 1.0 - (trajectoryProgress - 0.84) / 0.16;
         starSparkMaterial.uniforms.uAlpha.value = coreAlpha;
 
         // Trailing luminous starlight points
@@ -692,9 +838,9 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         const sizeAttr = starTrailGeometry.getAttribute('aSize') as THREE.BufferAttribute;
 
         for (let i = 0; i < starTrailPointsCount; i++) {
-          const lag = (i / starTrailPointsCount) * 0.16;
+          const lag = (i / starTrailPointsCount) * 0.15;
           const trailT = Math.max(trajectoryProgress - lag, 0);
-          const p = starCurve.getPoint(trailT);
+          const p = activeStarCurve.getPoint(trailT);
 
           posAttr.setXYZ(i, p.x + (Math.random() - 0.5) * 0.02, p.y + (Math.random() - 0.5) * 0.02, p.z);
           alphaAttr.setX(i, (1 - i / starTrailPointsCount) * coreAlpha);
@@ -737,6 +883,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       deepStars.geometry.dispose();
       midStars.geometry.dispose();
       foreStars.geometry.dispose();
+      majorGeom.dispose();
 
       // Dispose Materials
       earthMaterial.dispose();
@@ -746,6 +893,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       starTrailMaterial.dispose();
       starSparkMaterial.dispose();
       starMaterial.dispose();
+      majorStarMaterial.dispose();
 
       // Dispose Textures
       earthTexture.dispose();

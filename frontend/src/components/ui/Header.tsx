@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AstraHeaderWordmark } from '../common/AstraBrand';
+import { SignatureStar } from '../common/CelestialIcons';
 
 interface HeaderProps {
   visible?: boolean;
@@ -46,9 +46,20 @@ export const Header: React.FC<HeaderProps> = ({
       }}
       data-testid="astra-header"
     >
-      {/* Brand Identity Wordmark */}
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <AstraHeaderWordmark height={22} />
+      {/* Subtle Orbital Interface Indicator (Single Primary ASTRA Wordmark preserved in Hero) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <SignatureStar size={11} color="var(--color-star-warm)" strokeWidth={1.5} />
+        <span
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '10px',
+            color: 'var(--color-text-ghost)',
+            letterSpacing: '0.14em',
+            textTransform: 'uppercase',
+          }}
+        >
+          ORBITAL POSITION: SYNCHRONIZED
+        </span>
       </div>
 
       {/* Quiet Telemetry: UTC Timekeeper */}
@@ -69,4 +80,5 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
 

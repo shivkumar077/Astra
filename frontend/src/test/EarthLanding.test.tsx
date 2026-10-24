@@ -13,7 +13,7 @@ import {
   OpticalAperture,
 } from '../components/common/CelestialIcons';
 
-describe('ASTRA Landing Experience — Prompt 5 Brand Correction & Polish', () => {
+describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -35,7 +35,7 @@ describe('ASTRA Landing Experience — Prompt 5 Brand Correction & Polish', () =
     expect(screen.queryByText(/RENDERING: THREE\.JS WEBGL/i)).not.toBeInTheDocument();
   });
 
-  it('renders strictly two primary editorial entry points: Mission Control and Space Imagery', () => {
+  it('renders strictly two prominent premium destination panels with icons as anchors', () => {
     render(<App />);
 
     const entryContainer = screen.getByTestId('primary-entry-points');
@@ -57,9 +57,13 @@ describe('ASTRA Landing Experience — Prompt 5 Brand Correction & Polish', () =
       expect.stringContaining('Explore Space Imagery')
     );
 
-    // Verify exactly two destination rows are rendered, with no competing tertiary cards
-    const allEntryRows = entryContainer.querySelectorAll('.astra-destination-row');
-    expect(allEntryRows.length).toBe(2);
+    // Verify exactly two destination panels are rendered, with no competing tertiary cards
+    const allPanels = entryContainer.querySelectorAll('.astra-destination-panel');
+    expect(allPanels.length).toBe(2);
+
+    // Verify destination name is positioned immediately below icon
+    expect(within(missionControlBtn).getByText(/I\. MISSION CONTROL/i)).toBeInTheDocument();
+    expect(within(spaceImageryBtn).getByText(/II\. SPACE IMAGERY/i)).toBeInTheDocument();
   });
 
   it('opens and closes the informative briefing modal on entry point interaction', () => {
@@ -152,15 +156,17 @@ describe('ASTRA Landing Experience — Prompt 5 Brand Correction & Polish', () =
     });
   });
 
-  it('renders the bespoke ASTRA hero wordmark and verified depth plane architecture', () => {
+  it('renders exactly ONE primary ASTRA hero wordmark with an integrated signature star on the final A', () => {
     const { container } = render(<App />);
 
-    // Custom brand hero wordmark SVG is present and complete
+    // Exactly ONE primary brand hero wordmark SVG is present (no duplicates in header or settled view)
     const wordmarkSvgs = container.querySelectorAll('.astra-hero-wordmark');
-    expect(wordmarkSvgs.length).toBeGreaterThan(0);
-    wordmarkSvgs.forEach((svg) => {
-      expect(svg).toHaveAttribute('aria-label', 'ASTRA');
-    });
+    expect(wordmarkSvgs.length).toBe(1);
+    expect(wordmarkSvgs[0]).toHaveAttribute('aria-label', 'ASTRA');
+
+    // Signature star is integrated at the final 'A' apex with anchor id
+    const signatureStarAnchor = container.querySelector('#astra-signature-star');
+    expect(signatureStarAnchor).toBeInTheDocument();
 
     // Layered depth plane sits at zIndex 2 (behind EarthCanvas at zIndex 3)
     const depthPlane = container.querySelector('.astra-intro-depth-plane') as HTMLElement;
@@ -172,4 +178,5 @@ describe('ASTRA Landing Experience — Prompt 5 Brand Correction & Polish', () =
     expect(earthCanvas.style.zIndex).toBe('3');
   });
 });
+
 
