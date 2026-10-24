@@ -434,6 +434,36 @@
   color: var(--color-text-ghost);
 }
 
+/* Fixed Multi-Layer Celestial Backdrop Stage */
+.astra-celestial-backdrop-stage {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  background-color: #06070a;
+}
+
+.astra-destination-backdrop-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  will-change: opacity;
+}
+
+/* Extravagant Celestial Passage Ether Ripple & Light Sweep Overlay */
+.astra-celestial-passage-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 65% 50%, rgba(255, 245, 220, 0.09) 0%, rgba(56, 189, 248, 0.04) 35%, rgba(120, 80, 255, 0.02) 60%, transparent 75%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  will-change: opacity, transform;
+  transform: scale(0.96);
+}
+
 /* RIGHT COLUMN: 3D Model Stage */
 .astra-stage-visual-container {
   width: 100%;
@@ -442,6 +472,7 @@
   align-items: center;
   justify-content: center;
   position: relative;
+  perspective: 1200px;
 }
 
 /* ------------------------------------------------------------------------------
@@ -456,6 +487,15 @@
   justify-content: center;
   outline: none;
   transform-origin: center center;
+  will-change: transform, opacity;
+}
+
+.astra-planet-visual-root canvas {
+  display: block;
+  outline: none;
+  border: none;
+  background: transparent !important;
+  user-select: none;
 }
 
 .astra-planet-loading-cue {
@@ -1267,3 +1307,31 @@
     padding: 12px 20px;
   }
 }
+
+/* ------------------------------------------------------------------------------
+   12. ACCESSIBILITY & PREFERS-REDUCED-MOTION
+   ------------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .astra-planet-visual-root {
+    transition: none !important;
+  }
+
+  .astra-celestial-passage-overlay {
+    display: none !important;
+  }
+
+  .astra-destination-backdrop-layer {
+    transition: none !important;
+  }
+
+  .astra-stage-briefing {
+    transition: none !important;
+  }
+
+  .astra-telemetry-dot,
+  .astra-hud-pulse,
+  .astra-status-badge.status-active .astra-status-pulse-dot {
+    animation: none !important;
+  }
+}
+

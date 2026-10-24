@@ -82,7 +82,7 @@ function generateMercuryTexture(width = 1024, height = 512): THREE.CanvasTexture
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
 
   const imgData = ctx.createImageData(width, height);
   const data = imgData.data;
@@ -152,7 +152,7 @@ function generateVenusTexture(width = 1024, height = 512): THREE.CanvasTexture {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
 
   const imgData = ctx.createImageData(width, height);
   const data = imgData.data;
@@ -194,7 +194,7 @@ function generateMarsTexture(width = 1024, height = 512): THREE.CanvasTexture {
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
 
   const imgData = ctx.createImageData(width, height);
   const data = imgData.data;
@@ -257,7 +257,7 @@ function generateJupiterTexture(width = 1024, height = 512): THREE.CanvasTexture
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
 
   const imgData = ctx.createImageData(width, height);
   const data = imgData.data;
@@ -323,7 +323,7 @@ function generateSaturnTexture(width = 1024, height = 512): THREE.CanvasTexture 
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
 
   const imgData = ctx.createImageData(width, height);
   const data = imgData.data;
@@ -448,7 +448,7 @@ function generateNeptuneTexture(width = 1024, height = 512): THREE.CanvasTexture
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext('2d');
-  if (!ctx) return new THREE.CanvasTexture(canvas);
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
 
   const imgData = ctx.createImageData(width, height);
   const data = imgData.data;
@@ -566,3 +566,31 @@ export function getProceduralRingTexture(destinationId: string): THREE.CanvasTex
   }
   return texture;
 }
+
+/**
+ * Bounded Preloader: Pre-warms textures for upcoming destinations in microtask/idle time
+ * so destination transitions never wait for generation or decoding.
+ */
+export function preloadPlanetaryTexture(destinationId: string): void {
+  const normId = destinationId.toLowerCase().trim();
+  if (normId === 'sun') return;
+
+  if (normId === 'earth') {
+    if (typeof window !== 'undefined') {
+      const img1 = new Image();
+      img1.src = '/assets/earth/earth_2048.jpg';
+      const img2 = new Image();
+      img2.src = '/assets/earth/earth_clouds_2048.jpg';
+    }
+    return;
+  }
+
+  if (!textureCache.has(normId)) {
+    getProceduralPlanetTexture(normId);
+  }
+
+  if ((normId === 'saturn' || normId === 'uranus') && !textureCache.has(`ring_${normId}`)) {
+    getProceduralRingTexture(normId);
+  }
+}
+

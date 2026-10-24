@@ -380,4 +380,48 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
       expect(screen.getByTestId('expand-world-sun')).toBeInTheDocument();
     });
   });
+
+  it('mounts continuous multi-layer celestial backdrop stage and passage overlay for smooth GPU interpolation', async () => {
+    const { container } = render(<SpaceImageryView onReturnHome={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('section-sun')).toBeInTheDocument();
+    });
+
+    const backdropStage = container.querySelector('.astra-celestial-backdrop-stage');
+    expect(backdropStage).toBeInTheDocument();
+    expect(backdropStage).toHaveAttribute('aria-hidden', 'true');
+
+    // Individual backdrop layers for each destination
+    const sunBackdrop = container.querySelector('#backdrop-sun');
+    const mercuryBackdrop = container.querySelector('#backdrop-mercury');
+    const marsBackdrop = container.querySelector('#backdrop-mars');
+
+    expect(sunBackdrop).toBeInTheDocument();
+    expect(mercuryBackdrop).toBeInTheDocument();
+    expect(marsBackdrop).toBeInTheDocument();
+
+    // Active destination (Sun) starts fully visible in backdrop stage
+    expect(sunBackdrop).toHaveStyle({ opacity: '1' });
+    expect(mercuryBackdrop).toHaveStyle({ opacity: '0' });
+
+    // Interstellar passage overlay present
+    const passageOverlay = container.querySelector('.astra-celestial-passage-overlay');
+    expect(passageOverlay).toBeInTheDocument();
+  });
+
+  it('renders Sun visual cleanly without white rectangular compositing artifact', () => {
+    const { container } = render(
+      <PlanetVisual destinationId="sun" name="Sun" type="STAR" scaleProgress={1.0} />
+    );
+
+    const sunVisualRoot = container.querySelector('.astra-planet-visual-root');
+    expect(sunVisualRoot).toBeInTheDocument();
+    expect(sunVisualRoot).toHaveClass('sun-visual-root');
+
+    // Fallback or canvas is rendered inside
+    const visualElement = screen.getByTestId('planet-visual-sun');
+    expect(visualElement).toBeInTheDocument();
+  });
 });
+

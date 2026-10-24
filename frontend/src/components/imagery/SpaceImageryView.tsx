@@ -6,6 +6,7 @@ import { PlanetaryScrollSection } from './PlanetaryScrollSection';
 import { PlanetaryDossierDrawer } from './PlanetaryDossierDrawer';
 import { DedicatedImageryDrawer } from './DedicatedImageryDrawer';
 import { ImageDetailModal } from './ImageDetailModal';
+import { preloadPlanetaryTexture } from './PlanetTextureGenerator';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, Eye, X } from 'lucide-react';
 
 interface SpaceImageryViewProps {
@@ -37,10 +38,37 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   // Synchronized destination tracking with continuous scroll
   const [activeDestinationId, setActiveDestinationId] = useState<string>('sun');
   const activeDestinationIdRef = useRef<string>('sun');
+  const passageOverlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     activeDestinationIdRef.current = activeDestinationId;
   }, [activeDestinationId]);
+
+  // Bounded preloading: pre-generate/cache textures for adjacent destinations
+  // Prevents any runtime delay when scrolling forward or backward
+  useEffect(() => {
+    if (destinations.length === 0) return;
+    const currentIndex = destinations.findIndex(
+      (d) => d.id.toLowerCase() === activeDestinationId.toLowerCase()
+    );
+    if (currentIndex === -1) return;
+
+    // Preload window: current, next, next+1, and previous
+    const indicesToPreload = [
+      currentIndex,
+      currentIndex + 1,
+      currentIndex - 1,
+      currentIndex + 2,
+    ].filter((idx) => idx >= 0 && idx < destinations.length);
+
+    const timer = setTimeout(() => {
+      indicesToPreload.forEach((idx) => {
+        preloadPlanetaryTexture(destinations[idx].id);
+      });
+    }, 25);
+
+    return () => clearTimeout(timer);
+  }, [activeDestinationId, destinations]);
 
   // Active Exploration Dossier Drawer (Triggered by clicking 3D model or explore button)
   const [dossierDestination, setDossierDestination] = useState<PlanetaryDestination | null>(null);
@@ -106,8 +134,8 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   }, [selectedImage, drawerOpen, searchPanelOpen, dossierOpen, onReturnHome]);
 
   // -------------------------------------------------------------
-  // CONTINUOUS SCROLL MONITORING & DIRECT DOM INTERPOLATION
-  // (Prevents per-frame React re-renders while preserving smooth 60fps transitions)
+  // CONTINUOUS SCROLL MONITORING & CINEMATIC 3-PHASE INTERPOLATION
+  // (Direct GPU-composited DOM updates: zero React re-render lag)
   // -------------------------------------------------------------
   useEffect(() => {
     if (typeof window === 'undefined' || destinations.length === 0) return;
@@ -131,23 +159,70 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
           if (!el) return;
           const rect = el.getBoundingClientRect();
           const elCenter = rect.top + rect.height * 0.5;
-          const dist = Math.abs(elCenter - vCenter);
+          const centerOffset = elCenter - vCenter;
+          const dist = Math.abs(centerOffset);
 
           if (dist < minDistance) {
             minDistance = dist;
             closestId = normKey;
           }
 
-          // Direct DOM transform/opacity update (GPU composited, zero React reconciliation overhead)
-          const progress = Math.max(0.0, Math.min(1.0, 1.0 - dist / (vh * 0.85)));
+          // 1. Direct GPU-composited backdrop crossfade per destination
+          const bgEl = document.getElementById(`backdrop-${normKey}`);
+          if (bgEl) {
+            const bgProgress = Math.max(0.0, Math.min(1.0, 1.0 - dist / (vh * 0.75)));
+            bgEl.style.opacity = `${bgProgress.toFixed(3)}`;
+          }
+
+          // 2. Direct GPU transform/opacity updates for 3D visual model
           const visualEl = el.querySelector<HTMLElement>('.astra-planet-visual-root');
           if (visualEl) {
-            const scale = reducedMotion ? 1.0 : Math.max(0.5, Math.min(1.0, 0.5 + 0.5 * progress));
-            const opacity = reducedMotion ? 1.0 : Math.max(0.0, Math.min(1.0, progress * 1.35));
-            visualEl.style.transform = `scale(${scale})`;
-            visualEl.style.opacity = `${opacity}`;
+            if (reducedMotion) {
+              visualEl.style.transform = 'none';
+              visualEl.style.opacity = dist < vh * 0.7 ? '1.0' : '0.2';
+            } else {
+              // 3-Phase Cinematic Choreography: Departure, Celestial Passage, Arrival
+              const normDist = Math.min(1.0, dist / (vh * 0.85));
+              const progress = Math.max(0.0, 1.0 - normDist);
+
+              const isDeparting = centerOffset < 0; // scrolled past, moving upwards
+              const yOffset = isDeparting ? -28 * normDist : 28 * normDist;
+              const zOffset = -140 * Math.pow(normDist, 1.3); // Authentic 3D depth recession/emergence
+              const scale = 0.52 + 0.48 * Math.pow(progress, 1.4);
+              const opacity = Math.min(1.0, progress * 1.35);
+
+              visualEl.style.transform = `translate3d(0, ${yOffset.toFixed(1)}px, ${zOffset.toFixed(1)}px) scale(${scale.toFixed(3)})`;
+              visualEl.style.opacity = `${opacity.toFixed(3)}`;
+            }
+          }
+
+          // 3. Editorial briefing text subtle depth parallax
+          const briefingEl = el.querySelector<HTMLElement>('.astra-stage-briefing');
+          if (briefingEl) {
+            if (reducedMotion) {
+              briefingEl.style.opacity = dist < vh * 0.6 ? '1.0' : '0.4';
+              briefingEl.style.transform = 'none';
+            } else {
+              const briefProgress = Math.max(0.0, 1.0 - Math.min(1.0, dist / (vh * 0.65)));
+              const yShift = (centerOffset < 0 ? -18 : 18) * (1.0 - briefProgress);
+              briefingEl.style.opacity = `${briefProgress.toFixed(3)}`;
+              briefingEl.style.transform = `translate3d(0, ${yShift.toFixed(1)}px, 0)`;
+            }
           }
         });
+
+        // 4. Interstellar passage shimmer/ripple (peaks between destinations)
+        if (passageOverlayRef.current) {
+          if (reducedMotion) {
+            passageOverlayRef.current.style.opacity = '0';
+          } else {
+            const passageThreshold = vh * 0.5;
+            const passageRatio = Math.min(1.0, minDistance / passageThreshold);
+            // Peak celestial passage shimmer midway between destinations
+            const passageFactor = Math.sin(passageRatio * Math.PI) * 0.45;
+            passageOverlayRef.current.style.opacity = `${passageFactor.toFixed(3)}`;
+          }
+        }
 
         // Only trigger React state update when active destination actually changes
         if (closestId && closestId !== activeDestinationIdRef.current) {
@@ -214,18 +289,28 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     setSearchPanelOpen(false);
   };
 
-  const currentGradient =
-    ATMOSPHERIC_GRADIENTS[activeDestinationId.toLowerCase()] || ATMOSPHERIC_GRADIENTS.sun;
-
   return (
     <div
       className="astra-solar-journey-root"
       data-testid="space-imagery-view"
-      style={{
-        background: currentGradient,
-        transition: reducedMotion ? 'none' : 'background 700ms ease',
-      }}
     >
+      {/* 0. FIXED CELESTIAL BACKDROP STAGE (Continuous GPU-composited atmospheric interpolation) */}
+      <div className="astra-celestial-backdrop-stage" aria-hidden="true">
+        {destinations.map((dest) => (
+          <div
+            key={`backdrop-${dest.id}`}
+            id={`backdrop-${dest.id.toLowerCase()}`}
+            className="astra-destination-backdrop-layer"
+            style={{
+              background: ATMOSPHERIC_GRADIENTS[dest.id.toLowerCase()] || ATMOSPHERIC_GRADIENTS.sun,
+              opacity: dest.id.toLowerCase() === activeDestinationId ? 1 : 0,
+            }}
+          />
+        ))}
+        {/* Cinematic Celestial Passage Shimmer & Ripple Overlay */}
+        <div ref={passageOverlayRef} className="astra-celestial-passage-overlay" />
+      </div>
+
       {/* 1. DISCREET CORNER RETURN ARROW */}
       <button
         onClick={onReturnHome}

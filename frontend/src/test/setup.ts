@@ -58,9 +58,24 @@ if (typeof window !== 'undefined') {
         restore: vi.fn(),
         scale: vi.fn(),
         translate: vi.fn(),
+        moveTo: vi.fn(),
+        lineTo: vi.fn(),
+        createImageData: vi.fn((w: number, h: number) => ({
+          width: w,
+          height: h,
+          data: new Uint8ClampedArray((w || 1) * (h || 1) * 4),
+        })),
+        putImageData: vi.fn(),
+        createLinearGradient: vi.fn(() => ({
+          addColorStop: vi.fn(),
+        })),
+        createRadialGradient: vi.fn(() => ({
+          addColorStop: vi.fn(),
+        })),
         fillStyle: '',
         strokeStyle: '',
         globalAlpha: 1,
+        lineWidth: 1,
       };
     }
     try {

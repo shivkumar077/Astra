@@ -220,7 +220,7 @@ const SunShader = {
 
       vec3 viewDir = vec3(0.0, 0.0, 1.0);
       float mu = max(dot(vNormal, viewDir), 0.0);
-      float limbDarkening = pow(mu, 0.42);
+      float limbDarkening = pow(max(mu, 0.0001), 0.42);
 
       vec3 deepCoronaAmber = vec3(0.82, 0.22, 0.03);
       vec3 solarOrange     = vec3(0.96, 0.48, 0.08);
@@ -234,7 +234,7 @@ const SunShader = {
       baseColor = mix(baseColor, stellarCore, flareKnot * 0.75);
 
       vec3 finalColor = baseColor * (0.35 + 0.65 * limbDarkening);
-      float rim = 1.0 - mu;
+      float rim = max(0.0, 1.0 - mu);
       finalColor += vec3(0.95, 0.45, 0.08) * pow(rim, 2.8) * 0.8;
 
       gl_FragColor = vec4(finalColor, 1.0);
@@ -257,8 +257,10 @@ const CoronalGlowShader = {
     uniform vec3 uGlowColor;
     varying vec3 vNormal;
     void main() {
-      float intensity = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.6);
-      gl_FragColor = vec4(uGlowColor, intensity * 0.65);
+      // Clamp dot product to eliminate negative bases that produce GLSL NaN
+      float d = max(0.0, 0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)));
+      float intensity = pow(d, 2.6) * 0.65;
+      gl_FragColor = vec4(uGlowColor * intensity, intensity);
     }
   `,
 };
@@ -322,6 +324,7 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
         antialias: true,
         alpha: true,
         powerPreference: 'high-performance',
+        premultipliedAlpha: false,
       });
       renderer.setClearColor(0x000000, 0);
       // Clamp pixel ratio to 1.75 to prevent mobile GPU thermal throttling
@@ -329,6 +332,13 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       renderer.setSize(width, height);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = config.isStar ? 1.25 : 1.05;
+
+      renderer.domElement.style.display = 'block';
+      renderer.domElement.style.width = '100%';
+      renderer.domElement.style.height = '100%';
+      renderer.domElement.style.outline = 'none';
+      renderer.domElement.style.border = 'none';
+      renderer.domElement.style.background = 'transparent';
       container.appendChild(renderer.domElement);
     } catch {
       setWebglAvailable(false);
@@ -677,7 +687,7 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   return (
     <div
       ref={mountRef}
-      className="astra-planet-visual-root"
+      className={`astra-planet-visual-root ${config.isStar ? 'sun-visual-root' : ''}`.trim()}
       data-testid={`planet-visual-${normId}`}
       role="button"
       tabIndex={0}
@@ -685,7 +695,6 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       style={{
         transform: `scale(${clampedScale})`,
         opacity: clampedOpacity,
-        transition: 'transform 200ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease',
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
