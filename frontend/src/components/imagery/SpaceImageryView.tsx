@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { PlanetaryDestination, SpaceImageryItem, SpaceImagerySearchResult } from '../../types/imagery';
 import { getPlanetaryDestinations, searchImagery } from '../../api/imageryApi';
 import { SolarSystemNavigator } from './SolarSystemNavigator';
-import { PlanetarySection } from './PlanetarySection';
+import { PlanetaryWorldScene } from './PlanetaryWorldScene';
 import { DedicatedImageryDrawer } from './DedicatedImageryDrawer';
 import { ImageDetailModal } from './ImageDetailModal';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, Eye, X } from 'lucide-react';
@@ -12,17 +12,17 @@ interface SpaceImageryViewProps {
   reducedMotion?: boolean;
 }
 
-// Atmospheric gradient palettes for each celestial environment
+// Environmental atmospheric gradient palettes for each celestial body
 const ATMOSPHERIC_GRADIENTS: Record<string, string> = {
-  sun: 'radial-gradient(ellipse 70% 65% at 75% 50%, rgba(245, 158, 11, 0.26) 0%, rgba(234, 88, 12, 0.12) 40%, rgba(10, 6, 2, 0.95) 85%)',
-  mercury: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(140, 130, 122, 0.16) 0%, rgba(40, 36, 33, 0.08) 45%, rgba(6, 7, 9, 0.96) 85%)',
-  venus: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(227, 187, 123, 0.24) 0%, rgba(196, 155, 88, 0.10) 45%, rgba(9, 7, 3, 0.96) 85%)',
-  earth: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(56, 189, 248, 0.22) 0%, rgba(37, 99, 235, 0.12) 40%, rgba(3, 7, 18, 0.96) 85%)',
-  mars: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(193, 68, 14, 0.26) 0%, rgba(153, 27, 27, 0.10) 45%, rgba(10, 4, 3, 0.96) 85%)',
-  jupiter: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(201, 144, 57, 0.24) 0%, rgba(180, 83, 9, 0.10) 45%, rgba(10, 6, 3, 0.96) 85%)',
-  saturn: 'radial-gradient(ellipse 70% 65% at 75% 50%, rgba(226, 191, 125, 0.24) 0%, rgba(197, 160, 89, 0.10) 45%, rgba(10, 8, 4, 0.96) 85%)',
-  uranus: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(112, 214, 255, 0.22) 0%, rgba(56, 189, 248, 0.08) 45%, rgba(2, 9, 15, 0.96) 85%)',
-  neptune: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(30, 64, 175, 0.28) 0%, rgba(37, 99, 235, 0.12) 45%, rgba(2, 5, 18, 0.96) 85%)',
+  sun: 'radial-gradient(ellipse 90% 80% at 50% 45%, rgba(251, 191, 36, 0.38) 0%, rgba(245, 158, 11, 0.22) 35%, rgba(217, 119, 6, 0.14) 60%, rgba(24, 14, 4, 0.96) 92%)',
+  mercury: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(168, 162, 158, 0.22) 0%, rgba(120, 113, 108, 0.12) 40%, rgba(41, 37, 36, 0.08) 65%, rgba(12, 10, 9, 0.96) 90%)',
+  venus: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(253, 230, 138, 0.30) 0%, rgba(245, 158, 11, 0.16) 40%, rgba(180, 83, 9, 0.08) 65%, rgba(18, 14, 6, 0.96) 90%)',
+  earth: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(56, 189, 248, 0.28) 0%, rgba(37, 99, 235, 0.16) 40%, rgba(30, 58, 138, 0.10) 65%, rgba(4, 9, 24, 0.96) 90%)',
+  mars: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(234, 88, 12, 0.32) 0%, rgba(194, 65, 12, 0.18) 40%, rgba(127, 29, 29, 0.10) 65%, rgba(18, 8, 6, 0.96) 90%)',
+  jupiter: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.16) 40%, rgba(146, 64, 14, 0.08) 65%, rgba(18, 12, 6, 0.96) 90%)',
+  saturn: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(254, 240, 138, 0.26) 0%, rgba(217, 119, 6, 0.14) 40%, rgba(161, 98, 7, 0.08) 65%, rgba(18, 15, 8, 0.96) 90%)',
+  uranus: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(125, 211, 252, 0.28) 0%, rgba(56, 189, 248, 0.14) 40%, rgba(3, 105, 161, 0.08) 65%, rgba(4, 16, 26, 0.96) 90%)',
+  neptune: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(59, 130, 246, 0.32) 0%, rgba(29, 78, 216, 0.18) 40%, rgba(30, 27, 75, 0.12) 65%, rgba(3, 7, 26, 0.96) 90%)',
 };
 
 export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
@@ -33,13 +33,13 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Active celestial body determined by scroll position
+  // Active celestial body in the Solar System
   const [activeDestinationId, setActiveDestinationId] = useState<string>('sun');
 
   // Single Image Inspection Modal
   const [selectedImage, setSelectedImage] = useState<SpaceImageryItem | null>(null);
 
-  // Dedicated Imagery Drawer State (for viewing gallery without scene clutter)
+  // Dedicated Imagery Drawer State (for browsing full archive without scene clutter)
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [drawerDestination, setDrawerDestination] = useState<PlanetaryDestination | null>(null);
   const [drawerQuery, setDrawerQuery] = useState<string | undefined>(undefined);
@@ -59,7 +59,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     getPlanetaryDestinations()
       .then((data) => {
         setDestinations(data);
-        if (data.length > 0) {
+        if (data.length > 0 && !activeDestinationId) {
           setActiveDestinationId(data[0].id);
         }
         setLoading(false);
@@ -93,42 +93,9 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedImage, drawerOpen, searchPanelOpen, onReturnHome]);
 
-  // Scroll Spy via IntersectionObserver to dynamically adjust environmental palette
-  useEffect(() => {
-    if (destinations.length === 0) return;
-    if (typeof window === 'undefined' || typeof window.IntersectionObserver === 'undefined') return;
-
-    const observer = new window.IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const destId = entry.target.id.replace('destination-', '');
-            if (destId) {
-              setActiveDestinationId(destId);
-            }
-          }
-        });
-      },
-      {
-        threshold: 0.45,
-      }
-    );
-
-    destinations.forEach((dest) => {
-      const el = document.getElementById(`destination-${dest.id.toLowerCase()}`);
-      if (el) observer.observe(el);
-    });
-
-    return () => observer.disconnect();
-  }, [destinations]);
-
-  // Jump to Celestial Destination
+  // Jump to Celestial Destination immediately
   const handleSelectDestination = (destId: string) => {
     setActiveDestinationId(destId);
-    const element = document.getElementById(`destination-${destId.toLowerCase()}`);
-    if (element) {
-      element.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
-    }
   };
 
   // Open Dedicated Imagery Drawer for a Planet
@@ -167,6 +134,10 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
 
   const currentGradient =
     ATMOSPHERIC_GRADIENTS[activeDestinationId.toLowerCase()] || ATMOSPHERIC_GRADIENTS.sun;
+
+  const currentDestination =
+    destinations.find((d) => d.id.toLowerCase() === activeDestinationId.toLowerCase()) ||
+    destinations[0];
 
   return (
     <div
@@ -229,7 +200,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         </div>
       </header>
 
-      {/* 3. COMPACT EDGE-ALIGNED SOLAR SYSTEM NAVIGATOR */}
+      {/* 3. COMPACT PLANETARY SIDEBAR (Sun + 8 Planets) */}
       {destinations.length > 0 && (
         <SolarSystemNavigator
           destinations={destinations}
@@ -338,17 +309,16 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         </div>
       )}
 
-      {/* 7. CINEMATIC SOLAR SYSTEM JOURNEY (Sun is the opening stage) */}
-      {!loading && !error && destinations.length > 0 && (
-        <main className="astra-celestial-journey" data-testid="planetary-journey">
-          {destinations.map((dest) => (
-            <PlanetarySection
-              key={dest.id}
-              destination={dest}
-              onOpenImagery={handleOpenImagery}
-              reducedMotion={reducedMotion}
-            />
-          ))}
+      {/* 7. IMMERSIVE PLANETARY WORLD SCENE (Active Destination World) */}
+      {!loading && !error && currentDestination && (
+        <main className="astra-active-world-viewport" data-testid="active-planet-world">
+          <PlanetaryWorldScene
+            key={currentDestination.id}
+            destination={currentDestination}
+            onOpenArchive={handleOpenImagery}
+            onSelectImage={(item) => setSelectedImage(item)}
+            reducedMotion={reducedMotion}
+          />
         </main>
       )}
 

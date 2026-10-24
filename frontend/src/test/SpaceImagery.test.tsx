@@ -134,7 +134,7 @@ const MOCK_ASSET_MANIFEST: SpaceImageryAssetManifest = {
   assets: [],
 };
 
-describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience', () => {
+describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(imageryApi, 'getPlanetaryDestinations').mockResolvedValue(MOCK_DESTINATIONS);
@@ -146,7 +146,7 @@ describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience'
     vi.spyOn(imageryApi, 'getAssetManifest').mockResolvedValue(MOCK_ASSET_MANIFEST);
   });
 
-  it('renders the Space Imagery view with gateway connectivity indicator, compact solar navigator, and Sun opening scene', async () => {
+  it('renders the Space Imagery view with gateway connectivity indicator, planetary sidebar, and Sun opening world', async () => {
     const handleReturn = vi.fn();
     render(<SpaceImageryView onReturnHome={handleReturn} />);
 
@@ -169,6 +169,7 @@ describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience'
     // Opening scene is the Sun
     expect(screen.getByTestId('section-sun')).toBeInTheDocument();
     expect(within(screen.getByTestId('section-sun')).getByText('Sun')).toBeInTheDocument();
+    expect(screen.getByTestId('expand-world-sun')).toBeInTheDocument();
   });
 
   it('triggers return home when operator clicks the return button', async () => {
@@ -189,14 +190,34 @@ describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience'
     expect(handleReturn).toHaveBeenCalledTimes(1);
   });
 
-  it('renders real destination catalog data with historical missions and rovers', async () => {
+  it('switches destinations immediately when clicking navigator sidebar and supports expanding the world', async () => {
     render(<SpaceImageryView onReturnHome={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('solar-system-navigator')).toBeInTheDocument();
+    });
+
+    // Switch to Mars immediately
+    const marsNavItem = screen.getByTestId('nav-item-mars');
+    fireEvent.click(marsNavItem);
 
     await waitFor(() => {
       expect(screen.getByTestId('section-mars')).toBeInTheDocument();
     });
 
+    // Mars opens in focused collapsed state
     const marsSection = screen.getByTestId('section-mars');
+    expect(within(marsSection).getByText('Mars')).toBeInTheDocument();
+    expect(screen.getByTestId('expand-world-mars')).toBeInTheDocument();
+
+    // Expand Mars world
+    fireEvent.click(screen.getByTestId('expand-world-mars'));
+
+    // Dossier with boxed missions and rovers is revealed
+    await waitFor(() => {
+      expect(screen.getByTestId('collapse-world-mars')).toBeInTheDocument();
+    });
+
     expect(within(marsSection).getAllByText(/Mars Science Laboratory/i).length).toBeGreaterThan(0);
     expect(within(marsSection).getAllByText(/Perseverance/i).length).toBeGreaterThan(0);
     expect(within(marsSection).getAllByText(/Curiosity/i).length).toBeGreaterThan(0);
@@ -213,6 +234,20 @@ describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience'
 
   it('opens DedicatedImageryDrawer, clicks image card to open ImageDetailModal, and displays scientific metadata', async () => {
     render(<SpaceImageryView onReturnHome={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('solar-system-navigator')).toBeInTheDocument();
+    });
+
+    // Switch to Mars
+    fireEvent.click(screen.getByTestId('nav-item-mars'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('expand-world-mars')).toBeInTheDocument();
+    });
+
+    // Expand Mars world
+    fireEvent.click(screen.getByTestId('expand-world-mars'));
 
     await waitFor(() => {
       expect(screen.getByTestId('explore-imagery-mars')).toBeInTheDocument();
@@ -307,5 +342,40 @@ describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience'
     const roverSearchBtns = screen.getAllByRole('button', { name: /Search imagery from/i });
     fireEvent.click(roverSearchBtns[0]);
     expect(handleSearch).toHaveBeenCalledWith('Perseverance Jezero');
+  });
+
+  it('toggles expansion state and filters curated imagery by mission card', async () => {
+    render(<SpaceImageryView onReturnHome={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('section-sun')).toBeInTheDocument();
+    });
+
+    // Expand Sun
+    const expandSunBtn = screen.getByTestId('expand-world-sun');
+    fireEvent.click(expandSunBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/HELIOPHYSICS OBSERVATIONAL FLEET/i)).toBeInTheDocument();
+    });
+
+    // Boxed card for Parker Solar Probe
+    const parkerCard = screen.getByRole('button', { name: /Mission: Parker Solar Probe/i });
+    expect(parkerCard).toBeInTheDocument();
+
+    // Click mission card to filter curated imagery
+    fireEvent.click(parkerCard);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Filtered: Parker Solar Probe/i)).toBeInTheDocument();
+    });
+
+    // Collapse Sun
+    const collapseBtn = screen.getByTestId('collapse-world-sun');
+    fireEvent.click(collapseBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('expand-world-sun')).toBeInTheDocument();
+    });
   });
 });

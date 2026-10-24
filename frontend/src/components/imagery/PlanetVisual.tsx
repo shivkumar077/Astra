@@ -7,6 +7,8 @@ interface PlanetVisualProps {
   name: string;
   type: string;
   reducedMotion?: boolean;
+  isExpanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
 interface PlanetConfig {
@@ -170,7 +172,7 @@ const SunShader = {
               + i.x + vec4(0.0, i1.x, i2.x, 1.0));
       float n_ = 0.142857142857;
       vec3 ns = n_ * D.wyz - D.xzx;
-      vec4 j = p - 49.0 * floor(p * ns.z.xxxx);
+      vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
       vec4 x_ = floor(j * ns.z);
       vec4 y_ = floor(j - 7.0 * x_);
       vec4 x = x_ *ns.x + ns.yyyy;
@@ -188,35 +190,42 @@ const SunShader = {
       vec3 p2 = vec3(a1.xy, h.z);
       vec3 p3 = vec3(a1.zw, h.w);
       vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
-      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      p0 *= norm.x;
+      p1 *= norm.y;
+      p2 *= norm.z;
+      p3 *= norm.w;
       vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
       m = m * m;
       return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
     }
 
     void main() {
+      // Coordinate space for procedural plasma
       vec3 pos = normalize(vPosition);
+      float t = uTime * 0.12;
 
-      // Multi-octave convective plasma granulation
-      float t = uTime * 0.18;
-      float n1 = snoise(pos * 4.2 + vec3(0.0, t * 0.8, 0.0));
-      float n2 = snoise(pos * 9.5 - vec3(t * 0.5, 0.0, t * 0.4));
-      float n3 = snoise(pos * 18.0 + vec3(t * 0.2, t * 0.2, 0.0));
+      // Multi-octave convective noise
+      float n1 = snoise(pos * 2.8 + vec3(t * 0.4, t * 0.2, 0.0));
+      float n2 = snoise(pos * 6.2 - vec3(0.0, t * 0.5, t * 0.3));
+      float n3 = snoise(pos * 14.0 + vec3(t * 0.8, 0.0, t * 0.6));
       float plasma = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
 
-      // Solar Limb Darkening: I(mu) = I0 * (1 - u*(1 - mu))
-      float mu = max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0);
+      // Physical Solar Limb Darkening: I(mu) = 1 - u*(1 - mu)
+      vec3 viewDir = vec3(0.0, 0.0, 1.0);
+      float mu = max(dot(vNormal, viewDir), 0.0);
       float limbDarkening = pow(mu, 0.42);
 
-      // Color Ramping: Dark Red-Orange -> Golden Amber -> Brilliant Flare White
-      vec3 deepMolten = vec3(0.82, 0.22, 0.04); // Intergranular valleys (dark orange-red)
-      vec3 goldenPlasma = vec3(0.98, 0.65, 0.08); // Photospheric granules (rich gold)
-      vec3 stellarCore = vec3(1.0, 0.96, 0.82); // Active magnetic flare knots (white-yellow)
+      // Solar Color Gradient Palette
+      vec3 deepCoronaAmber = vec3(0.82, 0.22, 0.03);  // #D13807
+      vec3 solarOrange     = vec3(0.96, 0.48, 0.08);  // #F57A14
+      vec3 luminousGold    = vec3(0.98, 0.74, 0.18);  // #FABD2E
+      vec3 stellarCore     = vec3(1.00, 0.96, 0.72);  // #FFF5B8
 
-      float cellFactor = smoothstep(-0.4, 0.6, plasma);
-      vec3 baseColor = mix(deepMolten, goldenPlasma, cellFactor);
+      // Mix colors based on turbulent plasma density
+      vec3 baseColor = mix(deepCoronaAmber, solarOrange, smoothstep(-0.6, 0.1, plasma));
+      baseColor = mix(baseColor, luminousGold, smoothstep(0.1, 0.55, plasma));
 
-      // Hot flare highlights
+      // Granular convective hot-spots
       float flareKnot = smoothstep(0.48, 0.85, plasma);
       baseColor = mix(baseColor, stellarCore, flareKnot * 0.75);
 
@@ -258,9 +267,12 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   name,
   type,
   reducedMotion = false,
+  isExpanded = false,
+  onToggleExpand,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
+  const [isHovered, setIsHovered] = useState<boolean>(false);
 
   const config = PLANET_CONFIGS[destinationId.toLowerCase()] || PLANET_CONFIGS.earth;
 
@@ -291,13 +303,13 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
     let animId: number;
     let isDisposed = false;
 
-    const width = container.clientWidth || 480;
-    const height = container.clientHeight || 480;
+    let width = container.clientWidth || 460;
+    let height = container.clientHeight || 460;
 
     // 2. Scene, Camera & WebGL Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 5.6);
+    camera.position.set(0, 0, isExpanded ? 5.2 : 5.8);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -348,9 +360,9 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       sphereMesh = new THREE.Mesh(sphereGeometry, solarMaterial);
       celestialGroup.add(sphereMesh);
 
-      // Layered Atmospheric Coronal Glow Shell
-      const glowGeo = new THREE.SphereGeometry(sphereRadius * 1.22, 48, 48);
-      const glowMat = new THREE.ShaderMaterial({
+      // Multi-Layer Volumetric Coronal Glow Shell
+      const coronaGeo = new THREE.SphereGeometry(sphereRadius * 1.22, 48, 48);
+      const coronaMat = new THREE.ShaderMaterial({
         uniforms: {
           uGlowColor: { value: new THREE.Color(0xf59e0b) },
         },
@@ -361,22 +373,21 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
         transparent: true,
         depthWrite: false,
       });
-      glowMesh = new THREE.Mesh(glowGeo, glowMat);
+      glowMesh = new THREE.Mesh(coronaGeo, coronaMat);
       celestialGroup.add(glowMesh);
 
-      // Internal Point Light radiating warm solar energy
-      const sunLight = new THREE.PointLight(0xffeedd, 2.5, 30);
+      const sunLight = new THREE.PointLight(0xfff5b8, 2.5, 30);
       scene.add(sunLight);
     } else if (destinationId.toLowerCase() === 'earth') {
       // -------------------------------------------------------------
-      // EARTH: Real NASA 2K Textures + Dynamic Atmosphere
+      // THE EARTH: NASA 2K Blue Marble, Cloud Deck & Rayleigh Scattering
       // -------------------------------------------------------------
       const textureLoader = new THREE.TextureLoader();
-      const earthMap = textureLoader.load('/assets/earth/earth_2048.jpg');
-      earthMap.colorSpace = THREE.SRGBColorSpace;
+      const earthTexture = textureLoader.load('/assets/earth/earth_2048.jpg');
+      earthTexture.colorSpace = THREE.SRGBColorSpace;
 
       const earthMaterial = new THREE.MeshStandardMaterial({
-        map: earthMap,
+        map: earthTexture,
         roughness: 0.65,
         metalness: 0.05,
       });
@@ -489,7 +500,68 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       scene.add(ambientLight);
     }
 
-    // 4. Render & Animation Loop
+    // -------------------------------------------------------------
+    // 4. INTERACTIVE POINTER ROTATION & DRAG/CLICK SEPARATION
+    // -------------------------------------------------------------
+    let isPointerDown = false;
+    let startX = 0;
+    let startY = 0;
+    let totalDragDist = 0;
+    let velocityX = 0;
+    let velocityY = 0;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      isPointerDown = true;
+      startX = e.clientX;
+      startY = e.clientY;
+      totalDragDist = 0;
+      velocityX = 0;
+      velocityY = 0;
+      (e.target as HTMLElement)?.setPointerCapture?.(e.pointerId);
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isPointerDown) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      totalDragDist += Math.hypot(dx, dy);
+      startX = e.clientX;
+      startY = e.clientY;
+
+      // Rotate planet
+      celestialGroup.rotation.y += dx * 0.007;
+      celestialGroup.rotation.x += dy * 0.005;
+
+      velocityX = dx * 0.007;
+      velocityY = dy * 0.005;
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      try {
+        (e.target as HTMLElement)?.releasePointerCapture?.(e.pointerId);
+      } catch {
+        // Ignore release capture error
+      }
+
+      // If drag distance was very small (< 6px), treat as an intentional click!
+      if (totalDragDist < 6) {
+        onToggleExpand?.();
+      }
+    };
+
+    const domElement = renderer.domElement;
+    domElement.style.touchAction = 'none';
+    domElement.style.cursor = 'grab';
+    domElement.addEventListener('pointerdown', handlePointerDown);
+    domElement.addEventListener('pointermove', handlePointerMove);
+    domElement.addEventListener('pointerup', handlePointerUp);
+    domElement.addEventListener('pointercancel', handlePointerUp);
+
+    // -------------------------------------------------------------
+    // 5. RENDER & ANIMATION LOOP (With Velocity Inertia)
+    // -------------------------------------------------------------
     const rotationSpeed = reducedMotion ? 0.0006 : 0.003;
     const clock = new THREE.Clock();
 
@@ -502,8 +574,20 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
         sunUniforms.uTime.value = elapsedTime;
       }
 
-      // Rotate planet on its axis
-      sphereMesh.rotation.y += rotationSpeed;
+      // Handle rotation and inertia
+      if (!isPointerDown) {
+        if (Math.abs(velocityX) > 0.0001) {
+          celestialGroup.rotation.y += velocityX;
+          velocityX *= 0.93;
+        } else {
+          sphereMesh.rotation.y += rotationSpeed;
+        }
+
+        if (Math.abs(velocityY) > 0.0001) {
+          celestialGroup.rotation.x += velocityY;
+          velocityY *= 0.93;
+        }
+      }
 
       // Rotate cloud layer at different speed for Earth
       if (cloudsMesh) {
@@ -521,10 +605,31 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
 
     animate();
 
-    // 5. Cleanup on unmount
+    // Resize handler
+    const handleResize = () => {
+      if (!container || !renderer) return;
+      const newWidth = container.clientWidth || 460;
+      const newHeight = container.clientHeight || 460;
+      camera.aspect = newWidth / newHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(newWidth, newHeight);
+    };
+
+    window.addEventListener('resize', handleResize);
+
+    // -------------------------------------------------------------
+    // 6. CLEANUP ON UNMOUNT
+    // -------------------------------------------------------------
     return () => {
       isDisposed = true;
+      window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animId);
+
+      domElement.removeEventListener('pointerdown', handlePointerDown);
+      domElement.removeEventListener('pointermove', handlePointerMove);
+      domElement.removeEventListener('pointerup', handlePointerUp);
+      domElement.removeEventListener('pointercancel', handlePointerUp);
+
       sphereGeometry.dispose();
       if (sphereMesh.material instanceof THREE.Material) {
         sphereMesh.material.dispose();
@@ -552,47 +657,68 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [destinationId, config, reducedMotion]);
+  }, [destinationId, config, reducedMotion, isExpanded, onToggleExpand]);
 
   return (
     <div
       ref={mountRef}
-      className="astra-planet-visual-root"
+      className={`astra-planet-visual-root ${isExpanded ? 'mode-expanded' : 'mode-collapsed'}`}
       data-testid={`planet-visual-${destinationId.toLowerCase()}`}
-      aria-label={`3D visual of ${name} (${type})`}
-      style={{
-        position: 'relative',
-        width: '100%',
-        height: '100%',
-        minHeight: '440px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
+      role="button"
+      tabIndex={0}
+      aria-label={`Interactive 3D model of ${name} (${type}). Drag to rotate in 3D. Press Enter or click to ${
+        isExpanded ? 'collapse' : 'expand'
+      } planetary dossier.`}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onToggleExpand?.();
+        }
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
+      {/* Interactive HUD Prompt */}
+      <div
+        className={`astra-planet-hud-cue ${isHovered ? 'visible' : ''} ${
+          isExpanded ? 'cue-expanded' : 'cue-collapsed'
+        }`}
+        aria-hidden="true"
+      >
+        <span className="astra-hud-pulse" />
+        <span className="astra-hud-label">
+          {isExpanded
+            ? 'DRAG TO ROTATE // CLICK TO COLLAPSE'
+            : 'CLICK CELESTIAL BODY TO EXPAND'}
+        </span>
+      </div>
+
       {/* Tactical 2D Fallback for JSDOM / WebGL disabled environments */}
       {!webglAvailable && (
         <div
           data-testid={`planet-fallback-${destinationId.toLowerCase()}`}
+          className="astra-planet-2d-fallback"
           style={{
-            width: '280px',
-            height: '280px',
+            width: isExpanded ? '240px' : '300px',
+            height: isExpanded ? '240px' : '300px',
             borderRadius: '50%',
             background: config.isStar
               ? 'radial-gradient(circle, #fffbeb 10%, #fbbf24 45%, #ea580c 75%, transparent 100%)'
               : `radial-gradient(circle at 35% 35%, ${config.secondaryColor} 0%, ${config.primaryColor} 65%, #050608 100%)`,
-            boxShadow: `0 0 60px ${config.glowColor}`,
+            boxShadow: `0 0 70px ${config.glowColor}`,
             position: 'relative',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            cursor: 'pointer',
           }}
+          onClick={onToggleExpand}
         >
           {config.hasRings && (
             <div
               style={{
                 position: 'absolute',
-                width: '380px',
+                width: isExpanded ? '340px' : '400px',
                 height: '18px',
                 borderRadius: '50%',
                 border: '4px solid rgba(226, 191, 125, 0.7)',
