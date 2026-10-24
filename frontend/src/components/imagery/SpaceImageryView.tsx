@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { PlanetaryDestination, SpaceImageryItem, SpaceImagerySearchResult } from '../../types/imagery';
 import { getPlanetaryDestinations, searchImagery } from '../../api/imageryApi';
 import { SolarSystemNavigator } from './SolarSystemNavigator';
-import { PlanetaryWorldScene } from './PlanetaryWorldScene';
+import { PlanetaryScrollSection } from './PlanetaryScrollSection';
+import { PlanetaryDossierDrawer } from './PlanetaryDossierDrawer';
 import { DedicatedImageryDrawer } from './DedicatedImageryDrawer';
 import { ImageDetailModal } from './ImageDetailModal';
 import { ArrowLeft, Search, RefreshCw, AlertCircle, Eye, X } from 'lucide-react';
@@ -14,15 +15,15 @@ interface SpaceImageryViewProps {
 
 // Environmental atmospheric gradient palettes for each celestial body
 const ATMOSPHERIC_GRADIENTS: Record<string, string> = {
-  sun: 'radial-gradient(ellipse 90% 80% at 50% 45%, rgba(251, 191, 36, 0.38) 0%, rgba(245, 158, 11, 0.22) 35%, rgba(217, 119, 6, 0.14) 60%, rgba(24, 14, 4, 0.96) 92%)',
-  mercury: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(168, 162, 158, 0.22) 0%, rgba(120, 113, 108, 0.12) 40%, rgba(41, 37, 36, 0.08) 65%, rgba(12, 10, 9, 0.96) 90%)',
-  venus: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(253, 230, 138, 0.30) 0%, rgba(245, 158, 11, 0.16) 40%, rgba(180, 83, 9, 0.08) 65%, rgba(18, 14, 6, 0.96) 90%)',
-  earth: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(56, 189, 248, 0.28) 0%, rgba(37, 99, 235, 0.16) 40%, rgba(30, 58, 138, 0.10) 65%, rgba(4, 9, 24, 0.96) 90%)',
-  mars: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(234, 88, 12, 0.32) 0%, rgba(194, 65, 12, 0.18) 40%, rgba(127, 29, 29, 0.10) 65%, rgba(18, 8, 6, 0.96) 90%)',
-  jupiter: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(245, 158, 11, 0.28) 0%, rgba(217, 119, 6, 0.16) 40%, rgba(146, 64, 14, 0.08) 65%, rgba(18, 12, 6, 0.96) 90%)',
-  saturn: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(254, 240, 138, 0.26) 0%, rgba(217, 119, 6, 0.14) 40%, rgba(161, 98, 7, 0.08) 65%, rgba(18, 15, 8, 0.96) 90%)',
-  uranus: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(125, 211, 252, 0.28) 0%, rgba(56, 189, 248, 0.14) 40%, rgba(3, 105, 161, 0.08) 65%, rgba(4, 16, 26, 0.96) 90%)',
-  neptune: 'radial-gradient(ellipse 85% 75% at 50% 45%, rgba(59, 130, 246, 0.32) 0%, rgba(29, 78, 216, 0.18) 40%, rgba(30, 27, 75, 0.12) 65%, rgba(3, 7, 26, 0.96) 90%)',
+  sun: 'radial-gradient(ellipse 90% 80% at 65% 50%, rgba(251, 191, 36, 0.35) 0%, rgba(245, 158, 11, 0.20) 35%, rgba(217, 119, 6, 0.12) 60%, rgba(20, 12, 4, 0.96) 92%)',
+  mercury: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(168, 162, 158, 0.20) 0%, rgba(120, 113, 108, 0.10) 40%, rgba(41, 37, 36, 0.06) 65%, rgba(10, 9, 8, 0.96) 90%)',
+  venus: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(253, 230, 138, 0.28) 0%, rgba(245, 158, 11, 0.15) 40%, rgba(180, 83, 9, 0.08) 65%, rgba(16, 12, 5, 0.96) 90%)',
+  earth: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(56, 189, 248, 0.26) 0%, rgba(37, 99, 235, 0.15) 40%, rgba(30, 58, 138, 0.08) 65%, rgba(4, 8, 22, 0.96) 90%)',
+  mars: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(234, 88, 12, 0.30) 0%, rgba(194, 65, 12, 0.16) 40%, rgba(127, 29, 29, 0.08) 65%, rgba(16, 7, 5, 0.96) 90%)',
+  jupiter: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(245, 158, 11, 0.26) 0%, rgba(217, 119, 6, 0.14) 40%, rgba(146, 64, 14, 0.07) 65%, rgba(16, 10, 5, 0.96) 90%)',
+  saturn: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(254, 240, 138, 0.24) 0%, rgba(217, 119, 6, 0.13) 40%, rgba(161, 98, 7, 0.07) 65%, rgba(16, 13, 7, 0.96) 90%)',
+  uranus: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(125, 211, 252, 0.26) 0%, rgba(56, 189, 248, 0.13) 40%, rgba(3, 105, 161, 0.07) 65%, rgba(4, 14, 24, 0.96) 90%)',
+  neptune: 'radial-gradient(ellipse 85% 75% at 65% 50%, rgba(59, 130, 246, 0.30) 0%, rgba(29, 78, 216, 0.16) 40%, rgba(30, 27, 75, 0.10) 65%, rgba(3, 6, 24, 0.96) 90%)',
 };
 
 export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
@@ -33,13 +34,18 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Active celestial body in the Solar System
+  // Synchronized destination tracking with continuous scroll
   const [activeDestinationId, setActiveDestinationId] = useState<string>('sun');
+  const [scrollScales, setScrollScales] = useState<Record<string, number>>({});
+
+  // Active Exploration Dossier Drawer (Triggered by clicking 3D model or explore button)
+  const [dossierDestination, setDossierDestination] = useState<PlanetaryDestination | null>(null);
+  const [dossierOpen, setDossierOpen] = useState<boolean>(false);
 
   // Single Image Inspection Modal
   const [selectedImage, setSelectedImage] = useState<SpaceImageryItem | null>(null);
 
-  // Dedicated Imagery Drawer State (for browsing full archive without scene clutter)
+  // Dedicated Archive Drawer (For multi-item search & pagination)
   const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [drawerDestination, setDrawerDestination] = useState<PlanetaryDestination | null>(null);
   const [drawerQuery, setDrawerQuery] = useState<string | undefined>(undefined);
@@ -59,7 +65,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     getPlanetaryDestinations()
       .then((data) => {
         setDestinations(data);
-        if (data.length > 0 && !activeDestinationId) {
+        if (data.length > 0) {
           setActiveDestinationId(data[0].id);
         }
         setLoading(false);
@@ -84,6 +90,8 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
           setDrawerOpen(false);
         } else if (searchPanelOpen) {
           setSearchPanelOpen(false);
+        } else if (dossierOpen) {
+          setDossierOpen(false);
         } else {
           onReturnHome();
         }
@@ -91,15 +99,80 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, drawerOpen, searchPanelOpen, onReturnHome]);
+  }, [selectedImage, drawerOpen, searchPanelOpen, dossierOpen, onReturnHome]);
 
-  // Jump to Celestial Destination immediately
+  // -------------------------------------------------------------
+  // CONTINUOUS SCROLL MONITORING & SCALE-AND-FADE INTERPOLATION
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (typeof window === 'undefined' || destinations.length === 0) return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (ticking) return;
+      ticking = true;
+
+      window.requestAnimationFrame(() => {
+        const vh = window.innerHeight;
+        const vCenter = vh * 0.5;
+
+        let closestId = activeDestinationId;
+        let minDistance = Infinity;
+        const newScales: Record<string, number> = {};
+
+        destinations.forEach((dest) => {
+          const el = document.getElementById(`destination-${dest.id.toLowerCase()}`);
+          if (!el) {
+            newScales[dest.id.toLowerCase()] = 1.0;
+            return;
+          }
+          const rect = el.getBoundingClientRect();
+          const elCenter = rect.top + rect.height * 0.5;
+          const dist = Math.abs(elCenter - vCenter);
+
+          if (dist < minDistance) {
+            minDistance = dist;
+            closestId = dest.id.toLowerCase();
+          }
+
+          // Continuous normalized progress: 1.0 at center, smoothly drops to 0.0 at vh away
+          const progress = Math.max(0.0, Math.min(1.0, 1.0 - dist / (vh * 0.85)));
+          newScales[dest.id.toLowerCase()] = progress;
+        });
+
+        setScrollScales(newScales);
+        if (closestId && closestId !== activeDestinationId) {
+          setActiveDestinationId(closestId);
+        }
+
+        ticking = false;
+      });
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [destinations, activeDestinationId]);
+
+  // Jump to Celestial Destination via smooth scrolling
   const handleSelectDestination = (destId: string) => {
-    setActiveDestinationId(destId);
+    setActiveDestinationId(destId.toLowerCase());
+    const element = document.getElementById(`destination-${destId.toLowerCase()}`);
+    if (element && typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
+    }
   };
 
-  // Open Dedicated Imagery Drawer for a Planet
-  const handleOpenImagery = (dest: PlanetaryDestination, query?: string) => {
+  // Open Expanded Exploration Dossier for a Destination
+  const handleOpenDossier = (dest: PlanetaryDestination) => {
+    setDossierDestination(dest);
+    setDossierOpen(true);
+  };
+
+  // Open Dedicated Imagery Archive Drawer
+  const handleOpenArchive = (dest: PlanetaryDestination, query?: string) => {
     setDrawerDestination(dest);
     setDrawerQuery(query);
     setDrawerOpen(true);
@@ -134,10 +207,6 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
 
   const currentGradient =
     ATMOSPHERIC_GRADIENTS[activeDestinationId.toLowerCase()] || ATMOSPHERIC_GRADIENTS.sun;
-
-  const currentDestination =
-    destinations.find((d) => d.id.toLowerCase() === activeDestinationId.toLowerCase()) ||
-    destinations[0];
 
   return (
     <div
@@ -200,7 +269,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         </div>
       </header>
 
-      {/* 3. COMPACT PLANETARY SIDEBAR (Sun + 8 Planets) */}
+      {/* 3. COMPACT PLANETARY SIDEBAR (Synchronized with active scroll destination) */}
       {destinations.length > 0 && (
         <SolarSystemNavigator
           destinations={destinations}
@@ -209,7 +278,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         />
       )}
 
-      {/* 4. SEARCH RESULTS OVERLAY PANEL (Does not disrupt celestial stage) */}
+      {/* 4. SEARCH RESULTS OVERLAY PANEL */}
       {searchPanelOpen && (
         <div
           className="astra-search-overlay-backdrop"
@@ -309,20 +378,31 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         </div>
       )}
 
-      {/* 7. IMMERSIVE PLANETARY WORLD SCENE (Active Destination World) */}
-      {!loading && !error && currentDestination && (
-        <main className="astra-active-world-viewport" data-testid="active-planet-world">
-          <PlanetaryWorldScene
-            key={currentDestination.id}
-            destination={currentDestination}
-            onOpenArchive={handleOpenImagery}
-            onSelectImage={(item) => setSelectedImage(item)}
-            reducedMotion={reducedMotion}
-          />
+      {/* 7. CONTINUOUS SOLAR SYSTEM SCROLL JOURNEY (Sun through Neptune) */}
+      {!loading && !error && destinations.length > 0 && (
+        <main className="astra-celestial-journey" data-testid="planetary-journey">
+          {destinations.map((dest) => (
+            <PlanetaryScrollSection
+              key={dest.id}
+              destination={dest}
+              scaleProgress={scrollScales[dest.id.toLowerCase()] ?? 1.0}
+              onOpenDossier={handleOpenDossier}
+              reducedMotion={reducedMotion}
+            />
+          ))}
         </main>
       )}
 
-      {/* 8. DEDICATED IMAGERY DRAWER */}
+      {/* 8. EXPANDED PLANETARY EXPLORATION DOSSIER OVERLAY */}
+      <PlanetaryDossierDrawer
+        destination={dossierDestination}
+        isOpen={dossierOpen}
+        onClose={() => setDossierOpen(false)}
+        onOpenArchive={handleOpenArchive}
+        onSelectImage={(item) => setSelectedImage(item)}
+      />
+
+      {/* 9. DEDICATED NASA IMAGERY ARCHIVE DRAWER */}
       <DedicatedImageryDrawer
         destination={drawerDestination}
         activeQuery={drawerQuery}
@@ -332,7 +412,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         onSelectImage={(item) => setSelectedImage(item)}
       />
 
-      {/* 9. IMAGE DETAIL MODAL OVERLAY */}
+      {/* 10. IMAGE DETAIL MODAL OVERLAY */}
       <ImageDetailModal
         item={selectedImage}
         onClose={() => setSelectedImage(null)}

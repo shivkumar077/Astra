@@ -42,8 +42,7 @@ if (typeof window !== 'undefined') {
 
   // Mock HTMLCanvasElement.getContext for basic canvas calls
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
-  // @ts-expect-error Mocking canvas context for testing environment
-  HTMLCanvasElement.prototype.getContext = function (contextType: string, options?: unknown) {
+  (HTMLCanvasElement.prototype as any).getContext = function (contextType: string, options?: unknown) {
     if (contextType === 'webgl' || contextType === 'experimental-webgl' || contextType === 'webgl2') {
       return null; // Return null in JSDOM to test graceful fallback
     }
@@ -65,7 +64,7 @@ if (typeof window !== 'undefined') {
       };
     }
     try {
-      return originalGetContext.call(this, contextType, options);
+      return (originalGetContext as any).call(this, contextType, options);
     } catch {
       return null;
     }

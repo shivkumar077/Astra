@@ -79,3 +79,6 @@ temp/
 coverage/
 *.lcov
 surefire-reports/
+
+# Local 3D planetary models (workspace assets)
+frontend/public/models/

@@ -144,6 +144,7 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
       query: params.query || 'NASA Query',
     }));
     vi.spyOn(imageryApi, 'getAssetManifest').mockResolvedValue(MOCK_ASSET_MANIFEST);
+    window.HTMLElement.prototype.scrollIntoView = vi.fn();
   });
 
   it('renders the Space Imagery view with gateway connectivity indicator, planetary sidebar, and Sun opening world', async () => {
@@ -218,11 +219,12 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
       expect(screen.getByTestId('collapse-world-mars')).toBeInTheDocument();
     });
 
-    expect(within(marsSection).getAllByText(/Mars Science Laboratory/i).length).toBeGreaterThan(0);
-    expect(within(marsSection).getAllByText(/Perseverance/i).length).toBeGreaterThan(0);
-    expect(within(marsSection).getAllByText(/Curiosity/i).length).toBeGreaterThan(0);
-    expect(within(marsSection).getByText(/Jezero Crater/i)).toBeInTheDocument();
-    expect(within(marsSection).getByText(/Gale Crater/i)).toBeInTheDocument();
+    const marsDossier = screen.getByTestId('dossier-overlay-mars');
+    expect(within(marsDossier).getAllByText(/Mars Science Laboratory/i).length).toBeGreaterThan(0);
+    expect(within(marsDossier).getAllByText(/Perseverance/i).length).toBeGreaterThan(0);
+    expect(within(marsDossier).getAllByText(/Curiosity/i).length).toBeGreaterThan(0);
+    expect(within(marsDossier).getByText(/Jezero Crater/i)).toBeInTheDocument();
+    expect(within(marsDossier).getByText(/Gale Crater/i)).toBeInTheDocument();
   });
 
   it('renders tactical 2D fallback for celestial visual when WebGL is unavailable in JSDOM', () => {
