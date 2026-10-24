@@ -19,7 +19,7 @@ export const ImageDetailModal: React.FC<ImageDetailModalProps> = ({ item, onClos
       return;
     }
 
-    closeButtonRef.current?.focus();
+    closeButtonRef.current?.focus({ preventScroll: true });
 
     // Trap Escape key
     const handleKeyDown = (e: KeyboardEvent) => {

@@ -286,7 +286,7 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
     expect(screen.queryByTestId('image-detail-modal')).not.toBeInTheDocument();
   });
 
-  it('renders interactive 3D miniature celestial world with matching background theme when expanding dossier', async () => {
+  it('renders interactive 3D celestial world on left stage with matching background theme when expanding dossier', async () => {
     render(<SpaceImageryView onReturnHome={vi.fn()} />);
 
     await waitFor(() => {
@@ -298,6 +298,7 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('dossier-overlay-sun')).toBeInTheDocument();
+      expect(screen.getByTestId('dossier-stage-sun')).toBeInTheDocument();
       expect(screen.getByTestId('dossier-miniature-sun')).toBeInTheDocument();
       expect(screen.getByTestId('planet-visual-mini-sun')).toBeInTheDocument();
     });
@@ -305,7 +306,7 @@ describe('ASTRA Space Imagery — Immersive Planetary Worlds Redesign', () => {
     // Verify verified metrics strip and telemetry inside dossier
     const sunDossier = screen.getByTestId('dossier-overlay-sun');
     expect(within(sunDossier).getByText(/1 VERIFIED MISSIONS/i)).toBeInTheDocument();
-    expect(within(sunDossier).getByText(/INTERACTIVE 3D MINIATURE/i)).toBeInTheDocument();
+    expect(within(sunDossier).getByText(/INTERACTIVE 3D VIEW/i)).toBeInTheDocument();
   });
 
   it('handles destination loading failure with retry button', async () => {

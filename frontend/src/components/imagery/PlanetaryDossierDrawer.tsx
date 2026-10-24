@@ -168,6 +168,47 @@ export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
+      {/* 1. LEFT-STAGE: INTERACTIVE 3D CELESTIAL WORLD (Fills generous left-side screen space) */}
+      <div
+        className="astra-dossier-left-stage"
+        data-testid={`dossier-stage-${destKey}`}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <div
+          className="astra-dossier-stage-glow-backdrop"
+          style={{ background: theme.bgGradient }}
+        />
+        <div
+          className="astra-dossier-stage-visual-box"
+          data-testid={`dossier-miniature-${destKey}`}
+        >
+          <PlanetVisual
+            destinationId={destination.id}
+            name={destination.name}
+            type={destination.type}
+            isExpanded={true}
+          />
+        </div>
+        <div className="astra-dossier-stage-hud">
+          <div className="astra-dossier-stage-tag" style={{ borderColor: theme.cardBorder }}>
+            <span
+              className="astra-hud-pulse"
+              style={{ background: theme.accentColor, boxShadow: `0 0 10px ${theme.accentColor}` }}
+            />
+            <span style={{ color: theme.accentColor, fontWeight: 600 }}>
+              {destination.name.toUpperCase()}
+            </span>
+            <span style={{ color: 'var(--color-text-ghost)' }}>// INTERACTIVE 3D VIEW</span>
+          </div>
+          <span className="astra-dossier-stage-hint">
+            DRAG TO ROTATE & FIDDLE WITH CELESTIAL BODY
+          </span>
+        </div>
+      </div>
+
+      {/* 2. RIGHT-SIDE: VERIFIED EXPLORATION DOSSIER PANEL */}
       <div className="astra-dossier-overlay-panel" role="dialog" aria-modal="true" aria-label={`${destination.name} Exploration Dossier`}>
         {/* TOP BAR WITH CLOSE ACTION */}
         <div className="astra-dossier-panel-header">
@@ -194,62 +235,37 @@ export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
           </button>
         </div>
 
-        {/* HERO SHOWCASE: EDITORIAL INFO (LEFT) & MINIATURE 3D CELESTIAL WORLD (RIGHT) */}
+        {/* HERO BRIEFING: EDITORIAL INFO & VERIFIED METRICS (Picture moved to generous left stage) */}
         <div
-          className="astra-dossier-hero-showcase"
+          className="astra-dossier-hero-briefing"
           style={{
             borderColor: theme.cardBorder,
           }}
         >
-          {/* Left Column: Summary, Briefing, Verified Metrics */}
-          <div className="astra-dossier-hero-info">
-            <h2 className="astra-dossier-panel-title">{destination.name} Exploration Dossier</h2>
-            <p className="astra-world-summary">
-              {destination.summary}
-            </p>
+          <h2 className="astra-dossier-panel-title">{destination.name} Exploration Dossier</h2>
+          <p className="astra-world-summary">
+            {destination.summary}
+          </p>
 
-            <div className="astra-dossier-telemetry-strip">
+          <div className="astra-dossier-telemetry-strip">
+            <span className="astra-metric-pill">
+              <Compass size={11} />
+              <span>{destination.historicalMissions?.length || 0} VERIFIED MISSIONS</span>
+            </span>
+            {destination.activeRovers && destination.activeRovers.length > 0 && (
               <span className="astra-metric-pill">
-                <Compass size={11} />
-                <span>{destination.historicalMissions?.length || 0} VERIFIED MISSIONS</span>
+                <CheckCircle2 size={11} color="var(--color-nominal)" />
+                <span>{destination.activeRovers.length} SURFACE ROVERS</span>
               </span>
-              {destination.activeRovers && destination.activeRovers.length > 0 && (
-                <span className="astra-metric-pill">
-                  <CheckCircle2 size={11} color="var(--color-nominal)" />
-                  <span>{destination.activeRovers.length} SURFACE ROVERS</span>
-                </span>
-              )}
+            )}
+            <span className="astra-metric-pill">
+              <span>CLASSIFICATION: {destination.type.replace('_', ' ')}</span>
+            </span>
+            {destination.sourceAttribution && (
               <span className="astra-metric-pill">
-                <span>CLASSIFICATION: {destination.type.replace('_', ' ')}</span>
+                <span style={{ color: theme.accentColor }}>SOURCE: {destination.sourceAttribution}</span>
               </span>
-            </div>
-          </div>
-
-          {/* Right Column: Miniature 3D Globe with Matching Background Scheme & Turn-in Animation */}
-          <div
-            className="astra-dossier-miniature-card"
-            style={{
-              background: theme.bgGradient,
-              borderColor: theme.cardBorder,
-              boxShadow: `0 8px 32px rgba(0, 0, 0, 0.6), 0 0 28px ${theme.glowColor}`,
-            }}
-            data-testid={`dossier-miniature-${destKey}`}
-          >
-            <div className="astra-dossier-miniature-canvas-wrap">
-              <PlanetVisual
-                destinationId={destination.id}
-                name={destination.name}
-                type={destination.type}
-                isExpanded={true}
-              />
-            </div>
-            <div className="astra-dossier-miniature-caption">
-              <span
-                className="astra-hud-pulse"
-                style={{ background: theme.accentColor, boxShadow: `0 0 8px ${theme.accentColor}` }}
-              />
-              <span>INTERACTIVE 3D MINIATURE</span>
-            </div>
+            )}
           </div>
         </div>
 

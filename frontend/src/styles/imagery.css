@@ -502,11 +502,13 @@
   position: fixed;
   inset: 0;
   z-index: 110;
-  background: rgba(4, 6, 12, 0.84);
-  backdrop-filter: blur(16px);
+  background: rgba(3, 5, 10, 0.88);
+  backdrop-filter: blur(20px);
   display: flex;
-  justify-content: flex-end;
+  align-items: stretch;
+  justify-content: space-between;
   animation: fadeIn 220ms ease;
+  overflow: hidden;
 }
 
 @keyframes fadeIn {
@@ -514,20 +516,115 @@
   to { opacity: 1; }
 }
 
+/* ------------------------------------------------------------------------------
+   7a. LEFT-STAGE: GENEROUS INTERACTIVE 3D CELESTIAL WORLD
+   ------------------------------------------------------------------------------ */
+.astra-dossier-left-stage {
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  box-sizing: border-box;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+.astra-dossier-stage-glow-backdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.9;
+  mix-blend-mode: screen;
+  transition: opacity 300ms ease;
+}
+
+.astra-dossier-stage-visual-box {
+  width: min(540px, 90%);
+  height: min(540px, 62vh);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  animation: dossierPlanetFlyIn 560ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes dossierPlanetFlyIn {
+  0% {
+    opacity: 0;
+    transform: translateX(120px) scale(0.65) rotate(-12deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1) rotate(0deg);
+  }
+}
+
+.astra-dossier-stage-visual-box .astra-planet-visual-root {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: unset !important;
+}
+
+.astra-dossier-stage-hud {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  z-index: 2;
+  animation: fadeIn 700ms ease forwards;
+}
+
+.astra-dossier-stage-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(10, 14, 22, 0.8);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.astra-dossier-stage-hint {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-ghost);
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------------------------
+   7b. RIGHT-SIDE: VERIFIED EXPLORATION DOSSIER PANEL
+   ------------------------------------------------------------------------------ */
 .astra-dossier-overlay-panel {
-  width: 100%;
-  max-width: 920px;
+  width: 720px;
+  max-width: 52vw;
+  flex-shrink: 0;
   height: 100vh;
   overflow-y: auto;
   background: rgba(10, 14, 22, 0.96);
   border-left: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 44px 48px;
+  padding: 40px 44px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 28px;
   box-shadow: -16px 0 48px rgba(0, 0, 0, 0.85);
   animation: slideInRight 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 3;
 }
 
 @keyframes slideInRight {
@@ -576,35 +673,18 @@
   color: var(--color-star-warm);
 }
 
-/* ------------------------------------------------------------------------------
-   7b. HERO SHOWCASE & MINIATURE 3D CELESTIAL WORLD (IN-DOSSIER)
-   ------------------------------------------------------------------------------ */
-.astra-dossier-hero-showcase {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 28px;
-  align-items: center;
+/* Hero Briefing (Spacious, clean editorial without miniature box crowding) */
+.astra-dossier-hero-briefing {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   background: rgba(10, 14, 22, 0.65);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-sm);
   padding: 24px 28px;
   position: relative;
-  overflow: hidden;
   transition: border-color 240ms ease;
-}
-
-@media (max-width: 900px) {
-  .astra-dossier-hero-showcase {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-}
-
-.astra-dossier-hero-info {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .astra-world-summary {
@@ -635,62 +715,6 @@
   border: 1px solid rgba(255, 255, 255, 0.08);
   padding: 4px 10px;
   border-radius: 999px;
-  text-transform: uppercase;
-}
-
-.astra-dossier-miniature-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--radius-sm);
-  padding: 12px;
-  overflow: hidden;
-  animation: miniatureTurnIn 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: transform 260ms ease, box-shadow 260ms ease;
-}
-
-.astra-dossier-miniature-card:hover {
-  transform: translateY(-2px) scale(1.02);
-}
-
-@keyframes miniatureTurnIn {
-  0% {
-    opacity: 0;
-    transform: translateX(36px) scale(0.88) rotate(-5deg);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0) scale(1) rotate(0deg);
-  }
-}
-
-.astra-dossier-miniature-canvas-wrap {
-  width: 220px;
-  height: 220px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.astra-dossier-miniature-canvas-wrap .astra-planet-visual-root {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: unset !important;
-}
-
-.astra-dossier-miniature-caption {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  color: var(--color-text-ghost);
   text-transform: uppercase;
 }
 
@@ -1266,6 +1290,145 @@
 }
 
 /* ------------------------------------------------------------------------------
+   10b. IMAGE DETAIL MODAL OVERLAY (INSPECT DIALOG)
+   ------------------------------------------------------------------------------ */
+.astra-detail-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(2, 4, 8, 0.88);
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  box-sizing: border-box;
+  animation: fadeInModal 200ms ease;
+}
+
+@keyframes fadeInModal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.astra-detail-modal {
+  position: relative;
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  background: rgba(12, 16, 26, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: scaleInModal 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleInModal {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.astra-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(8, 11, 18, 0.85);
+}
+
+.astra-modal-scroll-area {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-height: calc(90vh - 70px);
+}
+
+.astra-modal-img-wrap {
+  position: relative;
+  width: 100%;
+  max-height: 480px;
+  background: #020306;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.astra-modal-img {
+  max-width: 100%;
+  max-height: 480px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.astra-modal-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-xs);
+  padding: 14px 18px;
+}
+
+.astra-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.astra-meta-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+
+.astra-meta-val {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-display);
+}
+
+.astra-resolution-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.resolution-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 6px 14px;
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-decoration: none;
+  transition: all 180ms ease;
+}
+
+.resolution-pill:hover {
+  background: var(--color-earth-cyan);
+  border-color: var(--color-earth-cyan);
+  color: #030712;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+}
+
+/* ------------------------------------------------------------------------------
    11. MOBILE & RESPONSIVE BREAKPOINTS
    ------------------------------------------------------------------------------ */
 @media (max-width: 1024px) {
@@ -1300,8 +1463,13 @@
     height: 420px;
   }
 
+  .astra-dossier-left-stage {
+    display: none;
+  }
+
   .astra-dossier-overlay-panel {
-    max-width: 85vw;
+    width: 100%;
+    max-width: 100vw;
   }
 
   .astra-compact-solar-nav {
