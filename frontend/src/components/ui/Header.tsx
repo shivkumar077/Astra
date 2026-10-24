@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SignatureStar } from '../common/CelestialIcons';
+import { AstraCelestialMark } from '../common/AstraBrand';
 
 interface HeaderProps {
   reducedMotion: boolean;
@@ -50,9 +50,9 @@ export const Header: React.FC<HeaderProps> = ({
       }}
       data-testid="astra-header"
     >
-      {/* Brand Monogram & Signature Star */}
+      {/* Brand Monogram & Bespoke Celestial Mark */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <SignatureStar size={16} color="var(--color-star-ivory)" strokeWidth={1.5} />
+        <AstraCelestialMark size={20} color="var(--color-star-ivory)" glowColor="var(--color-star-warm)" />
         <span
           style={{
             fontFamily: 'var(--font-serif)',

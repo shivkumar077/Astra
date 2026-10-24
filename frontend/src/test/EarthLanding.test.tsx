@@ -151,4 +151,26 @@ describe('ASTRA Landing Experience — Prompt 3 Editorial Overhaul', () => {
       expect(svg).toHaveAttribute('aria-hidden', 'true');
     });
   });
+
+  it('renders the custom ASTRA brand identity and verified depth plane architecture', () => {
+    const { container } = render(<App />);
+
+    // Custom brand lockup vector SVG is present
+    const wordmarkSvg = container.querySelector('.astra-wordmark-svg');
+    expect(wordmarkSvg).toBeInTheDocument();
+    expect(wordmarkSvg).toHaveAttribute('aria-label', 'ASTRA');
+
+    // Bespoke celestial mark exists in the document
+    const celestialMarks = container.querySelectorAll('.astra-celestial-mark');
+    expect(celestialMarks.length).toBeGreaterThan(0);
+
+    // Layered depth plane sits at zIndex 2 (behind EarthCanvas at zIndex 3)
+    const depthPlane = container.querySelector('.astra-intro-depth-plane') as HTMLElement;
+    expect(depthPlane).toBeInTheDocument();
+    expect(depthPlane.style.zIndex).toBe('2');
+
+    // Earth canvas container sits at zIndex 3
+    const earthCanvas = screen.getByTestId('earth-canvas-container');
+    expect(earthCanvas.style.zIndex).toBe('3');
+  });
 });

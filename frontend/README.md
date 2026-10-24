@@ -39,43 +39,43 @@ npm run preview
 
 ---
 
-## 2. Visual Identity & Creative Direction (Prompt 3 Overhaul)
+## 2. Visual Identity & Creative Direction (Prompt 3 & 4 Overhaul)
 
-Prompt 3 established a comprehensive visual identity overhaul, moving away from generic SaaS dashboards and neon sci-fi cliches toward a restrained, cinematic editorial design system:
+ASTRA combines a restrained, cinematic editorial design system with bespoke aerospace branding and mathematical shader rendering:
 
-### 2.1 Typographic Triad (100% Self-Hosted via `@fontsource`)
-- **Display & Headlines (`var(--font-serif)`):** `Cormorant Garamond` (Weights: 400, 400i, 600, 700). High-contrast editorial serif delivering monumental scale and elegance to the ASTRA wordmark, opening narrative, and destination headers.
+### 2.1 Bespoke ASTRA Brand Identity (`AstraBrand.tsx`)
+- **`AstraCelestialMark`:** An independent, mathematically constructed astronomical emblem featuring an 8-point celestial diamond star, a 23.4° equatorial orbital trajectory ellipse, hairline diagonal secondary rays, and a central concentric optical aperture focal point.
+- **`AstraWordmark`:** Scalable SVG vector wordmark drawn with classical Roman proportions, chisel serifs, tapered apexes, extended hairline trajectory crossbars on the dual 'A' letterforms, a sinuous 'S' spine, bracketed 'T', and a proud descending 'R' leg.
+- **`AstraBrandLockup`:** Master architectural lockup pairing the celestial mark with the vector wordmark and subtle trajectory lineage annotation.
+
+### 2.2 Typographic Triad (100% Self-Hosted via `@fontsource`)
+- **Display & Headlines (`var(--font-serif)`):** `Cormorant Garamond` (Weights: 400, 400i, 600, 700). High-contrast editorial serif delivering monumental scale and elegance to headlines and destination titles.
 - **Body (`var(--font-sans)`):** `Inter` (Weights: 300, 400, 500, 600). Neutral, highly legible sans-serif for descriptions, paragraphs, and briefing modals.
 - **Technical Telemetry (`var(--font-mono)`):** `IBM Plex Mono` (Weights: 400, 500, 600). Reserved strictly for genuine operational readouts, coordinate systems, and UTC timestamps.
 
-### 2.2 Bespoke Celestial Icon Family (`CelestialIcons.tsx`)
+### 2.3 Bespoke Celestial Icon Family (`CelestialIcons.tsx`)
 Fine-line SVG symbols crafted in the tradition of classical astronomical atlases:
-- `SignatureStar`: Four-point radiant diamond star acting as the core visual anchor of the ASTRA identity.
+- `SignatureStar`: Four-point radiant diamond star.
 - `TerrestrialPlanet`, `RingedPlanet`, `GasGiant`, `MoonCrater`: Planetary bodies with accurate contouring.
 - `Spacecraft`, `OrbitalTrajectory`, `OpticalAperture`: Technical symbols for telemetry and observation modes.
-
-### 2.3 Color Palette & Surfaces
-- Cosmic tones: Void (`#050608`), Abyss (`#080A0E`), Ground (`#0D1016`), Translucent Panel (`rgba(13, 16, 22, 0.72)`).
-- Planetary accents: Soft Star Ivory (`#EDECE8`), Warm Stellar Glow (`#FDE68A`), Earth Cyan (`#38BDF8`), Earth Blue (`#3874CB`).
-- Removal of artificial neon halos, thick electric-blue outlines, and arbitrary decorative cards.
 
 ---
 
 ## 3. Cinematic Opening Journey & Three.js Earth Architecture
 
-### 3.1 Coordinated Scroll Timeline
-Natural document scrolling drives a single coordinated journey:
-1. **Opening Frame ($t = 0.0$):** Earth begins serene and distant in a deep-space starfield. The ASTRA editorial wordmark and signature star establish a quiet, confident mood.
-2. **Scroll Journey ($0.0 < t < 0.8$):** The camera approaches Earth, which smoothly expands in perspective. Stars shift across three distinct depths (`deep`, `mid`, `fore`) creating optical parallax.
-3. **Signature Star Trajectory ($0.08 < t < 0.75$):** A bespoke 3D star detaches from the wordmark coordinate and travels along a Bézier trajectory toward the planetary horizon, dissolving gracefully into the atmospheric limb.
-4. **Layered Depth Interaction:** Earth's curved atmospheric horizon passes behind/across typography, creating spatial depth without sacrificing legibility.
-5. **Settled Operational Frame ($t \rightarrow 1.0$):** The camera settles into an orbital view, revealing the two primary editorial destinations (`I. MISSION CONTROL` and `II. SPACE IMAGERY`).
+### 3.1 Coordinated Scroll Timeline & Extended Reveal
+Natural document scrolling drives a single coordinated journey with an extended, unhurried timeline (`minHeight: 280vh`):
+1. **Opening Frame ($t \le 0.30$):** Earth begins serene and distant in a deep-space starfield. The ASTRA master brand lockup reveals itself over 1.6s. At $t = 700\text{ms}$, the signature procedural meteor sweeps gracefully across the upper celestial sphere over a 2.2s arc.
+2. **Layered Planetary Depth Overlap ($0.35 \le t \le 0.65$):** As the visitor scrolls, the camera approaches Earth. The ASTRA typography sits on a dedicated depth plane at `z-index: 2` behind the Earth canvas at `z-index: 3`. Earth's curved 3D horizon and illuminated atmospheric rim physically sweep across and obscure the right portion of the letters, producing an optically convincing lock-screen depth illusion.
+3. **Signature Star Trajectory ($0.15 < t < 0.72$):** A bespoke 3D star with an acute cross-sparkle diffraction profile detaches from the wordmark and travels along a Bézier trajectory toward the planetary horizon, dissolving gracefully into the atmospheric limb.
+4. **Settled Operational Frame ($t \rightarrow 1.0$):** The camera settles into an orbital view, revealing the two primary editorial destinations (`I. MISSION CONTROL` and `II. SPACE IMAGERY`) at `z-index: 10`.
 
 ### 3.2 3D Earth Shader & Rendering Details
-- **Daylight/Night Terminator:** City lights smoothly emerge on the night side via a custom GLSL shader extension (`onBeforeCompile`), clamped and attenuated across the twilight transition.
-- **Atmospheric Limb Scattering:** Delicate Mie/Rayleigh limb scattering shader clamped to the illuminated hemisphere (`smoothstep(-0.15, 0.35, sunCos)`), eliminating bright outlines on the unshadowed side.
-- **Atmospheric Cloud Layer:** Semi-transparent outer mesh rotating at $1.15\times$ base speed for independent atmospheric drift.
-- **Meteors:** Rare, subtle meteors streak across deep space at randomized intervals (16–30s).
+- **Real Circular Starfield:** Custom GLSL `ShaderMaterial` with perspective attenuation (`gl_PointSize = aSize * (160.0 / -mvPosition.z) * uPixelRatio`) and Gaussian radial profile (`exp(-r * r * 28.0)`), completely replacing square point quads with needle-sharp circular celestial pinpricks across 3 parallax depth tiers.
+- **Procedural Luminous Ribbon Meteor:** Analytical GLSL shader on an oriented quad with continuous mathematical width envelope (`pow(u, 0.65)`), incandescent diamond head (`exp(-headDist * 4.2)`), and ionized cyan-azure tail, eliminating all texture boundary artifacts and pale rectangular quads.
+- **Earth Surface Fidelity:** Anisotropic filtering set to 16× on all planetary textures, 96×96 sphere tessellation, and a tuned twilight terminator where city lights emerge with warm golden radiance (`#FFE29A`).
+- **Atmospheric Limb Scattering:** Delicate Rayleigh/Mie limb scattering shader clamped to the illuminated hemisphere (`smoothstep(-0.10, 0.30, sunCos)` with Fresnel power 4.5), eliminating bright outlines on the unshadowed side.
+
 
 ---
 

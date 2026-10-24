@@ -82,7 +82,24 @@ A cohesive, fine-line SVG celestial symbol suite designed in the visual language
 
 ---
 
-## 4. Directory Conventions
+## 4. Bespoke ASTRA Brand Identity Vector Assets (`frontend/src/components/common/AstraBrand.tsx`)
+
+A custom-designed institutional brand identity crafted for high-precision aerospace display:
+- **`AstraCelestialMark`**: An independent, mathematically constructed astronomical emblem featuring an 8-point celestial diamond star, a 23.4° equatorial orbital trajectory ellipse, hairline diagonal secondary rays, and a central concentric optical aperture focal point.
+- **`AstraWordmark`**: Scalable SVG vector wordmark drawn with classical Roman proportions, chisel serifs, tapered apexes, extended hairline trajectory crossbars on the dual 'A' letterforms, a sinuous 'S' spine, bracketed 'T', and a proud descending 'R' leg.
+- **`AstraBrandLockup`**: Master architectural lockup pairing the celestial mark with the vector wordmark and subtle trajectory lineage annotation for cinematic reveals.
+
+---
+
+## 5. Procedural Shaders & Rendering Pipeline
+
+- **Circular Airy-Disc Celestial Starfield:** Custom GLSL `ShaderMaterial` with perspective attenuation (`gl_PointSize = aSize * (160.0 / -mvPosition.z) * uPixelRatio`) and Gaussian radial profile (`exp(-r * r * 28.0)`), completely replacing square point quads with needle-sharp circular celestial pinpricks across 3 parallax depth tiers.
+- **Procedural Luminous Ribbon Meteor:** Analytical GLSL shader on an oriented quad with continuous mathematical width envelope (`pow(u, 0.65)`), incandescent diamond head (`exp(-headDist * 4.2)`), and ionized cyan-azure tail, eliminating all texture boundary artifacts and pale rectangular quads.
+- **Atmospheric Limb Rayleigh/Mie Scattering:** Fresnel shader with power 4.5 clamped to the illuminated hemisphere (`smoothstep(-0.10, 0.30, sunCos)`), hugging the planetary horizon with azure-to-stratospheric cyan radiance and zero night-side halo.
+
+---
+
+## 6. Directory Conventions
 
 - `frontend/public/assets/earth/`: Equirectangular planetary maps and cloud layers.
 - `frontend/public/assets/space/`: Star fields, background skymaps, and celestial skyboxes.
