@@ -502,6 +502,130 @@ function generateNeptuneTexture(width = 1024, height = 512): THREE.CanvasTexture
 }
 
 /**
+ * EARTH: Vivid blue marble with deep oceans, continental landmasses (green forests, golden deserts),
+ * polar ice caps, and atmospheric cloud formations.
+ */
+function generateEarthTexture(width = 1024, height = 512): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx || typeof ctx.createImageData !== 'function') return new THREE.CanvasTexture(canvas);
+
+  const imgData = ctx.createImageData(width, height);
+  const data = imgData.data;
+
+  for (let y = 0; y < height; y++) {
+    const ny = y / height; // 0 (north pole) to 1 (south pole)
+
+    for (let x = 0; x < width; x++) {
+      const nx = x / width;
+
+      // Multi-scale noise for continental topography
+      const continentNoise = fbm(nx * 4.5, ny * 3.5, 5);
+      const detailNoise = fbm(nx * 14.0, ny * 10.0, 3) * 0.2;
+      const elevation = continentNoise + detailNoise;
+
+      let r = 0;
+      let g = 0;
+      let b = 0;
+
+      // Polar ice caps
+      const isNorthIce = ny < 0.11;
+      const isSouthIce = ny > 0.88;
+
+      if (isNorthIce || isSouthIce) {
+        // Polar Ice
+        const iceFactor = isNorthIce ? (0.11 - ny) / 0.11 : (ny - 0.88) / 0.12;
+        r = 235 + Math.floor(iceFactor * 20);
+        g = 242 + Math.floor(iceFactor * 13);
+        b = 252;
+      } else if (elevation < 0.05) {
+        // Oceans & Continental Shelves
+        const depth = Math.max(0.0, Math.min(1.0, (0.05 - elevation) / 0.45));
+        // Shallow coastal turquoise -> Deep oceanic navy/sapphire
+        const rShallow = 18;
+        const gShallow = 88;
+        const bShallow = 158;
+        const rDeep = 8;
+        const gDeep = 32;
+        const bDeep = 78;
+
+        r = Math.floor(rDeep * depth + rShallow * (1.0 - depth));
+        g = Math.floor(gDeep * depth + gShallow * (1.0 - depth));
+        b = Math.floor(bDeep * depth + bShallow * (1.0 - depth));
+      } else {
+        // Landmass Continents with biome distribution
+        const landHeight = (elevation - 0.05) / 0.5;
+        const absLat = Math.abs(ny - 0.5) * 2.0; // 0 at equator, 1 at poles
+
+        if (absLat < 0.18) {
+          // Equatorial Tropical Rainforest
+          r = Math.floor(28 + landHeight * 30);
+          g = Math.floor(95 + landHeight * 35);
+          b = Math.floor(45 + landHeight * 20);
+        } else if (absLat >= 0.18 && absLat < 0.42 && fbm(nx * 6.0, ny * 4.0, 2) > 0.0) {
+          // Arid Desert / Savanna (Sahara, Arabia, Gobi)
+          r = Math.floor(190 + landHeight * 35);
+          g = Math.floor(145 + landHeight * 25);
+          b = Math.floor(75 + landHeight * 15);
+        } else if (absLat >= 0.42 && absLat < 0.75) {
+          // Temperate Forest & Plains
+          r = Math.floor(42 + landHeight * 45);
+          g = Math.floor(125 + landHeight * 35);
+          b = Math.floor(58 + landHeight * 20);
+        } else {
+          // Boreal / Tundra
+          r = Math.floor(95 + landHeight * 35);
+          g = Math.floor(105 + landHeight * 30);
+          b = Math.floor(85 + landHeight * 20);
+        }
+
+        // Mountain highlands highlight
+        if (landHeight > 0.65) {
+          const mountainBlend = (landHeight - 0.65) / 0.35;
+          r = Math.floor(r * (1.0 - mountainBlend) + 215 * mountainBlend);
+          g = Math.floor(g * (1.0 - mountainBlend) + 215 * mountainBlend);
+          b = Math.floor(b * (1.0 - mountainBlend) + 225 * mountainBlend);
+        }
+      }
+
+      // Swirling atmospheric clouds
+      const cloudNoise = fbm(nx * 8.0 + fbm(nx * 4.0, ny * 4.0, 2) * 0.4, ny * 6.0, 4);
+      if (cloudNoise > 0.18) {
+        const cloudFactor = Math.min(1.0, (cloudNoise - 0.18) * 3.2);
+        r = Math.floor(r * (1.0 - cloudFactor * 0.85) + 250 * cloudFactor * 0.85);
+        g = Math.floor(g * (1.0 - cloudFactor * 0.85) + 252 * cloudFactor * 0.85);
+        b = Math.floor(b * (1.0 - cloudFactor * 0.85) + 255 * cloudFactor * 0.85);
+      }
+
+      const idx = (y * width + x) * 4;
+      data[idx] = Math.min(255, Math.max(0, r));
+      data[idx + 1] = Math.min(255, Math.max(0, g));
+      data[idx + 2] = Math.min(255, Math.max(0, b));
+      data[idx + 3] = 255;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+
+  // If running in browser and the NASA texture is cached or loads, seamlessly upgrade to NASA 2K map
+  if (typeof window !== 'undefined' && typeof Image !== 'undefined') {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0, width, height);
+      texture.needsUpdate = true;
+    };
+    img.src = '/assets/earth/earth_2048.jpg';
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+/**
  * Master Texture Resolver.
  * Returns the cached canvas texture for the given destination ID.
  */
@@ -518,6 +642,9 @@ export function getProceduralPlanetTexture(destinationId: string): THREE.CanvasT
       break;
     case 'venus':
       texture = generateVenusTexture();
+      break;
+    case 'earth':
+      texture = generateEarthTexture();
       break;
     case 'mars':
       texture = generateMarsTexture();
@@ -574,16 +701,6 @@ export function getProceduralRingTexture(destinationId: string): THREE.CanvasTex
 export function preloadPlanetaryTexture(destinationId: string): void {
   const normId = destinationId.toLowerCase().trim();
   if (normId === 'sun') return;
-
-  if (normId === 'earth') {
-    if (typeof window !== 'undefined') {
-      const img1 = new Image();
-      img1.src = '/assets/earth/earth_2048.jpg';
-      const img2 = new Image();
-      img2.src = '/assets/earth/earth_clouds_2048.jpg';
-    }
-    return;
-  }
 
   if (!textureCache.has(normId)) {
     getProceduralPlanetTexture(normId);

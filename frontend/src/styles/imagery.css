@@ -16,6 +16,7 @@
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
+  scroll-snap-type: y mandatory;
 }
 
 /* Subtle deep space background starfield overlay */
@@ -308,17 +309,21 @@
   position: relative;
   z-index: 2;
   width: 100%;
+  scroll-snap-type: y mandatory;
 }
 
 .astra-cinematic-planet-stage {
   position: relative;
   width: 100%;
-  min-height: 88vh;
+  height: 100vh;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 60px 48px;
   box-sizing: border-box;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .astra-stage-inner {

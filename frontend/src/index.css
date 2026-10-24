@@ -16,6 +16,10 @@ html {
   background-color: var(--color-void);
 }
 
+html:has(.astra-solar-journey-root) {
+  scroll-snap-type: y mandatory;
+}
+
 body {
   width: 100%;
   min-height: 100%;

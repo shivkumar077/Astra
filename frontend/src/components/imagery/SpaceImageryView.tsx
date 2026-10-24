@@ -133,9 +133,21 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedImage, drawerOpen, searchPanelOpen, dossierOpen, onReturnHome]);
 
+  // Jump to Celestial Destination via direct smooth scrolling
+  const handleSelectDestination = React.useCallback((destId: string) => {
+    const targetKey = destId.toLowerCase();
+    activeDestinationIdRef.current = targetKey;
+    setActiveDestinationId(targetKey);
+
+    const element = document.getElementById(`destination-${targetKey}`);
+    if (element && typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  }, [reducedMotion]);
+
   // -------------------------------------------------------------
-  // CONTINUOUS SCROLL MONITORING & CINEMATIC 3-PHASE INTERPOLATION
-  // (Direct GPU-composited DOM updates: zero React re-render lag)
+  // CONTINUOUS SCROLL MONITORING & DIRECT VISIBILITY SYNCHRONIZATION
+  // (Zero delay, always visible 3D models, smooth crossfades)
   // -------------------------------------------------------------
   useEffect(() => {
     if (typeof window === 'undefined' || destinations.length === 0) return;
@@ -170,69 +182,24 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
           // 1. Direct GPU-composited backdrop crossfade per destination
           const bgEl = document.getElementById(`backdrop-${normKey}`);
           if (bgEl) {
-            const bgProgress = Math.max(0.0, Math.min(1.0, 1.0 - dist / (vh * 0.75)));
+            const bgProgress = Math.max(0.0, Math.min(1.0, 1.0 - dist / vh));
             bgEl.style.opacity = `${bgProgress.toFixed(3)}`;
           }
 
-          // 2. Direct GPU transform/opacity updates for 3D visual model & Celestial Disintegration
+          // 2. Keep 3D visual models ALWAYS visible, never vanish or collapse
           const visualEl = el.querySelector<HTMLElement>('.astra-planet-visual-root');
           if (visualEl) {
-            if (reducedMotion) {
-              visualEl.style.transform = 'none';
-              visualEl.style.opacity = dist < vh * 0.7 ? '1.0' : '0.2';
-              if (typeof (visualEl as any).__setDisintegration === 'function') {
-                (visualEl as any).__setDisintegration(0.0);
-              }
-            } else {
-              // 3-Phase Cinematic Choreography: Departure, Celestial Passage, Arrival
-              const normDist = Math.min(1.0, dist / (vh * 0.75));
-              const progress = Math.max(0.0, 1.0 - normDist);
-
-              const isDeparting = centerOffset < 0; // scrolled past, moving upwards
-
-              // Extravagant Celestial Disintegration ("poof, like disintegrate like that")
-              if (typeof (visualEl as any).__setDisintegration === 'function') {
-                const disProg = isDeparting ? Math.min(1.0, Math.max(0.0, (normDist - 0.08) / 0.58)) : 0.0;
-                (visualEl as any).__setDisintegration(disProg);
-              }
-
-              const yOffset = isDeparting ? -28 * normDist : 28 * normDist;
-              const zOffset = -140 * Math.pow(normDist, 1.3); // Authentic 3D depth recession/emergence
-              const scale = 0.52 + 0.48 * Math.pow(progress, 1.4);
-              const opacity = Math.min(1.0, progress * 1.35);
-
-              visualEl.style.transform = `translate3d(0, ${yOffset.toFixed(1)}px, ${zOffset.toFixed(1)}px) scale(${scale.toFixed(3)})`;
-              visualEl.style.opacity = `${opacity.toFixed(3)}`;
-            }
+            visualEl.style.opacity = '1.0';
+            visualEl.style.transform = 'none';
           }
 
-          // 3. Editorial briefing text subtle depth parallax
+          // 3. Editorial briefing text always clean & legible
           const briefingEl = el.querySelector<HTMLElement>('.astra-stage-briefing');
           if (briefingEl) {
-            if (reducedMotion) {
-              briefingEl.style.opacity = dist < vh * 0.6 ? '1.0' : '0.4';
-              briefingEl.style.transform = 'none';
-            } else {
-              const briefProgress = Math.max(0.0, 1.0 - Math.min(1.0, dist / (vh * 0.65)));
-              const yShift = (centerOffset < 0 ? -18 : 18) * (1.0 - briefProgress);
-              briefingEl.style.opacity = `${briefProgress.toFixed(3)}`;
-              briefingEl.style.transform = `translate3d(0, ${yShift.toFixed(1)}px, 0)`;
-            }
+            briefingEl.style.opacity = '1.0';
+            briefingEl.style.transform = 'none';
           }
         });
-
-        // 4. Interstellar passage shimmer/ripple (peaks between destinations)
-        if (passageOverlayRef.current) {
-          if (reducedMotion) {
-            passageOverlayRef.current.style.opacity = '0';
-          } else {
-            const passageThreshold = vh * 0.5;
-            const passageRatio = Math.min(1.0, minDistance / passageThreshold);
-            // Peak celestial passage shimmer midway between destinations
-            const passageFactor = Math.sin(passageRatio * Math.PI) * 0.45;
-            passageOverlayRef.current.style.opacity = `${passageFactor.toFixed(3)}`;
-          }
-        }
 
         // Only trigger React state update when active destination actually changes
         if (closestId && closestId !== activeDestinationIdRef.current) {
@@ -250,26 +217,138 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [destinations, reducedMotion]);
 
-  // Jump to Celestial Destination via smooth scrolling with instant disintegration burst
-  const handleSelectDestination = (destId: string) => {
-    const targetKey = destId.toLowerCase();
-    if (targetKey === activeDestinationIdRef.current) return;
+  // -------------------------------------------------------------
+  // DIRECT DESTINATION SNAPPING CONTROLLER
+  // (Instant, discrete destination hopping with no dead transition zone)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    if (typeof window === 'undefined' || destinations.length === 0) return;
 
-    // Trigger instant disintegration burst on currently departing world ("poof!")
-    const currentEl = document.getElementById(`destination-${activeDestinationIdRef.current}`);
-    const currentVisual = currentEl?.querySelector<HTMLElement>('.astra-planet-visual-root');
-    if (currentVisual && typeof (currentVisual as any).__triggerDisintegrationBurst === 'function') {
-      (currentVisual as any).__triggerDisintegrationBurst();
-    }
+    let isSnapping = false;
+    let snapCooldownTimer: NodeJS.Timeout | null = null;
+    let touchStartY = 0;
 
-    activeDestinationIdRef.current = targetKey;
-    setActiveDestinationId(targetKey);
+    const snapToNext = () => {
+      const currentIdx = destinations.findIndex(
+        (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
+      );
+      if (currentIdx !== -1 && currentIdx < destinations.length - 1) {
+        handleSelectDestination(destinations[currentIdx + 1].id);
+      }
+    };
 
-    const element = document.getElementById(`destination-${targetKey}`);
-    if (element && typeof element.scrollIntoView === 'function') {
-      element.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth' });
-    }
-  };
+    const snapToPrev = () => {
+      const currentIdx = destinations.findIndex(
+        (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
+      );
+      if (currentIdx > 0) {
+        handleSelectDestination(destinations[currentIdx - 1].id);
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      // Allow natural scroll inside drawers and modal overlays
+      if (dossierOpen || drawerOpen || searchPanelOpen || selectedImage) return;
+
+      if (Math.abs(e.deltaY) < 18) return;
+
+      if (isSnapping) {
+        e.preventDefault();
+        return;
+      }
+
+      if (e.deltaY > 0) {
+        // Scrolling down -> snap directly to next destination
+        const currentIdx = destinations.findIndex(
+          (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
+        );
+        if (currentIdx < destinations.length - 1) {
+          e.preventDefault();
+          isSnapping = true;
+          snapToNext();
+          if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
+          snapCooldownTimer = setTimeout(() => {
+            isSnapping = false;
+          }, 460);
+        }
+      } else if (e.deltaY < 0) {
+        // Scrolling up -> snap directly to previous destination
+        const currentIdx = destinations.findIndex(
+          (d) => d.id.toLowerCase() === activeDestinationIdRef.current.toLowerCase()
+        );
+        if (currentIdx > 0) {
+          e.preventDefault();
+          isSnapping = true;
+          snapToPrev();
+          if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
+          snapCooldownTimer = setTimeout(() => {
+            isSnapping = false;
+          }, 460);
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (dossierOpen || drawerOpen || searchPanelOpen || selectedImage) return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        snapToNext();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        snapToPrev();
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (dossierOpen || drawerOpen || searchPanelOpen || selectedImage) return;
+      if (e.changedTouches.length === 0) return;
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = touchStartY - touchEndY;
+
+      if (Math.abs(deltaY) < 45) return;
+
+      if (isSnapping) return;
+
+      if (deltaY > 0) {
+        // Swiped up -> snap down to next world
+        isSnapping = true;
+        snapToNext();
+        if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
+        snapCooldownTimer = setTimeout(() => {
+          isSnapping = false;
+        }, 460);
+      } else {
+        // Swiped down -> snap up to previous world
+        isSnapping = true;
+        snapToPrev();
+        if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
+        snapCooldownTimer = setTimeout(() => {
+          isSnapping = false;
+        }, 460);
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+      if (snapCooldownTimer) clearTimeout(snapCooldownTimer);
+    };
+  }, [destinations, dossierOpen, drawerOpen, searchPanelOpen, selectedImage, handleSelectDestination]);
 
   // Open Expanded Exploration Dossier for a Destination
   const handleOpenDossier = React.useCallback((dest: PlanetaryDestination) => {
