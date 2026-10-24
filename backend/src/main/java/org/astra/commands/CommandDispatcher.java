@@ -74,17 +74,30 @@ public class CommandDispatcher {
             return CommandResult.asIdempotentReplay(cachedResult.get());
         }
 
-        // 2. Failure Lab extension check: communications blackout prevents uplink
-        if (request.spacecraftId() != null && anomalyManager.isCommandBlocked(request.spacecraftId())) {
-            CommandResult rejected = CommandResult.rejected(
-                    request.commandId(),
-                    request.spacecraftId(),
-                    request.type(),
-                    "Uplink rejected: Spacecraft " + request.spacecraftId() + " has an active COMMS blackout anomaly",
-                    currentEpoch
-            );
-            recordAndPublish(request, rejected);
-            return rejected;
+        // 2. Failure Lab extension check: communications blackout or processor restart lockout prevents uplink
+        if (request.spacecraftId() != null) {
+            if (anomalyManager.isCommandBlocked(request.spacecraftId())) {
+                CommandResult rejected = CommandResult.rejected(
+                        request.commandId(),
+                        request.spacecraftId(),
+                        request.type(),
+                        "Uplink rejected: Spacecraft " + request.spacecraftId() + " has an active COMMS blackout anomaly",
+                        currentEpoch
+                );
+                recordAndPublish(request, rejected);
+                return rejected;
+            }
+            if (simulationEngine.getFailureLabService() != null && simulationEngine.getFailureLabService().isCommandBlocked(request.spacecraftId())) {
+                CommandResult rejected = CommandResult.rejected(
+                        request.commandId(),
+                        request.spacecraftId(),
+                        request.type(),
+                        "Uplink rejected: Spacecraft " + request.spacecraftId() + " has an active Failure Lab COMMS blackout or OBC restart lockout",
+                        currentEpoch
+                );
+                recordAndPublish(request, rejected);
+                return rejected;
+            }
         }
 
         // 3. Staging and execution
@@ -97,6 +110,7 @@ public class CommandDispatcher {
                 case PAUSE_SIMULATION -> executePauseSimulation(request, currentEpoch);
                 case RESUME_SIMULATION -> executeResumeSimulation(request, currentEpoch);
                 case REQUEST_OPTICAL_CAPTURE -> executeOpticalCapture(request, currentEpoch);
+                case EXECUTE_FAULT_RECOVERY -> executeFaultRecovery(request, currentEpoch);
             };
         } catch (Exception e) {
             result = CommandResult.failed(
@@ -333,6 +347,19 @@ public class CommandDispatcher {
             );
         }
 
+        // 5. ADCS pointing stability constraint: pointing error must not exceed 1.0 deg and attitude must be locked
+        if (sc.getSubsystems() != null && sc.getSubsystems().adcs() != null) {
+            var adcs = sc.getSubsystems().adcs();
+            if (adcs.pointingErrorDegrees() > 1.0 || "LOST".equalsIgnoreCase(adcs.attitudeLockStatus()) || "DEGRADED".equalsIgnoreCase(adcs.attitudeLockStatus())) {
+                return CommandResult.rejected(
+                        request.commandId(), sc.getId(), request.type(),
+                        "Optical capture rejected: ADCS pointing error (" + String.format("%.2f", adcs.pointingErrorDegrees())
+                                + " deg > 1.0 deg limit) or attitude lock degraded (" + adcs.attitudeLockStatus() + ").",
+                        epoch
+                );
+            }
+        }
+
         // Perform synthetic capture: deduct 0.3% battery charge
         sc.updatePowerMetrics(Math.max(10.0, sc.getBatterySocPercent() - 0.3), sc.getSolarArrayWatts());
 
@@ -368,5 +395,63 @@ public class CommandDispatcher {
                 epoch,
                 captureMetadata
         );
+    }
+
+    private CommandResult executeFaultRecovery(CommandRequest request, Instant epoch) {
+        String faultId = request.parameters().get("faultId");
+        if (faultId == null || faultId.isBlank()) {
+            return CommandResult.rejected(request.commandId(), request.spacecraftId(), request.type(), "Missing required parameter: 'faultId'", epoch);
+        }
+        String actionStr = request.parameters().get("recoveryAction");
+        if (actionStr == null || actionStr.isBlank()) {
+            return CommandResult.rejected(request.commandId(), request.spacecraftId(), request.type(), "Missing required parameter: 'recoveryAction'", epoch);
+        }
+
+        org.astra.anomalies.RecoveryActionType action;
+        try {
+            action = org.astra.anomalies.RecoveryActionType.valueOf(actionStr.trim().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return CommandResult.rejected(request.commandId(), request.spacecraftId(), request.type(), "Invalid recovery action: " + actionStr, epoch);
+        }
+
+        if (simulationEngine.getFailureLabService() == null) {
+            return CommandResult.failed(request.commandId(), request.spacecraftId(), request.type(), "Failure Lab service unavailable", epoch);
+        }
+
+        var faultOpt = simulationEngine.getFailureLabService().getFault(faultId);
+        if (faultOpt.isEmpty()) {
+            return CommandResult.rejected(request.commandId(), request.spacecraftId(), request.type(), "Fault not found: " + faultId, epoch);
+        }
+
+        var fault = faultOpt.get();
+        var scOpt = simulationEngine.getSpacecraft(fault.spacecraftId());
+        if (scOpt.isEmpty()) {
+            return CommandResult.rejected(request.commandId(), fault.spacecraftId(), request.type(), "Target spacecraft not found: " + fault.spacecraftId(), epoch);
+        }
+
+        try {
+            var recovered = simulationEngine.getFailureLabService().recoverFault(
+                    faultId,
+                    new org.astra.anomalies.dto.RecoverFaultRequest(action, request.parameters().get("operatorNote")),
+                    epoch,
+                    scOpt.get()
+            );
+            return CommandResult.executed(
+                    request.commandId(),
+                    recovered.spacecraftId(),
+                    request.type(),
+                    "Fault recovery successfully executed: " + action + " on " + recovered.scenarioCode(),
+                    epoch,
+                    Map.of(
+                            "faultId", recovered.faultId(),
+                            "scenarioCode", recovered.scenarioCode().name(),
+                            "lifecycleState", recovered.lifecycleState().name()
+                    )
+            );
+        } catch (IllegalArgumentException e) {
+            return CommandResult.rejected(request.commandId(), fault.spacecraftId(), request.type(), e.getMessage(), epoch);
+        } catch (Exception e) {
+            return CommandResult.failed(request.commandId(), fault.spacecraftId(), request.type(), e.getMessage(), epoch);
+        }
     }
 }

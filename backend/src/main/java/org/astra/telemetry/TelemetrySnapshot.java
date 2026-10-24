@@ -6,6 +6,8 @@ import org.astra.core.domain.Spacecraft;
 import org.astra.core.domain.SpacecraftStatus;
 import org.astra.core.math.Vector3D;
 
+import org.astra.core.domain.subsystems.SpacecraftSubsystems;
+
 import java.time.Instant;
 import java.util.Objects;
 
@@ -25,7 +27,8 @@ public record TelemetrySnapshot(
         OperationalMode operationalMode,
         double batterySocPercent,
         double solarArrayWatts,
-        KeplerianElements elements
+        KeplerianElements elements,
+        SpacecraftSubsystems subsystems
 ) {
 
     public TelemetrySnapshot {
@@ -37,6 +40,28 @@ public record TelemetrySnapshot(
         Objects.requireNonNull(operationalStatus, "operationalStatus must not be null");
         Objects.requireNonNull(operationalMode, "operationalMode must not be null");
         Objects.requireNonNull(elements, "elements must not be null");
+    }
+
+    public TelemetrySnapshot(
+            String spacecraftId,
+            String callSign,
+            Instant timestamp,
+            Vector3D positionKm,
+            Vector3D velocityKmS,
+            double altitudeKm,
+            double speedKmS,
+            boolean inEclipse,
+            SpacecraftStatus operationalStatus,
+            OperationalMode operationalMode,
+            double batterySocPercent,
+            double solarArrayWatts,
+            KeplerianElements elements
+    ) {
+        this(
+                spacecraftId, callSign, timestamp, positionKm, velocityKmS,
+                altitudeKm, speedKmS, inEclipse, operationalStatus, operationalMode,
+                batterySocPercent, solarArrayWatts, elements, null
+        );
     }
 
     /**
@@ -58,7 +83,8 @@ public record TelemetrySnapshot(
                 spacecraft.getOperationalMode(),
                 spacecraft.getBatterySocPercent(),
                 spacecraft.getSolarArrayWatts(),
-                orbit.elements()
+                orbit.elements(),
+                spacecraft.getSubsystems()
         );
     }
 }

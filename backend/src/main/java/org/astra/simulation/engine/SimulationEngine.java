@@ -39,6 +39,7 @@ public class SimulationEngine {
     private final TelemetryService telemetryService;
     private final SimulationEventPublisher eventPublisher;
     private final AnomalyManager anomalyManager;
+    private final org.astra.anomalies.FailureLabService failureLabService;
     private final org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster;
     private final ReadWriteLock rwLock = new ReentrantReadWriteLock();
 
@@ -55,6 +56,7 @@ public class SimulationEngine {
             TelemetryService telemetryService,
             Optional<SimulationEventPublisher> eventPublisher,
             Optional<AnomalyManager> anomalyManager,
+            Optional<org.astra.anomalies.FailureLabService> failureLabService,
             Optional<org.astra.websocket.TelemetryStreamBroadcaster> telemetryBroadcaster,
             @Value("${astra.simulation.initial-epoch:2026-10-24T00:00:00Z}") String initialEpochStr
     ) {
@@ -63,6 +65,7 @@ public class SimulationEngine {
                 telemetryService,
                 eventPublisher.orElse(null),
                 anomalyManager.orElse(null),
+                failureLabService.orElse(null),
                 telemetryBroadcaster.orElse(null),
                 Instant.parse(initialEpochStr)
         );
@@ -73,7 +76,7 @@ public class SimulationEngine {
             TelemetryService telemetryService,
             Instant initialEpoch
     ) {
-        this(orbitalPropagator, telemetryService, null, null, null, initialEpoch);
+        this(orbitalPropagator, telemetryService, null, null, null, null, initialEpoch);
     }
 
     public SimulationEngine(
@@ -84,10 +87,23 @@ public class SimulationEngine {
             org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster,
             Instant initialEpoch
     ) {
+        this(orbitalPropagator, telemetryService, eventPublisher, anomalyManager, null, telemetryBroadcaster, initialEpoch);
+    }
+
+    public SimulationEngine(
+            OrbitalPropagator orbitalPropagator,
+            TelemetryService telemetryService,
+            SimulationEventPublisher eventPublisher,
+            AnomalyManager anomalyManager,
+            org.astra.anomalies.FailureLabService failureLabService,
+            org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster,
+            Instant initialEpoch
+    ) {
         this.orbitalPropagator = Objects.requireNonNull(orbitalPropagator, "orbitalPropagator must not be null");
         this.telemetryService = Objects.requireNonNull(telemetryService, "telemetryService must not be null");
         this.eventPublisher = eventPublisher;
         this.anomalyManager = anomalyManager;
+        this.failureLabService = failureLabService;
         this.telemetryBroadcaster = telemetryBroadcaster;
         this.baseEpoch = Objects.requireNonNull(initialEpoch, "initialEpoch must not be null");
         this.clock = new SimulationClock(initialEpoch);
@@ -107,6 +123,9 @@ public class SimulationEngine {
             baseElements.clear();
             telemetryService.clear();
             clock.reset();
+            if (failureLabService != null) {
+                failureLabService.reset();
+            }
 
             // Spacecraft 1: AURA-1 (Sun-Synchronous Earth Observation, altitude ~702 km)
             KeplerianElements auraElements = new KeplerianElements(
@@ -202,8 +221,12 @@ public class SimulationEngine {
                     OrbitState updatedState = orbitalPropagator.propagate(initialEl, baseEpoch, targetEpoch);
                     sc.updateOrbitState(updatedState);
 
-                    // Update simulated EPS power subsystem derived from eclipse and operational mode
-                    updateSubsystemPowerMetrics(sc, updatedState, delta);
+                    // Update simulated subsystems derived from eclipse, mode, and active Failure Lab faults
+                    if (failureLabService != null) {
+                        failureLabService.stepSubsystems(sc, updatedState, delta, targetEpoch);
+                    } else {
+                        updateSubsystemPowerMetrics(sc, updatedState, delta);
+                    }
 
                     // Emit authoritative telemetry snapshot
                     TelemetrySnapshot snap = TelemetrySnapshot.fromSpacecraft(sc);
@@ -412,5 +435,9 @@ public class SimulationEngine {
         } finally {
             rwLock.readLock().unlock();
         }
+    }
+
+    public org.astra.anomalies.FailureLabService getFailureLabService() {
+        return failureLabService;
     }
 }

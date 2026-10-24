@@ -32,5 +32,10 @@ public enum CommandType {
     /**
      * Requests a simulated optical payload image capture when physical & operational conditions allow.
      */
-    REQUEST_OPTICAL_CAPTURE
+    REQUEST_OPTICAL_CAPTURE,
+
+    /**
+     * Executes a validated Failure Lab subsystem recovery procedure.
+     */
+    EXECUTE_FAULT_RECOVERY
 }

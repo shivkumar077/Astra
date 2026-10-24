@@ -217,23 +217,126 @@ POST /api/v1/spacecraft/TERRA-OBS/commands
 
 ---
 
-## 6. Failure Lab Extension Endpoints
+## 6. Failure Lab REST API & Subsystem Contracts
 
-Allows injection of simulated subsystem anomalies for operator training and resilience testing.
+Allows deterministic simulation of spacecraft subsystem faults, observation of physical telemetry consequences, threshold evaluation, and validated recovery procedures across all 6 domains (EPS, COMMS, TCS, ADCS, PROP, OBC).
 
-- `GET /api/v1/anomalies`: List active anomaly modifiers.
-- `POST /api/v1/anomalies/inject`: Inject a subsystem perturbation.
+### 6.1 Scenarios Catalog
+- **Endpoint:** `GET /api/v1/faults/scenarios`
+- **Description:** Returns the complete list of 13 supported failure scenarios, default severity, expected recovery action, and supported parameters.
+
+### 6.2 Subsystem Health Inspection
+- **Endpoint:** `GET /api/v1/spacecraft/{id}/subsystems`
+- **Description:** Returns full authoritative physical metrics across all 6 subsystems for a specific spacecraft, along with active fault IDs.
+- **Response Schema:**
   ```json
   {
     "spacecraftId": "AURA-1",
-    "subsystem": "COMMS",
-    "anomalyCode": "RF_GROUND_OCCULTATION",
-    "severityFactor": 1.0,
-    "blocksCommands": true,
-    "description": "Deep space RF antenna tracking failure"
+    "callSign": "AURA-1",
+    "epoch": "2026-10-24T00:00:00Z",
+    "overallStatus": "NOMINAL",
+    "subsystems": {
+      "eps": {
+        "batterySocPercent": 94.5,
+        "solarArrayWatts": 1280.0,
+        "batteryVoltageVolts": 28.0,
+        "busLoadWatts": 380.0,
+        "loadSheddingActive": false,
+        "solarDegradationMultiplier": 1.0,
+        "busOverloadActive": false
+      },
+      "tcs": {
+        "temperatureCelsius": 18.5,
+        "heaterActive": false,
+        "heaterOperational": true,
+        "radiatorEfficiency": 1.0,
+        "thermalSafingActive": false
+      },
+      "adcs": {
+        "pointingErrorDegrees": 0.04,
+        "attitudeLockStatus": "LOCKED",
+        "reactionWheelSpeedRpm": 2450.0,
+        "starTrackerLocked": true,
+        "wheelFrictionActive": false
+      },
+      "comms": {
+        "linkStatus": "ONLINE",
+        "linkMarginDb": 12.4,
+        "packetLossPercent": 0.0,
+        "carrierLocked": true,
+        "blackoutActive": false
+      },
+      "prop": {
+        "propellantMassKg": 280.0,
+        "tankPressureBar": 22.0,
+        "valveHealth": "NOMINAL",
+        "thrustMultiplier": 1.0,
+        "leakActive": false
+      },
+      "obc": {
+        "cpuUtilizationPercent": 32.5,
+        "memoryUtilizationPercent": 44.0,
+        "flightSoftwareState": "NOMINAL",
+        "rebootCount": 0,
+        "rebootRemainingSeconds": 0.0
+      }
+    },
+    "activeFaultIds": [],
+    "activeFaultCount": 0
   }
   ```
-- `DELETE /api/v1/anomalies/{anomalyId}`: Clears active anomaly and restores nominal subsystem function.
+
+### 6.3 Fault Injection
+- **Endpoint:** `POST /api/v1/faults/inject`
+- **Request Schema:**
+  ```json
+  {
+    "spacecraftId": "AURA-1",
+    "scenarioCode": "COMMS_RF_BLACKOUT",
+    "severity": "CRITICAL",
+    "parameters": {},
+    "description": "Simulated carrier lock loss"
+  }
+  ```
+- **Supported Scenario Codes:**
+  - `EPS_SOLAR_ARRAY_DEGRADATION`, `EPS_BATTERY_CELL_DEGRADATION`, `EPS_BUS_OVERLOAD`
+  - `COMMS_RF_BLACKOUT`, `COMMS_LINK_DEGRADATION`
+  - `TCS_HEAT_PIPE_FAILURE`, `TCS_HEATER_CIRCUIT_FAILURE`
+  - `ADCS_REACTION_WHEEL_DRAG`, `ADCS_STAR_TRACKER_BLINDING`
+  - `PROP_VALVE_LEAK`, `PROP_THRUSTER_COLD`
+  - `OBC_CPU_THRASHING`, `OBC_WATCHDOG_RESET`
+- **Response:** `201 Created` with full `FaultRecord` payload (`lifecycleState = "ACTIVE"`).
+
+### 6.4 List & Query Faults
+- **Endpoint:** `GET /api/v1/faults`
+- **Query Parameters (Optional):**
+  - `spacecraftId`: Filter by vehicle (e.g. `AURA-1`)
+  - `subsystem`: Filter by domain (`EPS`, `COMMS`, `TCS`, `ADCS`, `PROP`, `OBC`)
+  - `state`: Filter by lifecycle state (`ACTIVE`, `DETECTED`, `RECOVERED`, `CLEARED`)
+- **Single Fault Inspection:** `GET /api/v1/faults/{id}`
+
+### 6.5 Validated Recovery Procedures
+- **Endpoint:** `POST /api/v1/faults/{id}/recover`
+- **Request Schema:**
+  ```json
+  {
+    "recoveryAction": "RESET_RF_TRANSCEIVER",
+    "operatorNote": "Cycled transponder power"
+  }
+  ```
+- **Validation:** Procedure must match `recoveryActionRequired` for the fault scenario. Incompatible recovery attempts return `400 Bad Request`.
+- **Response:** `200 OK` with updated `FaultRecord` (`lifecycleState = "RECOVERED"`). Authoritative physical subsystem state is immediately restored to nominal.
+- **Alternative Telecommand:** Operators may also dispatch recovery via `POST /api/v1/commands` with `type = "EXECUTE_FAULT_RECOVERY"` and parameters `faultId` and `recoveryAction`.
+
+### 6.6 Clear Alert
+- **Endpoint:** `DELETE /api/v1/faults/{id}` or `POST /api/v1/faults/{id}/clear`
+- **Semantics:** Clears the active alert from the console ledger. **Does NOT automatically repair the physical subsystem hardware.** The hardware remains degraded until explicitly recovered.
+- **Response:** `200 OK` with `cleared: true`, `status: "CLEARED"`.
+
+### 6.7 Legacy Anomaly Extension Endpoints (Backward Compatible)
+- `GET /api/v1/anomalies`: List active legacy anomaly modifiers.
+- `POST /api/v1/anomalies/inject`: Inject legacy modifier.
+- `DELETE /api/v1/anomalies/{anomalyId}`: Clears legacy modifier.
 
 ---
 

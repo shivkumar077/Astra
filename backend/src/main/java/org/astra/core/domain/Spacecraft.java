@@ -1,5 +1,9 @@
 package org.astra.core.domain;
 
+import org.astra.core.domain.subsystems.EpsSubsystemState;
+import org.astra.core.domain.subsystems.PropSubsystemState;
+import org.astra.core.domain.subsystems.SpacecraftSubsystems;
+
 import java.util.Objects;
 
 /**
@@ -19,6 +23,7 @@ public class Spacecraft {
     private volatile SpacecraftStatus operationalStatus;
     private volatile double batterySocPercent;
     private volatile double solarArrayWatts;
+    private volatile SpacecraftSubsystems subsystems;
 
     public Spacecraft(
             String id,
@@ -52,6 +57,7 @@ public class Spacecraft {
         this.operationalStatus = Objects.requireNonNull(operationalStatus, "operationalStatus must not be null");
         this.batterySocPercent = Math.clamp(batterySocPercent, 0.0, 100.0);
         this.solarArrayWatts = Math.max(0.0, solarArrayWatts);
+        this.subsystems = SpacecraftSubsystems.nominal(this.batterySocPercent, this.solarArrayWatts, this.propellantMassKg);
     }
 
     public synchronized void updateOrbitState(OrbitState newState) {
@@ -69,6 +75,26 @@ public class Spacecraft {
     public synchronized void updatePowerMetrics(double batterySocPercent, double solarArrayWatts) {
         this.batterySocPercent = Math.clamp(batterySocPercent, 0.0, 100.0);
         this.solarArrayWatts = Math.max(0.0, solarArrayWatts);
+        if (this.subsystems != null) {
+            EpsSubsystemState currentEps = this.subsystems.eps();
+            EpsSubsystemState updatedEps = new EpsSubsystemState(
+                    this.batterySocPercent,
+                    this.solarArrayWatts,
+                    currentEps.batteryVoltageVolts(),
+                    currentEps.busLoadWatts(),
+                    currentEps.loadSheddingActive(),
+                    currentEps.solarDegradationMultiplier(),
+                    currentEps.busOverloadActive()
+            );
+            this.subsystems = new SpacecraftSubsystems(
+                    updatedEps,
+                    this.subsystems.tcs(),
+                    this.subsystems.adcs(),
+                    this.subsystems.comms(),
+                    this.subsystems.prop(),
+                    this.subsystems.obc()
+            );
+        }
     }
 
     public synchronized void consumePropellant(double kgConsumed) {
@@ -76,6 +102,35 @@ public class Spacecraft {
             throw new IllegalArgumentException("Propellant consumption cannot be negative: " + kgConsumed);
         }
         this.propellantMassKg = Math.max(0.0, this.propellantMassKg - kgConsumed);
+        if (this.subsystems != null) {
+            PropSubsystemState currentProp = this.subsystems.prop();
+            PropSubsystemState updatedProp = new PropSubsystemState(
+                    this.propellantMassKg,
+                    currentProp.tankPressureBar(),
+                    currentProp.valveHealth(),
+                    currentProp.thrustMultiplier(),
+                    currentProp.leakActive()
+            );
+            this.subsystems = new SpacecraftSubsystems(
+                    this.subsystems.eps(),
+                    this.subsystems.tcs(),
+                    this.subsystems.adcs(),
+                    this.subsystems.comms(),
+                    updatedProp,
+                    this.subsystems.obc()
+            );
+        }
+    }
+
+    public synchronized void updateSubsystems(SpacecraftSubsystems subsystems) {
+        this.subsystems = Objects.requireNonNull(subsystems, "subsystems must not be null");
+        this.batterySocPercent = subsystems.eps().batterySocPercent();
+        this.solarArrayWatts = subsystems.eps().solarArrayWatts();
+        this.propellantMassKg = subsystems.prop().propellantMassKg();
+    }
+
+    public SpacecraftSubsystems getSubsystems() {
+        return subsystems;
     }
 
     public double totalMassKg() {

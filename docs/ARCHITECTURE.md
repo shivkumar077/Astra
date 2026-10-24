@@ -342,4 +342,65 @@ The backend utilizes SLF4J with Logback configured for structured JSON output in
 - Controllable via `/api/v1/simulation/continuous/status`, `/start`, and `/stop`.
 - The core physics engine remains strictly deterministic and discrete; no `Thread.sleep` or wall-clock dependencies exist within domain logic.
 
+---
+
+## 10. Phase 4 Implementation Architecture: Full Failure Lab & Fault-Recovery Simulation
+
+### 10.1 Subsystem Domain State Models
+ASTRA models physical and operational states across all 6 spacecraft subsystem domains using immutable records integrated directly onto the authoritative `Spacecraft` entity via `SpacecraftSubsystems`:
+- **EPS (Electrical Power Subsystem):** `batterySocPercent`, `solarArrayWatts`, `batteryVoltageVolts`, `busLoadWatts`, `loadSheddingActive`, `solarDegradationMultiplier`, `busOverloadActive`.
+- **TCS (Thermal Control Subsystem):** `temperatureCelsius`, `heaterActive`, `heaterOperational`, `radiatorEfficiency`, `thermalSafingActive`.
+- **ADCS (Attitude Determination and Control Subsystem):** `pointingErrorDegrees`, `attitudeLockStatus`, `reactionWheelSpeedRpm`, `starTrackerLocked`, `wheelFrictionActive`.
+- **COMMS (Communications & Telemetry Subsystem):** `linkStatus`, `linkMarginDb`, `packetLossPercent`, `carrierLocked`, `blackoutActive`.
+- **PROP (Propulsion Subsystem):** `propellantMassKg`, `tankPressureBar`, `valveHealth`, `thrustMultiplier`, `leakActive`.
+- **OBC (On-Board Computer Subsystem):** `cpuUtilizationPercent`, `memoryUtilizationPercent`, `flightSoftwareState`, `rebootCount`, `rebootRemainingSeconds`.
+
+*Engineering Disclaimer: The simulation remains educational software. Subsystem models are simplified engineering approximations, not validated flight software or operational spacecraft-control systems.*
+
+### 10.2 Fault Lifecycle State Machine
+Every Failure Lab fault tracks an explicit lifecycle:
+```
+[INJECTED] ──> [ACTIVE] ──> [DETECTED] ──> [RECOVERING] ──> [RECOVERED]
+                                │                              │
+                                └──> [CLEARED (Alert Only)]   └──> [FAILED]
+```
+- **INJECTED / ACTIVE:** Injected into `FailureLabService` and immediately perturbs the authoritative physical subsystem state on the targeted vehicle.
+- **DETECTED:** Evaluated by `FaultDetectionEngine` when physical metrics violate threshold boundaries. Sets `detectedEpoch` and records operator explanation.
+- **RECOVERING / RECOVERED:** Initiated by explicit recovery commands (`RecoveryActionType`). Validates preconditions, restores underlying physical hardware to nominal, emits completion events, and removes fault from active list.
+- **CLEARED:** An operator alert clearance operation. Sets `clearedEpoch` and silences active alerts, but **strictly preserves underlying hardware degradation** until a valid recovery procedure is executed.
+
+### 10.3 Centralized Detection Engine with Hysteresis & Anti-Flapping
+`FaultDetectionEngine` evaluates subsystem health conditions centrally:
+- **Configurable Limits:**
+  - EPS: Battery SoC $< 20.0\%$ (CRITICAL), $< 30.0\%$ (MAJOR), Bus overload (MAJOR/CRITICAL).
+  - COMMS: Blackout / Carrier unlock (CRITICAL), Link margin $< 3.0\text{ dB}$ / Packet loss $> 15.0\%$ (WARNING/MAJOR).
+  - TCS: Overheat $\ge 60.0^\circ\text{C}$ (CRITICAL, triggers thermal safing), $\ge 45.0^\circ\text{C}$ (MAJOR); Freezing $\le -20.0^\circ\text{C}$ (CRITICAL), $\le 0.0^\circ\text{C}$ (WARNING).
+  - ADCS: Pointing error $\ge 5.0^\circ$ (CRITICAL), $\ge 1.0^\circ$ (WARNING/MAJOR, payload lockout).
+  - PROP: Tank pressure $\le 15.0\text{ bar}$ / Valve leak (MAJOR).
+  - OBC: Flight software `REBOOTING` (CRITICAL), CPU saturation $\ge 90.0\%$ (MAJOR).
+- **Anti-Flapping:** Employs signature-based deduplication (`faultId:severity`) to suppress repetitive alerts across consecutive simulation ticks when condition remains steady. Emits `FAULT_SEVERITY_CHANGED` only upon actual escalation or de-escalation.
+
+### 10.4 Validated Recovery Procedures & Operator Commands
+Recovery requires valid procedures mapped directly to the failure mode (`FaultScenarioCode` $\leftrightarrow$ `RecoveryActionType`):
+- `EPS_SOLAR_ARRAY_DEGRADATION` $\rightarrow$ `SWITCH_REDUNDANT_STRING`
+- `EPS_BATTERY_CELL_DEGRADATION` $\rightarrow$ `RESET_BATTERY_CHARGE_CONTROLLER`
+- `EPS_BUS_OVERLOAD` $\rightarrow$ `RECONFIGURE_POWER_BUS`
+- `COMMS_RF_BLACKOUT` $\rightarrow$ `RESET_RF_TRANSCEIVER`
+- `COMMS_LINK_DEGRADATION` $\rightarrow$ `REALIGN_ANTENNA_GIMBAL`
+- `TCS_HEAT_PIPE_FAILURE` $\rightarrow$ `PURGE_HEAT_PIPE_LOOP`
+- `TCS_HEATER_CIRCUIT_FAILURE` $\rightarrow$ `SWITCH_REDUNDANT_HEATER_LOOP`
+- `ADCS_REACTION_WHEEL_DRAG` $\rightarrow$ `SPIN_DOWN_REACTION_WHEELS`
+- `ADCS_STAR_TRACKER_BLINDING` $\rightarrow$ `SWITCH_BACKUP_STAR_TRACKER`
+- `PROP_VALVE_LEAK` $\rightarrow$ `ISOLATE_PROPULSION_VALVE`
+- `PROP_THRUSTER_COLD` $\rightarrow$ `REHEAT_THRUSTER_MANIFOLD`
+- `OBC_CPU_THRASHING` $\rightarrow$ `RELOAD_FLIGHT_SOFTWARE_IMAGE`
+- `OBC_WATCHDOG_RESET` $\rightarrow$ `REBOOT_OBC_SYSTEM` (or automatic completion on countdown expiry)
+
+Incompatible recovery requests are rejected with explicit HTTP 400 errors and emit `FAULT_RECOVERY_FAILED`.
+
+### 10.5 In-Memory Volatility & Architectural Scope
+- Fault records and audit histories are maintained in thread-safe in-memory ring buffers (capacity: 500 records).
+- Fault states and subsystem health remain volatile in memory across JVM restarts until persistent storage is integrated in Phase 9.
+
+
 

@@ -1,0 +1,33 @@
+package org.astra.anomalies;
+
+/**
+ * Validated recovery command procedures supported by the Failure Lab engine.
+ */
+public enum RecoveryActionType {
+    // EPS
+    SWITCH_REDUNDANT_STRING,
+    RECONFIGURE_POWER_BUS,
+    RESET_BATTERY_CHARGE_CONTROLLER,
+
+    // COMMS
+    RESET_RF_TRANSCEIVER,
+    REALIGN_ANTENNA_GIMBAL,
+
+    // TCS
+    SWITCH_REDUNDANT_HEATER_LOOP,
+    PURGE_HEAT_PIPE_LOOP,
+
+    // ADCS
+    CALIBRATE_ATTITUDE_SENSORS,
+    SPIN_DOWN_REACTION_WHEELS,
+    SWITCH_BACKUP_STAR_TRACKER,
+
+    // PROP
+    ISOLATE_PROPULSION_VALVE,
+    REHEAT_THRUSTER_MANIFOLD,
+
+    // OBC
+    REBOOT_OBC_SYSTEM,
+    RESET_WATCHDOG_TIMER,
+    RELOAD_FLIGHT_SOFTWARE_IMAGE
+}
