@@ -7,13 +7,26 @@ interface AstraWordmarkProps extends React.SVGProps<SVGSVGElement> {
   className?: string;
 }
 
+// Letterform Vector Paths (Designed from first principles on a unified 540x88 grid)
+// Cap height: Y = 18 to Y = 66 (Height = 48 units). Optical curve overshoot: Y = 17 to Y = 67.
+// Baseline: Y = 66.
+const PATH_A =
+  'M 0 66 L 11 66 L 20.5 53 L 55.5 53 L 65 66 L 76 66 L 41.5 18 L 34.5 18 Z M 38 28.5 L 51.5 47.5 L 24.5 47.5 Z';
+const PATH_S =
+  'M 62 27.5 L 53 28.5 C 50.5 24 43.5 22.5 32 22.5 C 18.5 22.5 9.5 26.5 9.5 32 C 9.5 38 17 40.8 27 42.8 C 44 45.8 61 49.5 61 58.5 C 61 65 49 67 32 67 C 15.5 67 4.5 62 1.5 54.5 L 10.5 53.2 C 13 58.5 20.5 61.5 32 61.5 C 43.5 61.5 52 58.5 52 53.5 C 52 47.5 45 44.5 35 42.5 C 18 39 1 35 1 26.5 C 1 19.5 13.5 17 32 17 C 47.5 17 58 21.5 62 27.5 Z';
+const PATH_T =
+  'M 0 18 L 72 18 L 72 25 L 40 25 L 40 66 L 32 66 L 32 25 L 0 25 Z';
+const PATH_R =
+  'M 0 18 L 40 18 C 55 18 63 23.5 63 32 C 63 38.5 57 43 47.5 44.2 L 72 66 L 60.5 66 L 38 45 L 8 45 L 8 66 L 0 66 Z M 8 25 L 8 38 L 40 38 C 49 38 54.5 35.8 54.5 32 C 54.5 28.2 49 25 40 25 Z';
+
 /**
- * ASTRA Bespoke Hero Wordmark
- * An original, precision-crafted vector identity for a premium space platform:
- * - Architectural custom letterforms with refined optical contrast
- * - Sinuous aerodynamic 'S', monumental 'T', and sweeping orbital 'R' leg
- * - Subtle integrated celestial horizon hairline and central starburst focal point
- * - ZERO isolated decorative 'A'; the complete word ASTRA is the hero
+ * ASTRA Bespoke Brand Wordmark
+ * Precision-crafted vector identity designed from first principles:
+ * - Geometrically consistent and optically balanced aerospace letterforms
+ * - Unified stroke weights, coherent baselines (Y=66), and calibrated optical kerning
+ * - Pure vector paths with zero arbitrary borders, fragmented strokes, or stray line artifacts
+ * - Deliberate integration of the signature celestial star poised at the final 'A' apex
+ * - When the star detaches on scroll, the final 'A' remains fully formed, structural, and complete
  */
 export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
   height = 54,
@@ -49,8 +62,8 @@ export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
         <stop offset="100%" stopColor="#B8C4D4" />
       </linearGradient>
 
-      {/* Subtle celestial gold accent sheen */}
-      <linearGradient id="astra-star-accent" x1="270" y1="4" x2="270" y2="28" gradientUnits="userSpaceOnUse">
+      {/* Radiant celestial gold accent sheen */}
+      <linearGradient id="astra-star-accent" x1="0" y1="0" x2="0" y2="18" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stopColor="#FFFBEB" />
         <stop offset="60%" stopColor={accentColor} />
         <stop offset="100%" stopColor="#F59E0B" />
@@ -58,131 +71,74 @@ export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
     </defs>
 
     {/* =========================================================================
-        CENTRAL INTEGRATED CELESTIAL STARBURST (Poised above the wordmark axis)
+        LETTER 1: A (Architectural Chisel Apex, Precision Crossbar)
         ========================================================================= */}
-    <g transform="translate(270, 10)">
-      {/* Delicate horizontal alignment flare */}
-      <line x1="-36" y1="0" x2="-8" y2="0" stroke="url(#astra-star-accent)" strokeWidth="0.8" opacity="0.6" />
-      <line x1="8" y1="0" x2="36" y2="0" stroke="url(#astra-star-accent)" strokeWidth="0.8" opacity="0.6" />
-      {/* 4-point acute celestial diamond */}
+    <g transform="translate(32, 0)">
       <path
-        d="M0 -7 L1.6 -1.8 L7 0 L1.6 1.8 L0 7 L-1.6 1.8 L-7 0 L-1.6 -1.8 Z"
-        fill="url(#astra-star-accent)"
+        d={PATH_A}
+        fill="url(#astra-wordmark-gradient)"
+        fillRule="evenodd"
       />
-      <circle cx="0" cy="0" r="0.9" fill="#FFFFFF" />
     </g>
 
     {/* =========================================================================
-        LETTER 1: A (Architectural Slant, Sharp Chisel Apex, Precision Crossbar)
+        LETTER 2: S (Aerodynamic Curvature, Balanced Optical Spine)
         ========================================================================= */}
-    <g transform="translate(18, 16)">
-      {/* Left Diagonal Stroke with Foot Serif */}
+    <g transform="translate(136, 0)">
       <path
-        d="M2 62 L18 62 L14 58 L37.5 7 L32 7 L12 58 L8 62 Z"
-        fill="url(#astra-wordmark-gradient)"
-      />
-      {/* Right Diagonal Main Stem */}
-      <path
-        d="M34 7 L39 7 L68 62 L84 62 L80 58 L46 7 Z"
-        fill="url(#astra-wordmark-gradient)"
-      />
-      {/* Architectural Horizon Crossbar with subtle optical break */}
-      <path
-        d="M19 44 L32 44 L32 41.5 L20 41.5 Z M38 44 L58 44 L56.5 41.5 L38 41.5 Z"
+        d={PATH_S}
         fill="url(#astra-wordmark-gradient)"
       />
     </g>
 
     {/* =========================================================================
-        LETTER 2: S (Aerodynamic Sinuous Curves, Razor-Cut Terminals)
+        LETTER 3: T (Authoritative Central Pillar, Symmetrical Crossbeam)
         ========================================================================= */}
-    <g transform="translate(126, 16)">
+    <g transform="translate(234, 0)">
       <path
-        d="M68 20 C65 11 56 6 43 6 C28 6 18 14 18 24 C18 36 32 39 46 43 C60 47 67 52 67 61 C67 71 55 76 39 76 C22 76 11 68 8 57 L18 55 C20 63 28 68 40 68 C50 68 57 64 57 57 C57 48 42 45 30 41 C17 37 8 32 8 21 C8 9 20 0 41 0 C54 0 64 6 68 15 Z"
+        d={PATH_T}
         fill="url(#astra-wordmark-gradient)"
-        transform="translate(0, 1)"
       />
-      {/* Razor Terminal Brackets */}
-      <line x1="68" y1="14" x2="68" y2="22" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="8" y1="50" x2="8" y2="58" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
     </g>
 
     {/* =========================================================================
-        LETTER 3: T (Expansive Horizontal Beam, Chamfered Brackets, Strong Pillar)
+        LETTER 4: R (Harmonious Circular Bowl, Sweeping Diagonal Leg)
         ========================================================================= */}
-    <g transform="translate(230, 16)">
-      {/* Top Crossbeam */}
+    <g transform="translate(334, 0)">
       <path
-        d="M4 7 L76 7 L76 15 L70 15 C67 11 63 10.5 45 10.5 L45 62 L54 62 L54 66 L26 66 L26 62 L35 62 L35 10.5 C17 10.5 13 11 10 15 L4 15 Z"
+        d={PATH_R}
         fill="url(#astra-wordmark-gradient)"
+        fillRule="evenodd"
       />
-      {/* Left/Right Crossbeam Finials */}
-      <line x1="4" y1="7" x2="4" y2="15" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
-      <line x1="76" y1="7" x2="76" y2="15" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
     </g>
 
     {/* =========================================================================
-        LETTER 4: R (Noble Circular Bowl, Sweeping Orbital Transfer Leg)
+        LETTER 5: A (Framing Apex Crowned by the Signature Star)
         ========================================================================= */}
-    <g transform="translate(332, 16)">
+    <g transform="translate(432, 0)">
+      {/* Complete, fully structural letterform underneath */}
       <path
-        d="M10 7 L44 7 C58 7 68 14 68 27 C68 37 60 44 47 46.5 C56 53 66 65 74 77 L62 77 C55 65 46 54 35 48 L20 48 L20 62 L28 62 L28 66 L2 66 L2 62 L10 62 Z M20 13 L20 42 L42 42 C51 42 57 37 57 27 C57 17 51 13 42 13 Z"
+        d={PATH_A}
         fill="url(#astra-wordmark-gradient)"
-      />
-      {/* Left Base Foot Serif */}
-      <path d="M4 7 L17 7" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
-      {/* Parabolic Foot Tip */}
-      <path d="M68 77 L78 77" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
-    </g>
-
-    {/* =========================================================================
-        LETTER 5: A (Closing Apex Crowned by the Signature Star)
-        ========================================================================= */}
-    <g transform="translate(436, 16)">
-      {/* Left Diagonal Stroke with Foot Serif */}
-      <path
-        d="M2 62 L18 62 L14 58 L37.5 7 L32 7 L12 58 L8 62 Z"
-        fill="url(#astra-wordmark-gradient)"
-      />
-      {/* Right Diagonal Main Stem */}
-      <path
-        d="M34 7 L39 7 L68 62 L84 62 L80 58 L46 7 Z"
-        fill="url(#astra-wordmark-gradient)"
-      />
-      {/* Architectural Horizon Crossbar */}
-      <path
-        d="M19 44 L32 44 L32 41.5 L20 41.5 Z M38 44 L58 44 L56.5 41.5 L38 41.5 Z"
-        fill="url(#astra-wordmark-gradient)"
+        fillRule="evenodd"
       />
 
       {/* Signature Star Poised at the Final 'A' Apex (Anchors the Traveling Star) */}
       <g
         id="astra-signature-star"
         className="astra-signature-star-anchor"
-        transform="translate(36.5, 4)"
+        transform="translate(38, 12)"
       >
-        {/* Luminous Diamond Flare */}
+        {/* Luminous 4-point acute diamond flare */}
         <path
           d="M0 -9 L1.8 -2.2 L9 0 L1.8 2.2 L0 9 L-1.8 2.2 L-9 0 L-1.8 -2.2 Z"
           fill="url(#astra-star-accent)"
         />
-        {/* Core Brilliant Starlight Spark */}
+        {/* Core brilliant starlight spark */}
         <circle cx="0" cy="0" r="1.3" fill="#FFFFFF" />
         <circle cx="0" cy="0" r="3.2" fill={accentColor} opacity="0.35" />
       </g>
     </g>
-
-    {/* Fine Connecting Orbital Baseline Hairline */}
-    <line
-      x1="24"
-      y1="85"
-      x2="516"
-      y2="85"
-      stroke="url(#astra-wordmark-gradient)"
-      strokeWidth="0.75"
-      strokeDasharray="4 4 16 4"
-      opacity="0.3"
-    />
   </svg>
 );
 
