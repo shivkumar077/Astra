@@ -11,7 +11,7 @@ export const App: React.FC = () => {
   const [scrollProgress, setScrollProgress] = useState<number>(0);
 
   useEffect(() => {
-    // Detect system reduced motion preference
+    // Detect operating-system reduced motion preference silently for accessibility
     if (typeof window !== 'undefined' && window.matchMedia) {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
       setReducedMotion(mediaQuery.matches);
@@ -46,10 +46,6 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleToggleReducedMotion = () => {
-    setReducedMotion((prev) => !prev);
-  };
-
   return (
     <div
       className="astra-app-root"
@@ -68,10 +64,7 @@ export const App: React.FC = () => {
       <EarthCanvas scrollProgress={scrollProgress} reducedMotion={reducedMotion} />
 
       {/* Primary Structural Layout */}
-      <Header
-        reducedMotion={reducedMotion}
-        onToggleReducedMotion={handleToggleReducedMotion}
-      />
+      <Header />
 
       <HeroSection
         scrollProgress={scrollProgress}
@@ -91,4 +84,5 @@ export const App: React.FC = () => {
 };
 
 export default App;
+
 

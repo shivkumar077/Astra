@@ -228,18 +228,18 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     // 6. Earth Mesh & Realistic Shading (High Tessellation: 96x96 Segments)
     const sphereRadius = 2.0;
     const earthGeometry = new THREE.SphereGeometry(sphereRadius, 96, 96);
-    const sunDirection = new THREE.Vector3(-1.2, 0.5, 0.9).normalize();
+    const sunDirection = new THREE.Vector3(-1.2, 0.45, 0.85).normalize();
 
     const earthMaterial = new THREE.MeshStandardMaterial({
       map: earthTexture,
-      roughness: 0.72,
-      metalness: 0.04,
+      roughness: 0.68,
+      metalness: 0.05,
       emissiveMap: lightsTexture,
       emissive: new THREE.Color(0xffe29a),
-      emissiveIntensity: 0.9,
+      emissiveIntensity: 0.85,
     });
 
-    // Modulate night lights so they emerge naturally only on the unlit dark side of Earth
+    // Modulate night lights and add physical Rayleigh daylight scattering directly on the globe
     earthMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uSunDir = { value: sunDirection };
       shader.fragmentShader = `
@@ -251,9 +251,22 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         `
         #include <emissivemap_fragment>
         float sunAngle = dot(normalize(vNormal), uSunDir);
-        // Realistic twilight falloff into the nocturnal hemisphere
-        float nightFactor = smoothstep(0.06, -0.20, sunAngle);
-        totalEmissiveRadiance *= nightFactor * 1.6;
+        // Realistic twilight falloff into nocturnal hemisphere: city lights glow only in darkness
+        float nightFactor = smoothstep(0.04, -0.18, sunAngle);
+        totalEmissiveRadiance *= nightFactor * 1.5;
+        `
+      );
+      // Soft natural Rayleigh atmospheric scattering on daylight limb
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <dithering_fragment>',
+        `
+        #include <dithering_fragment>
+        vec3 viewD = normalize(vViewPosition);
+        float limbFresnel = 1.0 - max(dot(normalize(vNormal), -viewD), 0.0);
+        float sunLit = smoothstep(-0.08, 0.25, dot(normalize(vNormal), uSunDir));
+        // Soft atmospheric blue haze on the illuminated horizon (no cyan outlines)
+        vec3 rayleighBlue = vec3(0.16, 0.36, 0.68);
+        gl_FragColor.rgb += rayleighBlue * pow(limbFresnel, 4.2) * sunLit * 0.45;
         `
       );
     };
@@ -261,20 +274,22 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     earthGroup.add(earthMesh);
 
-    // 7. Atmospheric Cloud Layer (Decoupled Rotation & Depth)
-    const cloudGeometry = new THREE.SphereGeometry(sphereRadius + 0.022, 96, 96);
+    // 7. Atmospheric Cloud Layer (Decoupled Rotation & Diffuse Realism)
+    const cloudGeometry = new THREE.SphereGeometry(sphereRadius + 0.018, 96, 96);
     const cloudMaterial = new THREE.MeshStandardMaterial({
       map: cloudsTexture,
       transparent: true,
-      opacity: 0.26,
-      blending: THREE.AdditiveBlending,
+      opacity: 0.32,
+      blending: THREE.NormalBlending,
+      roughness: 0.9,
+      metalness: 0.0,
       depthWrite: false,
     });
     const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
     earthGroup.add(cloudMesh);
 
-    // 8. Delicate Atmospheric Rim (Soft Rayleigh/Mie Scattering, Zero Dark-Side Halo)
-    const atmosphereGeometry = new THREE.SphereGeometry(sphereRadius + 0.065, 96, 96);
+    // 8. Thin, Delicate Atmospheric Limb (Natural Rayleigh Scattering, Zero Thick Cyan Strip)
+    const atmosphereGeometry = new THREE.SphereGeometry(sphereRadius + 0.014, 96, 96);
     const atmosphereMaterial = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vNormal;
@@ -292,32 +307,34 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         void main() {
           vec3 viewDir = normalize(-vPosition);
           float fresnel = 1.0 - max(dot(vNormal, viewDir), 0.0);
-          // Very sharp limb falloff hugging the planetary horizon
-          float intensity = pow(fresnel, 4.5);
+          // Very tight limb falloff hugging planetary curvature
+          float intensity = pow(fresnel, 5.5);
 
           // Atmospheric scattering active strictly on the illuminated limb
           float sunCos = dot(vNormal, uSunDir);
-          float dayMask = smoothstep(-0.10, 0.30, sunCos);
+          float dayMask = smoothstep(-0.08, 0.25, sunCos);
 
-          // Ethereal atmospheric azure to stratospheric cyan
-          vec3 atmosColor = mix(vec3(0.14, 0.38, 0.88), vec3(0.24, 0.76, 0.98), fresnel);
-          gl_FragColor = vec4(atmosColor, intensity * dayMask * 0.72);
+          // Natural Rayleigh atmospheric blue (rich sapphire to soft sky azure)
+          vec3 atmosColor = mix(vec3(0.12, 0.28, 0.65), vec3(0.22, 0.52, 0.88), fresnel);
+          gl_FragColor = vec4(atmosColor, intensity * dayMask * 0.65);
         }
       `,
       uniforms: {
         uSunDir: { value: sunDirection },
       },
       blending: THREE.AdditiveBlending,
-      side: THREE.BackSide,
+      side: THREE.FrontSide,
       transparent: true,
       depthWrite: false,
     });
     const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     earthGroup.add(atmosphereMesh);
 
-    // 9. Signature Meteor: Mathematically Smooth Procedural Luminous Ribbon
-    // Zero textures, zero pale rectangular bounding box, pure mathematical falloff
-    const meteorGeometry = new THREE.PlaneGeometry(0.26, 3.8, 1, 16);
+    // 9. Signature & Ambient Meteor System: High-Fidelity Incandescent Diamond & Ion Trail
+    // Procedural mathematical shader: zero pixelation, zero bounding boxes, pure smooth falloff
+    // Trajectory: UPPER-LEFT to LOWER-RIGHT
+    // Passing BEHIND Earth: depthTest is true and Z = -3.2 (Earth front: +2.0, Earth back: -2.0)
+    const meteorGeometry = new THREE.PlaneGeometry(0.24, 4.2, 1, 16);
     const meteorMaterial = new THREE.ShaderMaterial({
       uniforms: {
         uOpacity: { value: 0.0 },
@@ -333,43 +350,45 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         uniform float uOpacity;
         varying vec2 vUv;
         void main() {
-          // vUv.y: 0.0 = tail tip, 1.0 = incandescent head
+          // vUv.y: 0.0 = tail tip, 1.0 = incandescent leading head
           // vUv.x: 0.0 = left edge, 0.5 = centerline, 1.0 = right edge
           float u = vUv.y;
           float lateral = abs(vUv.x - 0.5) * 2.0;
 
-          // Width envelope tapers smoothly toward the tail tip
-          float widthTaper = pow(u, 0.65);
-          float lateralFalloff = smoothstep(1.0, 0.0, lateral / max(widthTaper, 0.03));
+          // Smooth aerodynamic envelope tapering toward tail tip
+          float widthTaper = pow(u, 0.72);
+          float lateralFalloff = exp(-pow(lateral / max(widthTaper, 0.04), 2.0) * 3.8);
 
-          // Longitudinal trail radiance
-          float trail = pow(u, 2.2);
+          // Longitudinal trail radiance with subtle ablation frequency
+          float ablation = 1.0 + 0.12 * sin(u * 38.0);
+          float trail = pow(u, 2.0) * ablation;
 
-          // Blazing diamond head spark
-          float headDist = length(vec2((u - 0.96) * 6.5, lateral * 3.5));
-          float headGlow = exp(-headDist * 4.2);
+          // Blazing diamond head core
+          float headDist = length(vec2((u - 0.96) * 7.5, lateral * 3.8));
+          float headGlow = exp(-headDist * 4.8);
 
-          // Spectral coloration: incandescent warm ivory core + ionized cyan-azure trail
-          vec3 headColor = vec3(1.0, 0.98, 0.92);
-          vec3 ionColor = vec3(0.24, 0.76, 0.98);
-          vec3 tailColor = vec3(0.12, 0.28, 0.75);
+          // Spectral coloration: incandescent white starlight core + ionized azure-cyan trail
+          vec3 headColor = vec3(1.0, 0.99, 0.95);
+          vec3 ionColor = vec3(0.28, 0.62, 0.94);
+          vec3 tailColor = vec3(0.12, 0.24, 0.62);
 
-          vec3 color = mix(tailColor, ionColor, smoothstep(0.15, 0.85, u));
-          color = mix(color, headColor, headGlow * 1.4 + step(0.96, u) * 0.4);
+          vec3 color = mix(tailColor, ionColor, smoothstep(0.12, 0.82, u));
+          color = mix(color, headColor, headGlow * 1.5 + step(0.96, u) * 0.4);
 
-          float alpha = (trail * lateralFalloff * 0.85 + headGlow * 1.0) * uOpacity;
+          float alpha = (trail * lateralFalloff * 0.85 + headGlow * 1.1) * uOpacity;
           if (alpha < 0.002) discard;
           gl_FragColor = vec4(color, clamp(alpha, 0.0, 1.0));
         }
       `,
       transparent: true,
       blending: THREE.AdditiveBlending,
+      depthTest: true, // Crucial: enables WebGL hardware depth test so Earth occludes the meteor
       depthWrite: false,
       side: THREE.DoubleSide,
     });
     const meteorMesh = new THREE.Mesh(meteorGeometry, meteorMaterial);
-    // Orient meteor plane along flight trajectory (-34 deg)
-    meteorMesh.rotation.z = THREE.MathUtils.degToRad(-34);
+    // Orient plane along flight trajectory (Upper-Left to Lower-Right: ~ -36.5 deg)
+    meteorMesh.rotation.z = THREE.MathUtils.degToRad(-36.5);
     meteorMesh.visible = false;
     scene.add(meteorMesh);
 
@@ -462,7 +481,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     const starCurve = new THREE.QuadraticBezierCurve3(curveStart, curveControl, curveEnd);
 
     // 11. Directional Sun & Ambient Lighting
-    const sunLight = new THREE.DirectionalLight(0xfffdf6, 2.5);
+    const sunLight = new THREE.DirectionalLight(0xfffdf6, 2.6);
     sunLight.position.copy(sunDirection).multiplyScalar(10);
     scene.add(sunLight);
 
@@ -470,16 +489,14 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     scene.add(ambientLight);
 
     // 12. Responsive Group Layout Calculations
+    // Earth is positioned in the right half of the desktop viewport so ASTRA wordmark is clearly visible
     const getLayoutParameters = (w: number, t: number) => {
-      // Opening frame (t = 0.0): Earth is distant, smaller, serene
-      // Mid-scroll (t = 0.35 -> 0.70): Earth approaches and its limb overlaps ASTRA typography
-      // Settled frame (t = 1.0): Earth is anchored on the right side in hero view
       if (w >= 1024) {
-        // Desktop
-        const startX = 0.45;
-        const startY = -0.05;
-        const startZ = -2.4;
-        const startScale = 0.52;
+        // Desktop: start at right margin (1.35) with breathing room, settled at (1.68)
+        const startX = 1.35;
+        const startY = -0.06;
+        const startZ = -1.6;
+        const startScale = 0.65;
 
         const endX = 1.68;
         const endY = 0.02;
@@ -495,18 +512,18 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       } else if (w >= 768) {
         // Tablet
         return {
-          x: THREE.MathUtils.lerp(0.2, 0.85, t),
-          y: THREE.MathUtils.lerp(-0.2, -0.15, t),
-          z: THREE.MathUtils.lerp(-2.8, -0.4, t),
-          scale: THREE.MathUtils.lerp(0.48, 0.88, t),
+          x: THREE.MathUtils.lerp(0.95, 1.10, t),
+          y: THREE.MathUtils.lerp(-0.15, -0.10, t),
+          z: THREE.MathUtils.lerp(-2.2, -0.3, t),
+          scale: THREE.MathUtils.lerp(0.55, 0.85, t),
         };
       } else {
         // Mobile
         return {
           x: 0,
-          y: THREE.MathUtils.lerp(-0.4, -0.65, t),
-          z: THREE.MathUtils.lerp(-3.2, -1.1, t),
-          scale: THREE.MathUtils.lerp(0.42, 0.74, t),
+          y: THREE.MathUtils.lerp(-0.55, -0.65, t),
+          z: THREE.MathUtils.lerp(-2.8, -1.1, t),
+          scale: THREE.MathUtils.lerp(0.50, 0.74, t),
         };
       }
     };
@@ -548,18 +565,19 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // 16. Meteor State Tracking
+    // 16. Meteor State Tracking (Upper-Left to Lower-Right, Passing Behind Earth)
     const mountTime = performance.now();
     let openingMeteorTriggered = false;
     let meteorActive = false;
     let meteorStartTime = 0;
-    const meteorDuration = 2200; // ms: unhurried, majestic passage
-    let nextMeteorTime = mountTime + 18000;
+    let meteorDuration = 2100; // ms: unhurried, majestic passage
+    let nextMeteorTime = mountTime + 16000;
 
-    let meteorStartX = 3.6;
-    let meteorStartY = 3.2;
-    let meteorEndX = -2.0;
-    let meteorEndY = -0.5;
+    let meteorStartX = -4.5;
+    let meteorStartY = 3.5;
+    let meteorEndX = 4.0;
+    let meteorEndY = -2.8;
+    const meteorZ = -3.2; // Strictly behind Earth (Earth is at z: -1.6 to 0.0)
 
     // 17. Animation Loop
     const baseRotationSpeed = reducedMotion ? 0.0003 : 0.001;
@@ -601,27 +619,35 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         foreStars.rotation.x = currentPointerX * 0.35;
       }
 
-      // Opening Frame Signature Meteor Event (Triggers at ~700ms after load)
-      if (!openingMeteorTriggered && now - mountTime > 700 && !reducedMotion) {
+      // Opening Frame Signature Meteor Event (Triggers at ~750ms after load)
+      // Primary trajectory: Upper-Left to Lower-Right, passing behind Earth
+      if (!openingMeteorTriggered && now - mountTime > 750 && !reducedMotion) {
         openingMeteorTriggered = true;
         meteorActive = true;
         meteorStartTime = now;
-        meteorStartX = 3.4;
-        meteorStartY = 2.8;
-        meteorEndX = -1.6;
-        meteorEndY = -0.4;
+        meteorDuration = 2200;
+        meteorStartX = -4.5;
+        meteorStartY = 3.5;
+        meteorEndX = 4.2;
+        meteorEndY = -2.8;
+        meteorMesh.rotation.z = THREE.MathUtils.degToRad(-36.5);
       }
 
-      // Periodic Subtle Meteor Generator
-      if (!meteorActive && now > nextMeteorTime && !reducedMotion && currentScroll < 0.6) {
+      // Ambient Recurring Meteor System (Continues after reveal with subtle randomized variations)
+      if (!meteorActive && now > nextMeteorTime && !reducedMotion) {
         meteorActive = true;
         meteorStartTime = now;
-        nextMeteorTime = now + 20000 + Math.random() * 18000; // Next meteor in 20-38 seconds
+        meteorDuration = 1800 + Math.random() * 600;
+        nextMeteorTime = now + 16000 + Math.random() * 14000; // Next meteor every 16-30 seconds
 
-        meteorStartX = 2.0 + Math.random() * 2.5;
-        meteorStartY = 2.2 + Math.random() * 1.5;
-        meteorEndX = meteorStartX - 4.5 - Math.random() * 1.5;
-        meteorEndY = meteorStartY - 3.0 - Math.random() * 1.0;
+        // Randomized upper-left origin to lower-right destination behind Earth
+        meteorStartX = -4.8 + Math.random() * 1.0;
+        meteorStartY = 3.2 + Math.random() * 0.8;
+        meteorEndX = 3.8 + Math.random() * 1.2;
+        meteorEndY = -2.5 - Math.random() * 0.8;
+
+        const angleRad = Math.atan2(meteorEndY - meteorStartY, meteorEndX - meteorStartX) + Math.PI / 2;
+        meteorMesh.rotation.z = angleRad;
       }
 
       // Animate Meteor Flight
@@ -636,18 +662,19 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
         } else {
           meteorMesh.visible = true;
 
-          // Smooth interpolation across flight arc
+          // Smooth interpolation along diagonal trajectory
           const curX = THREE.MathUtils.lerp(meteorStartX, meteorEndX, mProgress);
           const curY = THREE.MathUtils.lerp(meteorStartY, meteorEndY, mProgress);
-          meteorMesh.position.set(curX, curY, -1.5);
+          // Positioned strictly behind Earth at z = -3.2 with depthTest: true
+          meteorMesh.position.set(curX, curY, meteorZ);
 
-          // Easing opacity envelope: smooth fade-in, peak brilliance, gentle dissolution
+          // Easing opacity envelope: smooth fade-in, peak brilliance, natural dissolution
           const mAlpha = Math.sin(mProgress * Math.PI);
-          meteorMaterial.uniforms.uOpacity.value = Math.pow(mAlpha, 1.2) * 0.85;
+          meteorMaterial.uniforms.uOpacity.value = Math.pow(mAlpha, 1.1) * 0.9;
         }
       }
 
-      // Cinematic Signature Star Flight on Scroll (Occurs between scroll 0.18 and 0.72)
+      // Cinematic Signature Star Flight on Scroll (Occurs between scroll 0.15 and 0.75)
       if (currentScroll > 0.15 && currentScroll < 0.75 && !reducedMotion) {
         const trajectoryProgress = Math.min(Math.max((currentScroll - 0.15) / 0.55, 0), 1);
         const starPos = starCurve.getPoint(trajectoryProgress);

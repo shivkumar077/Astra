@@ -1,356 +1,195 @@
 import React from 'react';
 
-interface BrandProps extends React.SVGProps<SVGSVGElement> {
-  size?: number;
+interface AstraWordmarkProps extends React.SVGProps<SVGSVGElement> {
+  height?: number | string;
   color?: string;
-  glowColor?: string;
+  accentColor?: string;
   className?: string;
 }
 
 /**
- * ASTRA Celestial Mark
- * An independent, mathematically constructed astronomical emblem:
- * - 8-point celestial diamond star with acute tapered cardinal rays
- * - Keplerian orbital trajectory ellipse at 23.4° inclination
- * - Concentric focal aperture core representing orbital observation
+ * ASTRA Bespoke Hero Wordmark
+ * An original, precision-crafted vector identity for a premium space platform:
+ * - Architectural custom letterforms with refined optical contrast
+ * - Sinuous aerodynamic 'S', monumental 'T', and sweeping orbital 'R' leg
+ * - Subtle integrated celestial horizon hairline and central starburst focal point
+ * - ZERO isolated decorative 'A'; the complete word ASTRA is the hero
  */
-export const AstraCelestialMark: React.FC<BrandProps> = ({
-  size = 48,
-  color = 'var(--color-star-ivory, #EDECE8)',
-  glowColor = 'var(--color-star-warm, #FDE68A)',
+export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
+  height = 54,
+  color = 'var(--color-star-ivory, #F0EFEA)',
+  accentColor = 'var(--color-star-warm, #FDE68A)',
   className = '',
+  style,
   ...props
 }) => (
   <svg
-    width={size}
-    height={size}
-    viewBox="0 0 64 64"
+    viewBox="0 0 540 88"
+    height={height}
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className={`astra-celestial-mark ${className}`}
-    aria-hidden="true"
-    {...props}
-  >
-    <defs>
-      {/* Delicate celestial radial gradient for the central diamond core */}
-      <radialGradient id="astra-core-glow" cx="32" cy="32" r="16" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor={glowColor} stopOpacity="0.8" />
-        <stop offset="50%" stopColor={color} stopOpacity="0.4" />
-        <stop offset="100%" stopColor={color} stopOpacity="0" />
-      </radialGradient>
-      {/* Subtle linear sheen for the cardinal diamond */}
-      <linearGradient id="astra-star-sheen" x1="32" y1="4" x2="32" y2="60" gradientUnits="userSpaceOnUse">
-        <stop offset="0%" stopColor="#FFFFFF" />
-        <stop offset="50%" stopColor={color} />
-        <stop offset="100%" stopColor={glowColor} />
-      </linearGradient>
-    </defs>
-
-    {/* Outer Atmospheric / Orbital Ring (Hairline) */}
-    <circle
-      cx="32"
-      cy="32"
-      r="27"
-      stroke={color}
-      strokeWidth="0.85"
-      strokeDasharray="2 4"
-      opacity="0.3"
-    />
-
-    {/* Intersecting Orbital Trajectory Ellipse (23.4° Equatorial Incline) */}
-    <ellipse
-      cx="32"
-      cy="32"
-      rx="28"
-      ry="9"
-      transform="rotate(-23.4 32 32)"
-      stroke={color}
-      strokeWidth="1.1"
-      strokeDasharray="4 2"
-      opacity="0.55"
-    />
-
-    {/* Diagonal Secondary Starlight Rays (Fine Tapered 45° Cross) */}
-    <line x1="16" y1="16" x2="22" y2="22" stroke={color} strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
-    <line x1="48" y1="16" x2="42" y2="22" stroke={color} strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
-    <line x1="16" y1="48" x2="22" y2="42" stroke={color} strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
-    <line x1="48" y1="48" x2="42" y2="42" stroke={color} strokeWidth="1.1" strokeLinecap="round" opacity="0.65" />
-
-    {/* Primary 4-Point Celestial Star (Acute Tapered Geometry) */}
-    <path
-      d="M32 4 L34.8 24.5 L56 32 L34.8 39.5 L32 60 L29.2 39.5 L8 32 L29.2 24.5 Z"
-      fill="url(#astra-star-sheen)"
-      fillOpacity="0.12"
-      stroke="url(#astra-star-sheen)"
-      strokeWidth="1.25"
-      strokeLinejoin="round"
-    />
-
-    {/* Inner Core Diamond Flare */}
-    <path
-      d="M32 18 L34 29 L46 32 L34 35 L32 46 L30 35 L18 32 L30 29 Z"
-      fill="url(#astra-core-glow)"
-      stroke={glowColor}
-      strokeWidth="0.9"
-      opacity="0.9"
-    />
-
-    {/* Central Precision Focal Aperture & Navigation Point */}
-    <circle cx="32" cy="32" r="3.2" stroke={color} strokeWidth="0.9" opacity="0.8" />
-    <circle cx="32" cy="32" r="1.3" fill={color} />
-  </svg>
-);
-
-/**
- * ASTRA Custom Vector Wordmark
- * Precision-drawn SVG letterforms with refined classical Roman proportions,
- * sharp chisel serifs, and an integrated trajectory hairline crossbeam.
- */
-export const AstraWordmark: React.FC<BrandProps> = ({
-  size = 32,
-  color = 'var(--color-star-ivory, #EDECE8)',
-  className = '',
-  ...props
-}) => (
-  <svg
-    width={size * 4.6}
-    height={size}
-    viewBox="0 0 368 80"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    className={`astra-wordmark-svg ${className}`}
+    className={`astra-hero-wordmark ${className}`}
+    style={{
+      display: 'inline-block',
+      maxWidth: '100%',
+      height: typeof height === 'number' ? `${height}px` : height,
+      overflow: 'visible',
+      ...style,
+    }}
     aria-label="ASTRA"
     role="img"
     {...props}
   >
     <defs>
-      <linearGradient id="wordmark-sheen" x1="0" y1="0" x2="368" y2="80" gradientUnits="userSpaceOnUse">
+      {/* High-end metallic starlight sheen */}
+      <linearGradient id="astra-wordmark-gradient" x1="0" y1="0" x2="540" y2="88" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stopColor="#FFFFFF" />
-        <stop offset="60%" stopColor={color} />
-        <stop offset="100%" stopColor="#D8DDE6" />
+        <stop offset="45%" stopColor={color} />
+        <stop offset="85%" stopColor="#D9DFE8" />
+        <stop offset="100%" stopColor="#B8C4D4" />
+      </linearGradient>
+
+      {/* Subtle celestial gold accent sheen */}
+      <linearGradient id="astra-star-accent" x1="270" y1="4" x2="270" y2="28" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#FFFBEB" />
+        <stop offset="60%" stopColor={accentColor} />
+        <stop offset="100%" stopColor="#F59E0B" />
       </linearGradient>
     </defs>
 
     {/* =========================================================================
-        LETTER 1: A (Tapered Apex with Elegant Left Hairline & Heavy Right Stem)
+        CENTRAL INTEGRATED CELESTIAL STARBURST (Poised above the wordmark axis)
         ========================================================================= */}
-    <g transform="translate(10, 8)">
-      {/* Serifs Base Left */}
-      <path d="M4 64 L20 64 M12 64 L12 60" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Serifs Base Right */}
-      <path d="M44 64 L60 64 M52 64 L52 60" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Main A Contour */}
+    <g transform="translate(270, 10)">
+      {/* Delicate horizontal alignment flare */}
+      <line x1="-36" y1="0" x2="-8" y2="0" stroke="url(#astra-star-accent)" strokeWidth="0.8" opacity="0.6" />
+      <line x1="8" y1="0" x2="36" y2="0" stroke="url(#astra-star-accent)" strokeWidth="0.8" opacity="0.6" />
+      {/* 4-point acute celestial diamond */}
       <path
-        d="M32 4 L33.2 4 L53.5 63.5 L47 63.5 L36 31 L18 31 L10 63.5 L4.5 63.5 Z"
-        fill="url(#wordmark-sheen)"
+        d="M0 -7 L1.6 -1.8 L7 0 L1.6 1.8 L0 7 L-1.6 1.8 L-7 0 L-1.6 -1.8 Z"
+        fill="url(#astra-star-accent)"
       />
-      {/* Fine Inner Triangular Counter */}
-      <polygon points="27,14 34.5,27 19.5,27" fill="var(--color-void, #050608)" />
-      {/* Extended Architectural Crossbar Hairline */}
-      <line x1="12" y1="41" x2="44" y2="41" stroke="url(#wordmark-sheen)" strokeWidth="1.6" />
+      <circle cx="0" cy="0" r="0.9" fill="#FFFFFF" />
     </g>
 
     {/* =========================================================================
-        LETTER 2: S (Sinuous Roman Proportions, Tapered Spine & Chisel Finials)
+        LETTER 1: A (Architectural Slant, Sharp Chisel Apex, Precision Crossbar)
         ========================================================================= */}
-    <g transform="translate(86, 8)">
+    <g transform="translate(18, 16)">
+      {/* Left Diagonal Stroke with Foot Serif */}
       <path
-        d="M48 18.5 C46 10 38 4 27 4 C14 4 6 12 6 22 C6 35 22 37 32 41 C42 45 47 49 47 56 C47 64 38 68 26 68 C13 68 5 61 2 51.5 L7.8 49 C10 58 17 63 26 63 C35 63 41 58 41 52 C41 43 28 39 18 35 C8 31 1 27 1 18 C1 9 9 0 26 0 C37 0 44 6 47 14 Z"
-        fill="url(#wordmark-sheen)"
-        transform="translate(4, 0)"
+        d="M2 62 L18 62 L14 58 L37.5 7 L32 7 L12 58 L8 62 Z"
+        fill="url(#astra-wordmark-gradient)"
       />
-      {/* Top chiseled terminal serif */}
-      <path d="M52 14 L52 21 M48 18 L55 18" stroke="url(#wordmark-sheen)" strokeWidth="1.4" strokeLinecap="round" />
-      {/* Bottom chiseled terminal serif */}
-      <path d="M6 54 L6 47 M3 51 L9 51" stroke="url(#wordmark-sheen)" strokeWidth="1.4" strokeLinecap="round" />
+      {/* Right Diagonal Main Stem */}
+      <path
+        d="M34 7 L39 7 L68 62 L84 62 L80 58 L46 7 Z"
+        fill="url(#astra-wordmark-gradient)"
+      />
+      {/* Architectural Horizon Crossbar with subtle optical break */}
+      <path
+        d="M19 44 L32 44 L32 41.5 L20 41.5 Z M38 44 L58 44 L56.5 41.5 L38 41.5 Z"
+        fill="url(#astra-wordmark-gradient)"
+      />
     </g>
 
     {/* =========================================================================
-        LETTER 3: T (Architectural Crossbeam with Bracketed Serifs & Strong Stem)
+        LETTER 2: S (Aerodynamic Sinuous Curves, Razor-Cut Terminals)
         ========================================================================= */}
-    <g transform="translate(162, 8)">
-      {/* Horizontal Crossbeam */}
+    <g transform="translate(126, 16)">
       <path
-        d="M2 4 L58 4 L58 11.5 L53 11.5 C50.5 7.5 48 6.5 35 6.5 L35 63.5 L42 63.5 L42 67 L18 67 L18 63.5 L25 63.5 L25 6.5 C12 6.5 9.5 7.5 7 11.5 L2 11.5 Z"
-        fill="url(#wordmark-sheen)"
+        d="M68 20 C65 11 56 6 43 6 C28 6 18 14 18 24 C18 36 32 39 46 43 C60 47 67 52 67 61 C67 71 55 76 39 76 C22 76 11 68 8 57 L18 55 C20 63 28 68 40 68 C50 68 57 64 57 57 C57 48 42 45 30 41 C17 37 8 32 8 21 C8 9 20 0 41 0 C54 0 64 6 68 15 Z"
+        fill="url(#astra-wordmark-gradient)"
+        transform="translate(0, 1)"
       />
-      {/* Bracketed Left Tip Serif */}
-      <line x1="2" y1="4" x2="2" y2="12" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Bracketed Right Tip Serif */}
-      <line x1="58" y1="4" x2="58" y2="12" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
+      {/* Razor Terminal Brackets */}
+      <line x1="68" y1="14" x2="68" y2="22" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="8" y1="50" x2="8" y2="58" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
     </g>
 
     {/* =========================================================================
-        LETTER 4: R (Noble Geometric Bowl & Graceful Tapered Sweeping Leg)
+        LETTER 3: T (Expansive Horizontal Beam, Chamfered Brackets, Strong Pillar)
         ========================================================================= */}
-    <g transform="translate(236, 8)">
+    <g transform="translate(230, 16)">
+      {/* Top Crossbeam */}
       <path
-        d="M8 4 L33 4 C44 4 52 10 52 21.5 C52 30.5 45.5 36.5 36 38.5 C43 45 51 56 57 67 L48 67 C42 56 35 46 27 40 L16 40 L16 63.5 L23 63.5 L23 67 L2 67 L2 63.5 L8 63.5 Z M16 9.5 L16 34.5 L31 34.5 C39 34.5 44 30 44 22 C44 14 39 9.5 31 9.5 Z"
-        fill="url(#wordmark-sheen)"
+        d="M4 7 L76 7 L76 15 L70 15 C67 11 63 10.5 45 10.5 L45 62 L54 62 L54 66 L26 66 L26 62 L35 62 L35 10.5 C17 10.5 13 11 10 15 L4 15 Z"
+        fill="url(#astra-wordmark-gradient)"
       />
-      {/* Top Left Bracketed Stem Serif */}
-      <path d="M3 4 L14 4" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Bottom Terminal Foot on the Sweeping Leg */}
-      <path d="M53 67 L61 67" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
+      {/* Left/Right Crossbeam Finials */}
+      <line x1="4" y1="7" x2="4" y2="15" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
+      <line x1="76" y1="7" x2="76" y2="15" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
     </g>
 
     {/* =========================================================================
-        LETTER 5: A (Closing Apex Mirroring Opening Structure)
+        LETTER 4: R (Noble Circular Bowl, Sweeping Orbital Transfer Leg)
         ========================================================================= */}
-    <g transform="translate(306, 8)">
-      {/* Serifs Base Left */}
-      <path d="M4 64 L20 64 M12 64 L12 60" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Serifs Base Right */}
-      <path d="M44 64 L60 64 M52 64 L52 60" stroke="url(#wordmark-sheen)" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Main A Contour */}
+    <g transform="translate(332, 16)">
       <path
-        d="M32 4 L33.2 4 L53.5 63.5 L47 63.5 L36 31 L18 31 L10 63.5 L4.5 63.5 Z"
-        fill="url(#wordmark-sheen)"
+        d="M10 7 L44 7 C58 7 68 14 68 27 C68 37 60 44 47 46.5 C56 53 66 65 74 77 L62 77 C55 65 46 54 35 48 L20 48 L20 62 L28 62 L28 66 L2 66 L2 62 L10 62 Z M20 13 L20 42 L42 42 C51 42 57 37 57 27 C57 17 51 13 42 13 Z"
+        fill="url(#astra-wordmark-gradient)"
       />
-      {/* Fine Inner Triangular Counter */}
-      <polygon points="27,14 34.5,27 19.5,27" fill="var(--color-void, #050608)" />
-      {/* Extended Architectural Crossbar Hairline */}
-      <line x1="12" y1="41" x2="44" y2="41" stroke="url(#wordmark-sheen)" strokeWidth="1.6" />
+      {/* Left Base Foot Serif */}
+      <path d="M4 7 L17 7" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
+      {/* Parabolic Foot Tip */}
+      <path d="M68 77 L78 77" stroke="url(#astra-wordmark-gradient)" strokeWidth="1.6" strokeLinecap="round" />
     </g>
 
-    {/* Subtle Connecting Trajectory Hairline under the letters */}
+    {/* =========================================================================
+        LETTER 5: A (Closing Apex Echoing the First Letter in Perfect Balance)
+        ========================================================================= */}
+    <g transform="translate(436, 16)">
+      {/* Left Diagonal Stroke with Foot Serif */}
+      <path
+        d="M2 62 L18 62 L14 58 L37.5 7 L32 7 L12 58 L8 62 Z"
+        fill="url(#astra-wordmark-gradient)"
+      />
+      {/* Right Diagonal Main Stem */}
+      <path
+        d="M34 7 L39 7 L68 62 L84 62 L80 58 L46 7 Z"
+        fill="url(#astra-wordmark-gradient)"
+      />
+      {/* Architectural Horizon Crossbar */}
+      <path
+        d="M19 44 L32 44 L32 41.5 L20 41.5 Z M38 44 L58 44 L56.5 41.5 L38 41.5 Z"
+        fill="url(#astra-wordmark-gradient)"
+      />
+    </g>
+
+    {/* Fine Connecting Orbital Baseline Hairline */}
     <line
-      x1="22"
-      y1="75"
-      x2="352"
-      y2="75"
-      stroke="url(#wordmark-sheen)"
-      strokeWidth="0.8"
-      strokeDasharray="6 3 12 3"
-      opacity="0.35"
+      x1="24"
+      y1="85"
+      x2="516"
+      y2="85"
+      stroke="url(#astra-wordmark-gradient)"
+      strokeWidth="0.75"
+      strokeDasharray="4 4 16 4"
+      opacity="0.3"
     />
   </svg>
 );
 
 /**
- * ASTRA Master Brand Lockup
- * Combines the custom wordmark and the celestial mark with optical balance
- * for prominent hero placement and cinematic presentations.
+ * ASTRA Navigation Header Wordmark
+ * Compact, razor-sharp vector identity for the top application bar.
  */
-interface LockupProps {
-  size?: 'hero' | 'header' | 'compact';
-  showSubtitle?: boolean;
-}
-
-export const AstraBrandLockup: React.FC<LockupProps> = ({
-  size = 'hero',
-  showSubtitle = true,
-}) => {
-  if (size === 'header' || size === 'compact') {
-    return (
-      <div
-        className="astra-brand-header-lockup"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '12px',
-          textDecoration: 'none',
-        }}
-      >
-        <AstraCelestialMark size={22} />
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: '18px',
-              fontWeight: 600,
-              letterSpacing: '0.18em',
-              color: 'var(--color-star-ivory)',
-              textTransform: 'uppercase',
-              lineHeight: 1,
-            }}
-          >
-            ASTRA
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-mono)',
-              fontSize: '9px',
-              color: 'var(--color-text-ghost)',
-              letterSpacing: '0.12em',
-            }}
-          >
-            // ORBITAL OPERATIONS
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  // Hero Master Lockup
-  return (
-    <div
-      className="astra-brand-hero-lockup"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        position: 'relative',
-      }}
-    >
-      {/* Top Floating Celestial Emblem */}
-      <div
-        style={{
-          marginBottom: '16px',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '16px',
-        }}
-      >
-        <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, transparent, var(--color-border-hairline))' }} />
-        <AstraCelestialMark size={42} />
-        <div style={{ width: '40px', height: '1px', background: 'linear-gradient(90deg, var(--color-border-hairline), transparent)' }} />
-      </div>
-
-      {/* Bespoke ASTRA Wordmark (Vector Scaled) */}
-      <div
-        style={{
-          position: 'relative',
-          display: 'flex',
-          justifyContent: 'center',
-          width: '100%',
-          maxWidth: '560px',
-        }}
-      >
-        <AstraWordmark
-          size={52}
-          style={{
-            width: '100%',
-            height: 'auto',
-            maxHeight: '96px',
-            filter: 'drop-shadow(0 0 40px rgba(237, 236, 232, 0.08))',
-          }}
-        />
-      </div>
-
-      {/* Atmospheric Lineage Annotation */}
-      {showSubtitle && (
-        <div
-          style={{
-            marginTop: '18px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px',
-            color: 'var(--color-text-ghost)',
-            letterSpacing: '0.24em',
-            textTransform: 'uppercase',
-          }}
-        >
-          <span>ORBITAL KINEMATICS</span>
-          <span style={{ color: 'var(--color-border-hairline)' }}>&bull;</span>
-          <span>MISSION SIMULATION</span>
-          <span style={{ color: 'var(--color-border-hairline)' }}>&bull;</span>
-          <span>FAILURE LAB</span>
-        </div>
-      )}
-    </div>
-  );
-};
+export const AstraHeaderWordmark: React.FC<AstraWordmarkProps> = ({
+  height = 20,
+  color = 'var(--color-star-ivory, #F0EFEA)',
+  className = '',
+  ...props
+}) => (
+  <div
+    className={`astra-header-brand-lockup ${className}`}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '12px',
+      textDecoration: 'none',
+      userSelect: 'none',
+    }}
+  >
+    <AstraWordmark height={height} color={color} {...props} />
+  </div>
+);

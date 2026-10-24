@@ -1,6 +1,6 @@
 import React from 'react';
 import { Spacecraft, OpticalAperture, SignatureStar } from '../common/CelestialIcons';
-import { AstraBrandLockup, AstraCelestialMark } from '../common/AstraBrand';
+import { AstraWordmark } from '../common/AstraBrand';
 import { DestinationType } from './EntryModal';
 
 interface HeroSectionProps {
@@ -14,19 +14,19 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   reducedMotion,
   onSelectDestination,
 }) => {
-  // If reduced motion is preferred, jump straight to the settled frame
+  // If reduced motion is preferred by OS, jump straight to settled frame
   const t = reducedMotion ? 1.0 : scrollProgress;
 
   // 1. Opening Brand Depth Layer (z-index: 2, behind Earth Canvas at z-index: 3)
-  // Holds firmly through t = 0.30 for an unhurried reveal, then gently yields as Earth's limb overlaps
+  // Holds firmly through initial view, smoothly transitioning as Earth moves into position
   const introOpacity = Math.max(1.0 - Math.pow(Math.max(t - 0.22, 0) / 0.45, 1.2), 0);
-  const introScale = 1.0 - t * 0.08;
-  const introTranslateY = -t * 60;
+  const introScale = 1.0 - t * 0.06;
+  const introTranslateY = -t * 50;
 
   // 2. Settled Operational Content (z-index: 10, in front of Earth Canvas)
-  // Emerges smoothly as user completes the approach (t: 0.60 -> 1.0)
+  // Emerges smoothly as user completes the approach (t: 0.58 -> 1.0)
   const settledOpacity = Math.min(Math.max((t - 0.58) / 0.38, 0), 1);
-  const settledTranslateY = (1.0 - settledOpacity) * 28;
+  const settledTranslateY = (1.0 - settledOpacity) * 24;
 
   return (
     <div
@@ -34,7 +34,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        minHeight: reducedMotion ? '100vh' : '280vh', // Extended scroll track: gives ~2 extra seconds of cinematic breathing room
+        minHeight: reducedMotion ? '100vh' : '280vh',
         display: 'flex',
         flexDirection: 'column',
       }}
@@ -42,9 +42,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     >
       {/* =========================================================================
           OPENING FRAME & DEPTH LAYER (z-index: 2, BEHIND Earth Canvas at z-index: 3)
-          This achieves the iPhone-inspired layered depth effect:
-          As Earth approaches and scales, its 3D curved horizon physically overlaps
-          and obscures the right edge of the ASTRA brand letters.
+          The complete word ASTRA is prominently rendered on the left/center.
+          Earth is positioned in the right hemisphere so the entire wordmark is
+          immediately legible and never obscured behind the globe.
           ========================================================================= */}
       <div
         className="astra-intro-depth-plane"
@@ -54,62 +54,72 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           left: 0,
           width: '100%',
           height: '100vh',
-          zIndex: 2, // Sits strictly behind EarthCanvas (zIndex: 3)
+          zIndex: 2,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           justifyContent: 'center',
-          textAlign: 'center',
+          textAlign: 'left',
           opacity: introOpacity,
           transform: `translateY(${introTranslateY}px) scale(${introScale})`,
           pointerEvents: introOpacity > 0.08 ? 'auto' : 'none',
           transition: 'opacity 250ms cubic-bezier(0.16, 1, 0.3, 1)',
-          padding: '0 24px',
+          padding: '0 64px',
+          maxWidth: '1280px',
+          margin: '0 auto',
         }}
       >
-        {/* Subtle Astronomical Classification Header */}
+        {/* Subtle Celestial Star Lead */}
         <div
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '12px',
-            fontFamily: 'var(--font-mono)',
-            fontSize: '11px',
-            color: 'var(--color-text-ghost)',
-            letterSpacing: '0.22em',
-            textTransform: 'uppercase',
-            marginBottom: '24px',
+            gap: '10px',
+            marginBottom: '20px',
           }}
         >
-          <SignatureStar size={13} color="var(--color-star-warm)" strokeWidth={1.5} />
-          <span>AEROSPACE OPERATIONS // MISSION SIMULATION</span>
-          <SignatureStar size={13} color="var(--color-star-warm)" strokeWidth={1.5} />
+          <SignatureStar size={12} color="var(--color-star-warm)" strokeWidth={1.5} />
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              color: 'var(--color-text-muted)',
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+            }}
+          >
+            SATELLITE OPERATIONS &amp; MISSION PLATFORM
+          </span>
         </div>
 
-        {/* Master Bespoke ASTRA Brand Lockup */}
+        {/* Master Bespoke ASTRA Wordmark (The Entire Word is the Hero) */}
         <div
           style={{
             position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
+            display: 'block',
             maxWidth: '680px',
             width: '100%',
+            filter: 'drop-shadow(0 4px 32px rgba(0, 0, 0, 0.9))',
           }}
         >
-          <AstraBrandLockup size="hero" showSubtitle={false} />
+          <AstraWordmark
+            height="clamp(48px, 6vw, 78px)"
+            color="var(--color-star-ivory)"
+            accentColor="var(--color-star-warm)"
+          />
         </div>
 
-        {/* Quiet Poetic Statement */}
+        {/* Quiet Editorial Statement */}
         <p
           style={{
             fontFamily: 'var(--font-serif)',
             fontSize: 'clamp(18px, 2.2vw, 24px)',
             fontStyle: 'italic',
             color: 'var(--color-text-muted)',
-            marginTop: '28px',
+            marginTop: '24px',
             maxWidth: '520px',
             lineHeight: 1.45,
+            filter: 'drop-shadow(0 2px 16px rgba(0, 0, 0, 0.8))',
           }}
         >
           The quiet expanse of planetary operations and orbital intelligence.
@@ -120,9 +130,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           style={{
             position: 'absolute',
             bottom: '48px',
+            left: '64px',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
+            alignItems: 'flex-start',
             gap: '10px',
             fontFamily: 'var(--font-mono)',
             fontSize: '10px',
@@ -135,8 +146,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           <span>SCROLL TO ENGAGE ORBIT</span>
           <div
             style={{
-              width: '1px',
-              height: '36px',
+              width: '48px',
+              height: '1px',
               backgroundColor: 'var(--color-border-hairline)',
               position: 'relative',
               overflow: 'hidden',
@@ -144,10 +155,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           >
             <div
               style={{
-                width: '100%',
-                height: '14px',
+                width: '18px',
+                height: '100%',
                 backgroundColor: 'var(--color-star-ivory)',
-                animation: reducedMotion ? 'none' : 'scrollPulse 2.4s ease-in-out infinite',
+                animation: reducedMotion ? 'none' : 'scrollPulseHorizontal 2.4s ease-in-out infinite',
               }}
             />
           </div>
@@ -156,8 +167,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 
       {/* =========================================================================
           SETTLED OPERATIONAL FRAME (z-index: 10, IN FRONT OF Earth Canvas)
-          Emerges as user completes the approach to Earth in orbit.
-          Contains the two primary destinations and verified operational controls.
+          Emerges cleanly on the left side of the viewport in front of Earth.
           ========================================================================= */}
       <div
         className="astra-settled-frame"
@@ -167,10 +177,10 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           left: 0,
           width: '100%',
           height: '100vh',
-          zIndex: 10, // Sits strictly in front of EarthCanvas for interaction
+          zIndex: 10,
           display: 'flex',
           alignItems: 'center',
-          padding: '0 48px',
+          padding: '0 56px',
           opacity: settledOpacity,
           transform: `translateY(${settledTranslateY}px)`,
           pointerEvents: settledOpacity > 0.1 ? 'auto' : 'none',
@@ -181,54 +191,30 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           className="astra-settled-left"
           style={{
             width: '100%',
-            maxWidth: '620px',
+            maxWidth: '600px',
             display: 'flex',
             flexDirection: 'column',
             gap: '24px',
           }}
         >
-          {/* Header Identity & Stage Gate Classification */}
+          {/* Header Identity & Editorial Introduction */}
           <div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontFamily: 'var(--font-mono)',
-                fontSize: '11px',
-                color: 'var(--color-earth-cyan)',
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-                marginBottom: '10px',
-              }}
-            >
-              <AstraCelestialMark size={14} color="var(--color-earth-cyan)" glowColor="var(--color-earth-cyan)" />
-              <span>ORBITAL PLATFORM // STAGE GATE 02</span>
+            <div style={{ marginBottom: '16px' }}>
+              <AstraWordmark
+                height="clamp(32px, 3.8vw, 46px)"
+                color="var(--color-star-ivory)"
+                accentColor="var(--color-star-warm)"
+              />
             </div>
-
-            <h2
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(38px, 4.5vw, 56px)',
-                fontWeight: 600,
-                lineHeight: 1.05,
-                letterSpacing: '0.04em',
-                color: 'var(--color-text-display)',
-                textTransform: 'uppercase',
-                margin: 0,
-              }}
-            >
-              ASTRA
-            </h2>
 
             <p
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(18px, 2vw, 22px)',
+                fontSize: 'clamp(18px, 1.8vw, 21px)',
                 fontStyle: 'italic',
                 color: 'var(--color-text-muted)',
                 lineHeight: 1.35,
-                marginTop: '8px',
+                marginTop: '4px',
               }}
             >
               Satellite Operations &amp; Mission Simulation Platform
@@ -240,7 +226,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 fontSize: '14px',
                 lineHeight: 1.6,
                 color: 'var(--color-text-body)',
-                marginTop: '14px',
+                marginTop: '12px',
                 maxWidth: '540px',
               }}
             >
@@ -287,7 +273,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ color: 'var(--color-earth-cyan)' }}>
+                  <div style={{ color: 'var(--color-star-ivory)' }}>
                     <Spacecraft size={20} strokeWidth={1.25} />
                   </div>
                   <div>
@@ -303,16 +289,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     >
                       I. MISSION CONTROL
                     </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10px',
-                        color: 'var(--color-text-muted)',
-                        letterSpacing: '0.08em',
-                      }}
-                    >
-                      SYS_MODE_01 // ORBITAL FLEET OPERATIONS
-                    </span>
                   </div>
                 </div>
 
@@ -327,7 +303,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   }}
                 >
                   <span style={{ color: 'var(--color-text-ghost)' }}>[ 01 ]</span>
-                  <span style={{ fontSize: '18px', color: 'var(--color-earth-cyan)' }}>&rarr;</span>
+                  <span style={{ fontSize: '18px', color: 'var(--color-star-ivory)' }}>&rarr;</span>
                 </div>
               </div>
 
@@ -373,7 +349,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                  <div style={{ color: 'var(--color-earth-blue)' }}>
+                  <div style={{ color: 'var(--color-star-ivory)' }}>
                     <OpticalAperture size={20} strokeWidth={1.25} />
                   </div>
                   <div>
@@ -389,16 +365,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                     >
                       II. SPACE IMAGERY
                     </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: '10px',
-                        color: 'var(--color-text-muted)',
-                        letterSpacing: '0.08em',
-                      }}
-                    >
-                      SYS_MODE_02 // ASTRONOMICAL ARCHIVES
-                    </span>
                   </div>
                 </div>
 
@@ -413,7 +379,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   }}
                 >
                   <span style={{ color: 'var(--color-text-ghost)' }}>[ 02 ]</span>
-                  <span style={{ fontSize: '18px', color: 'var(--color-earth-blue)' }}>&rarr;</span>
+                  <span style={{ fontSize: '18px', color: 'var(--color-star-ivory)' }}>&rarr;</span>
                 </div>
               </div>
 
@@ -433,52 +399,36 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               </p>
             </button>
           </div>
-
-          {/* Quiet Technical Metadata */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '24px',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'var(--color-text-ghost)',
-              letterSpacing: '0.06em',
-            }}
-          >
-            <span>COORD: ECI J2000</span>
-            <span>&bull;</span>
-            <span>PROPAGATOR: KEPLERIAN + J2</span>
-            <span>&bull;</span>
-            <span>SIM CLOCK: 10 HZ DETERMINISTIC</span>
-          </div>
         </div>
       </div>
 
       {/* Embedded CSS for Interactive Transitions & Responsive Framing */}
       <style>{`
-        @keyframes scrollPulse {
-          0% { transform: translateY(-100%); opacity: 0; }
+        @keyframes scrollPulseHorizontal {
+          0% { transform: translateX(-100%); opacity: 0; }
           40% { opacity: 1; }
-          100% { transform: translateY(200%); opacity: 0; }
+          100% { transform: translateX(200%); opacity: 0; }
         }
         .astra-destination-row:hover {
           background-color: rgba(255, 255, 255, 0.02);
           padding-left: 8px;
         }
         .astra-destination-row:focus-visible {
-          background-color: rgba(56, 189, 248, 0.04);
-          outline: 1px solid var(--color-earth-cyan);
+          background-color: rgba(255, 255, 255, 0.04);
+          outline: 1px solid var(--color-star-warm);
         }
         @media (max-width: 768px) {
           .astra-settled-frame {
-            padding: 0 20px !important;
+            padding: 0 24px !important;
           }
           .astra-intro-depth-plane {
-            padding: 0 16px !important;
+            padding: 0 24px !important;
+            align-items: center !important;
+            text-align: center !important;
           }
         }
       `}</style>
     </div>
   );
 };
+

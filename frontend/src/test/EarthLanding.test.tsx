@@ -13,12 +13,12 @@ import {
   OpticalAperture,
 } from '../components/common/CelestialIcons';
 
-describe('ASTRA Landing Experience — Prompt 3 Editorial Overhaul', () => {
+describe('ASTRA Landing Experience — Prompt 5 Brand Correction & Polish', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders the core ASTRA product identity and editorial typography', () => {
+  it('renders the core ASTRA product identity and editorial typography without diagnostic clutter', () => {
     render(<App />);
 
     // Brand wordmark in editorial serif and platform classification
@@ -26,12 +26,13 @@ describe('ASTRA Landing Experience — Prompt 3 Editorial Overhaul', () => {
     expect(
       screen.getByText(/Satellite Operations & Mission Simulation Platform/i)
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/ORBITAL PLATFORM \/\/ STAGE GATE 02/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/AEROSPACE OPERATIONS \/\/ MISSION SIMULATION/i)
-    ).toBeInTheDocument();
+
+    // Verify removed diagnostic telemetry labels are absent from the landing page
+    expect(screen.queryByText(/COORD: ECI J2000/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/PROPAGATOR: KEPLERIAN/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/SIM CLOCK: 10 HZ/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/SURFACE TEXTURES: NASA VISIBLE EARTH/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/RENDERING: THREE\.JS WEBGL/i)).not.toBeInTheDocument();
   });
 
   it('renders strictly two primary editorial entry points: Mission Control and Space Imagery', () => {
@@ -108,15 +109,14 @@ describe('ASTRA Landing Experience — Prompt 3 Editorial Overhaul', () => {
     ).toBeInTheDocument();
   });
 
-  it('toggles reduced-motion mode via the header toggle', () => {
+  it('verifies the visible reduced-motion toggle button is removed from UI while silent accessibility remains active', () => {
     render(<App />);
 
-    const motionBtn = screen.getByRole('button', { name: /Enable reduced motion mode/i });
-    expect(motionBtn).toBeInTheDocument();
-    expect(screen.getByText(/motion: active/i)).toBeInTheDocument();
-
-    fireEvent.click(motionBtn);
-    expect(screen.getByText(/motion: reduced/i)).toBeInTheDocument();
+    // The visible in-app toggle button is removed
+    const motionBtn = screen.queryByRole('button', { name: /reduced motion/i });
+    expect(motionBtn).not.toBeInTheDocument();
+    expect(screen.queryByText(/motion: active/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/motion: reduced/i)).not.toBeInTheDocument();
   });
 
   it('handles Escape key to dismiss the entry modal', () => {
@@ -152,17 +152,15 @@ describe('ASTRA Landing Experience — Prompt 3 Editorial Overhaul', () => {
     });
   });
 
-  it('renders the custom ASTRA brand identity and verified depth plane architecture', () => {
+  it('renders the bespoke ASTRA hero wordmark and verified depth plane architecture', () => {
     const { container } = render(<App />);
 
-    // Custom brand lockup vector SVG is present
-    const wordmarkSvg = container.querySelector('.astra-wordmark-svg');
-    expect(wordmarkSvg).toBeInTheDocument();
-    expect(wordmarkSvg).toHaveAttribute('aria-label', 'ASTRA');
-
-    // Bespoke celestial mark exists in the document
-    const celestialMarks = container.querySelectorAll('.astra-celestial-mark');
-    expect(celestialMarks.length).toBeGreaterThan(0);
+    // Custom brand hero wordmark SVG is present and complete
+    const wordmarkSvgs = container.querySelectorAll('.astra-hero-wordmark');
+    expect(wordmarkSvgs.length).toBeGreaterThan(0);
+    wordmarkSvgs.forEach((svg) => {
+      expect(svg).toHaveAttribute('aria-label', 'ASTRA');
+    });
 
     // Layered depth plane sits at zIndex 2 (behind EarthCanvas at zIndex 3)
     const depthPlane = container.querySelector('.astra-intro-depth-plane') as HTMLElement;
@@ -174,3 +172,4 @@ describe('ASTRA Landing Experience — Prompt 3 Editorial Overhaul', () => {
     expect(earthCanvas.style.zIndex).toBe('3');
   });
 });
+
