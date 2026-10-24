@@ -36,6 +36,13 @@ astra:
     archive:
       sampling-interval-seconds: 30
       max-retained-records: 50000
+  imagery:
+    nasa:
+      base-url: ${ASTRA_NASA_API_BASE_URL:https://images-api.nasa.gov}
+      connect-timeout-ms: 5000
+      read-timeout-ms: 10000
+      cache-ttl-seconds: 900
+      cache-max-entries: 500
   security:
     cors:
       allowed-origins:

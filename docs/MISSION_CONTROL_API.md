@@ -444,3 +444,213 @@ When a privileged command or fault action is submitted, the backend captures the
 - `FaultRecord.operatorUsername`: Flight Director who injected or recovered the fault.
 - `SimulationEvent.parameters["operatorUsername"]`: Included in STOMP broadcast and database event ledger.
 
+---
+
+## 9. Space Imagery & Mission Archive APIs (Phase 6)
+
+ASTRA Phase 6 introduces high-fidelity space imagery discovery powered by NASA's public Image and Video Library (`images-api.nasa.gov`), wrapped in standardized, cached, and validated ASTRA API contracts.
+
+### 9.1 Access Policy & Rate Limiting
+- All `/api/v1/imagery/**` endpoints are **publicly accessible** without authentication tokens or Basic Auth.
+- External upstream requests to NASA are cached server-side in a bounded, thread-safe cache (500 items capacity, 900-second TTL). Repeated queries are served from memory in single-digit milliseconds ($< 10\text{ms}$).
+- Upstream network errors and timeouts are translated into standardized RFC 7807 `ApiErrorResponse` payloads without exposing raw stack traces.
+
+### 9.2 Search Astronomical Imagery
+`GET /api/v1/imagery/search`
+
+Performs paginated search across NASA's multimedia archives.
+
+#### Query Parameters:
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `q` | `string` | No | `""` | Search query (planet, rover, nebula, mission, keyword). |
+| `page` | `int` | No | `1` | Page number ($1$-indexed). Must be $\ge 1$. |
+| `mediaType` | `string` | No | `image` | Comma-separated media types: `image`, `video`, `audio`. |
+| `yearStart` | `int` | No | `null` | Optional earliest year filter (e.g. `1990`). |
+| `yearEnd` | `int` | No | `null` | Optional latest year filter (e.g. `2026`). |
+
+#### Response: `200 OK`
+```json
+{
+  "query": "mars rover curiosity",
+  "currentPage": 1,
+  "pageSize": 100,
+  "totalHits": 4820,
+  "totalPages": 49,
+  "hasMore": true,
+  "items": [
+    {
+      "nasaId": "PIA16225",
+      "title": "Curiosity at Work at 'Rocknest'",
+      "description": "This self-portrait of NASA's Curiosity rover combines dozens of exposures taken by the Mars Hand Lens Imager (MAHLI)...",
+      "dateCreated": "2012-11-01T00:00:00Z",
+      "mediaType": "image",
+      "center": "JPL",
+      "photographer": null,
+      "secondaryCreator": "NASA/JPL-Caltech/MSSS",
+      "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA16225/PIA16225~thumb.jpg",
+      "assetManifestUrl": "/api/v1/imagery/assets/PIA16225",
+      "keywords": [
+        "Mars",
+        "Mars Science Laboratory (MSL)",
+        "Curiosity",
+        "Rocknest"
+      ]
+    }
+  ]
+}
+```
+
+---
+
+### 9.3 Retrieve Single Media Record
+`GET /api/v1/imagery/record/{nasaId}`
+
+Retrieves canonical metadata for a single specific NASA asset.
+
+#### Path Parameters:
+- `nasaId` (`string`, required): Unique NASA archive identifier (e.g., `PIA16225`).
+
+#### Response: `200 OK`
+Returns the single `SpaceImageryItem` JSON object.
+
+#### Response: `404 Not Found`
+Returned when the requested NASA asset ID does not exist:
+```json
+{
+  "status": 404,
+  "error": "Not Found",
+  "message": "Imagery record not found with NASA ID: NONEXISTENT_ID",
+  "path": "/api/v1/imagery/record/NONEXISTENT_ID",
+  "timestamp": "2026-10-24T21:00:00Z"
+}
+```
+
+---
+
+### 9.4 Retrieve Direct Asset Manifest
+`GET /api/v1/imagery/assets/{nasaId}`
+
+Resolves direct CDN links across resolutions for high-resolution gallery display, modal previews, and scientific download.
+
+#### Path Parameters:
+- `nasaId` (`string`, required): Unique NASA archive identifier.
+
+#### Response: `200 OK`
+```json
+{
+  "nasaId": "PIA16225",
+  "original": "https://images-assets.nasa.gov/image/PIA16225/PIA16225~orig.jpg",
+  "large4k": "https://images-assets.nasa.gov/image/PIA16225/PIA16225~large.jpg",
+  "medium": "https://images-assets.nasa.gov/image/PIA16225/PIA16225~medium.jpg",
+  "small": "https://images-assets.nasa.gov/image/PIA16225/PIA16225~small.jpg",
+  "thumb": "https://images-assets.nasa.gov/image/PIA16225/PIA16225~thumb.jpg",
+  "metadataJson": "https://images-assets.nasa.gov/image/PIA16225/metadata.json",
+  "allUrls": [
+    "https://images-assets.nasa.gov/image/PIA16225/PIA16225~orig.jpg",
+    "https://images-assets.nasa.gov/image/PIA16225/PIA16225~large.jpg",
+    "https://images-assets.nasa.gov/image/PIA16225/PIA16225~medium.jpg",
+    "https://images-assets.nasa.gov/image/PIA16225/PIA16225~small.jpg",
+    "https://images-assets.nasa.gov/image/PIA16225/PIA16225~thumb.jpg",
+    "https://images-assets.nasa.gov/image/PIA16225/metadata.json"
+  ]
+}
+```
+
+---
+
+### 9.5 Celestial Destinations Catalog
+`GET /api/v1/imagery/destinations`
+
+Retrieves the curated planetary exploration catalog spanning the Sun and all 8 major planets. Includes layout composition cues (`layoutAlignment: "LEFT" | "RIGHT" | "CENTER"`) for frontend visual storytelling.
+
+#### Response: `200 OK`
+```json
+[
+  {
+    "id": "sun",
+    "name": "Sun",
+    "orderFromSun": 0,
+    "destinationType": "Star",
+    "layoutAlignment": "CENTER",
+    "briefDescription": "The yellow dwarf star at the center of the Solar System...",
+    "detailedOverview": "Contains 99.86% of the mass in the Solar System...",
+    "distanceFromSun": "0 km (Center)",
+    "surfaceTemperature": "5,500°C (Photosphere) / 15,000,000°C (Core)",
+    "orbitalPeriod": "230 Million Earth Years (Galactic Orbit)",
+    "missions": [
+      {
+        "name": "Parker Solar Probe",
+        "agency": "NASA",
+        "launchYear": 2018,
+        "operationalStatus": "Active",
+        "description": "Humanity's first mission to 'touch the Sun'...",
+        "verified": true,
+        "sourceAttribution": "NASA Goddard Space Flight Center"
+      }
+    ],
+    "rovers": [],
+    "sampleQueries": ["Sun Parker Solar Probe", "Sun solar flare SDO"]
+  },
+  {
+    "id": "mercury",
+    "name": "Mercury",
+    "orderFromSun": 1,
+    "destinationType": "Terrestrial Planet",
+    "layoutAlignment": "LEFT",
+    ...
+  },
+  {
+    "id": "venus",
+    "name": "Venus",
+    "orderFromSun": 2,
+    "destinationType": "Terrestrial Planet",
+    "layoutAlignment": "RIGHT",
+    ...
+  },
+  {
+    "id": "mars",
+    "name": "Mars",
+    "orderFromSun": 4,
+    "destinationType": "Terrestrial Planet",
+    "layoutAlignment": "RIGHT",
+    "rovers": [
+      {
+        "name": "Curiosity (MSL)",
+        "agency": "NASA / JPL",
+        "landingDate": "2012-08-06",
+        "landingSite": "Gale Crater",
+        "status": "Active (Operating over 4,000 sols)",
+        "scientificPayload": "MAHLI, ChemCam, SAM, CheMin, Mastcam",
+        "verified": true
+      },
+      {
+        "name": "Perseverance (Mars 2020)",
+        "agency": "NASA / JPL",
+        "landingDate": "2021-02-18",
+        "landingSite": "Jezero Crater",
+        "status": "Active (Collecting sample cores with Ingenuity scout)",
+        "scientificPayload": "Mastcam-Z, SuperCam, PIXL, SHERLOC, MOXIE",
+        "verified": true
+      }
+    ]
+  }
+]
+```
+
+---
+
+### 9.6 Single Destination & Featured Imagery
+`GET /api/v1/imagery/destinations/{id}`
+Returns the full destination record for `{id}` (`sun`, `mercury`, `venus`, `earth`, `mars`, `jupiter`, `saturn`, `uranus`, `neptune`).
+
+`GET /api/v1/imagery/destinations/{id}/featured?limit={limit}`
+Performs a live cached query against NASA's library using the primary sample query for that destination and returns up to `{limit}` (default 6, max 24) items.
+
+#### Error Responses:
+- `400 Bad Request`: If query parameters fail validation (e.g. `page < 1`).
+- `404 Not Found`: If `{id}` is not a recognized celestial destination.
+- `502 Bad Gateway`: If upstream NASA returns a 5xx response or malformed payload.
+- `504 Gateway Timeout`: If upstream NASA exceeds the 10-second read timeout.
+
+

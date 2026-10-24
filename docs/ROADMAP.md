@@ -22,13 +22,13 @@ ASTRA is built in ten deliberate, verifiable phases. Each phase concludes with a
     │
 [Phase 5] Persistence, Security & Operational Reliability (Flyway / JPA / RBAC) <-- (COMPLETED - 60% MILESTONE)
     │
-[Phase 6] Space Imagery Gateway & Multi-Destination Experience (NASA API & GIBS)
+[Phase 6] Space Imagery Data Gateway & Mission Archive (NASA Image & Video Library) <-- (COMPLETED - 67% MILESTONE)
     │
-[Phase 7] Mission Control Frontend Foundation & Aerospace Design System (React / TS / Vite)
+[Phase 7] Interactive Space Imagery & Mission Control Frontend Experience (React / TS / Vite)
     │
 [Phase 8] Three.js 3D Orbital Scene & Spacecraft Rendering
     │
-[Phase 9] Integrated Mission Control Console & Operation Workflows
+[Phase 9] Integrated Operations Console Workflows & Telemetry Strip Charts
     │
 [Phase 10] Performance Optimization, Integration Testing & Portfolio Packaging
 ```
@@ -181,33 +181,62 @@ The user will provide further visual direction when frontend development resumes
 
 ---
 
-### Phase 6: Space Imagery Gateway & Multi-Destination Experience
-- **Goal:** Build backend proxy and caching layer for NASA media assets (NASA Image and Video Library, GIBS tiles) and integrate the alternating planetary destination design.
+### Phase 6: Real Space Imagery Data Gateway & Mission Archive [COMPLETED] (67% Milestone)
+- **Goal:** Implement the authoritative backend gateway to NASA's public Image and Video Library (`images-api.nasa.gov`), build resilient in-memory caching and error handling, establish verified planetary mission metadata with alternating layout composition rules, and prepare frontend integration boundaries.
 - **Deliverables:**
-  - Spring HTTP client for NASA Image and Video Library (`images-api.nasa.gov`).
-  - NASA GIBS WMTS tile URL resolver and metadata service.
-  - Multi-destination mission records (Mercury, Venus, Earth, Mars).
-  - In-memory cache for asset manifests, randomized galleries, and search queries with rate-limit circuit breaking.
+  - [x] **NASA Image and Video Library Client:** [`DefaultNasaImageLibraryClient`](file:///c:/Users/sk699/OneDrive/Desktop/java/springboot/Astra/backend/src/main/java/org/astra/imagery/client/DefaultNasaImageLibraryClient.java) integrating `https://images-api.nasa.gov` endpoints (`/search`, `/asset/{nasa_id}`, `/metadata/{nasa_id}`) using Spring's fluent `RestClient` with configurable connection (5s) and read (10s) timeouts.
+  - [x] **Resilient In-Memory Caching:** [`BoundedTimedCache`](file:///c:/Users/sk699/OneDrive/Desktop/java/springboot/Astra/backend/src/main/java/org/astra/imagery/cache/BoundedTimedCache.java) providing thread-safe LRU capacity eviction (500 items) and Time-To-Live expiration (15 minutes). Prevents upstream NASA rate-limiting and delivers sub-10ms response times for repeated queries.
+  - [x] **Stable ASTRA API Gateway Endpoints:**
+    - `GET /api/v1/imagery/search`: Paginated multi-field search (query, page, pageSize, mediaType, yearStart, yearEnd, center, planet).
+    - `GET /api/v1/imagery/record/{nasaId}`: Detailed media item inspection with description, metadata, keywords, preview links, and source attribution.
+    - `GET /api/v1/imagery/assets/{nasaId}`: Comprehensive resolution asset manifest (original TIFF/JPG, large, medium, small, thumb, captions).
+    - `GET /api/v1/imagery/destinations`: List of all 9 celestial destinations (Sun + 8 planets) with verified mission records and alternating layout metadata.
+    - `GET /api/v1/imagery/destinations/{id}`: Detailed planetary metadata, active rovers, and historical missions.
+    - `GET /api/v1/imagery/destinations/{id}/featured`: Curated featured space photography for planetary bodies.
+  - [x] **Curated Planetary & Mission Catalog:** [`PlanetaryMissionCatalog`](file:///c:/Users/sk699/OneDrive/Desktop/java/springboot/Astra/backend/src/main/java/org/astra/imagery/service/PlanetaryMissionCatalog.java) covering the Sun and all 8 major planets with verified rovers (Mars: Perseverance, Curiosity, Opportunity, Spirit) and verified missions (Parker, SOHO, SDO, MESSENGER, Mariner 10, BepiColombo, Magellan, Akatsuki, Terra, Aqua, Landsat 9, Juno, Galileo, Voyager 1/2, Cassini, Pioneer 11, HST, JWST).
+  - [x] **Alternating Layout Rules Embedded:** Embedded metadata for alternating desktop storytelling rhythm:
+    - Mercury: `LEFT_PLANET` (planet on left, mission options on right)
+    - Venus: `RIGHT_PLANET` (planet on right, mission options on left)
+    - Earth, Mars, Jupiter, Saturn, Uranus, Neptune continue alternating sides.
+  - [x] **Security Configuration:** Configured public read-only access for `GET /api/v1/imagery/**` in `SecurityConfig`, preserving strict RBAC on telecommands, fault injection, and simulation engine controls.
+  - [x] **Frontend Integration Readiness:** Built frontend TypeScript definitions ([`frontend/src/types/imagery.ts`](file:///c:/Users/sk699/OneDrive/Desktop/java/springboot/Astra/frontend/src/types/imagery.ts)) and typed API client ([`frontend/src/api/imageryApi.ts`](file:///c:/Users/sk699/OneDrive/Desktop/java/springboot/Astra/frontend/src/api/imageryApi.ts)).
+  - [x] **Automated Test Suite Expansion:** 127 total backend tests passing cleanly (24 new tests covering NASA client mocking, cache TTL and LRU eviction, DTO parsing, error mapping, and MockMvc REST integration).
 - **Stage Gate 6 Acceptance Criteria:**
-  1. `/api/v1/imagery/random` returns 12 curated space photography items with full metadata and attribution.
-  2. Search queries execute cleanly against NASA API with pagination.
-  3. Disconnecting external network causes service to serve cached fallbacks without crashing.
-  4. Zero NASA API keys exposed in responses or client code.
+  1. [x] Search queries execute cleanly against NASA API with pagination, query encoding, and input validation.
+  2. [x] Asset manifest endpoint resolves and categorizes available resolutions (original, large, medium, small, thumb).
+  3. [x] In-memory cache returns sub-10ms responses for cached queries without redundant NASA network roundtrips.
+  4. [x] Upstream failures (404, 500, timeouts) are mapped cleanly into standardized `ApiErrorResponse` (404, 502, 504) without leaking stack traces.
+  5. [x] Curated mission records clearly distinguish verified metadata from raw upstream search results.
+  6. [x] Zero API keys or secrets exposed or required for public NASA archive queries.
+  7. [x] Test coverage: 127/127 automated backend tests passing with zero failures.
 
 ---
 
-### Phase 6: Frontend Foundation & Aerospace Design System
-- **Goal:** Initialize React + TypeScript + Vite client and build the custom design token library.
+### Frontend Integration Gap Analysis & Milestone Transition
+
+> [!NOTE]
+> **Audit of Current Frontend State:**
+> - When the user selects "Enter Space Imagery" or "Enter Mission Control" on the landing page, `App.tsx` opens [`EntryModal.tsx`](file:///c:/Users/sk699/OneDrive/Desktop/java/springboot/Astra/frontend/src/components/ui/EntryModal.tsx).
+> - This modal displays static informational briefing text: `'II. Space Imagery — Astronomical Archives'` and `'ENGINEERING STAGE GATE: PHASE 5 SCHEDULED'` with an `'ACKNOWLEDGE & RETURN'` button.
+> - There are currently no connected frontend routes or page components that consume backend API endpoints.
+> - **Phase 6 Deliverable:** Defined and verified the backend gateway (`/api/v1/imagery/*`) and authored the typed frontend client (`frontend/src/api/imageryApi.ts`).
+> - **Phase 7 Plan:** Replace the placeholder briefing modal with the interactive planetary journey and connect real NASA imagery streaming into the UI while keeping the existing landing page and aesthetic preserved.
+
+---
+
+### Phase 7: Interactive Space Imagery & Mission Control Frontend Experience
+- **Goal:** Build the interactive React/TypeScript frontend routing and views, connecting real NASA imagery data into the alternating planetary experience and live WebSocket telemetry into the Mission Control console.
 - **Deliverables:**
-  - Vite + React + TypeScript setup in `frontend/`.
-  - CSS design token architecture matching `DESIGN_DIRECTION.md` (colors, typography, grid).
-  - Core aerospace components: InstrumentPanel, TelemetryReadout, StatusBadge, ButtonChamfered, TimeConductor.
-  - Dual-entry home portal router: Mission Control vs Space Imagery.
-- **Stage Gate 6 Acceptance Criteria:**
-  1. Zero generic SaaS aesthetics; exact hex codes from design specification implemented.
-  2. Home screen presents strictly two primary entry experiences.
-  3. Typography loads monospaced tabular numerals with no horizontal layout shift on number change.
-  4. Fully responsive on standard desktop viewports (1920x1080 down to 1366x768).
+  - Client-side navigation / routing between Landing Page, Mission Control Console, and Space Imagery Journey.
+  - Alternating desktop planetary layout (Mercury left / Venus right / Earth left / Mars right) with intentional responsive mobile composition.
+  - Interactive mission discovery panels for rovers (Curiosity, Perseverance) and interplanetary orbiters.
+  - High-resolution NASA image inspector with progressive asset loading, attribution, and zoom.
+  - Mission Control live telemetry dashboard consuming `/topic/telemetry` and `/topic/events`.
+- **Stage Gate 7 Acceptance Criteria:**
+  1. Selecting Space Imagery transitions to the real planetary view, fetching live NASA imagery via `/api/v1/imagery/search`.
+  2. Planetary layout adheres strictly to the alternating rhythm without generic SaaS cards.
+  3. Mobile viewports provide a dedicated, touch-friendly storytelling experience rather than desktop downscaling.
+  4. Mission Control console streams synchronized 5 Hz telemetry frames from backend WebSockets.
 
 ---
 

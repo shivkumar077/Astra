@@ -33,6 +33,13 @@ astra:
     archive:
       sampling-interval-seconds: 5
       max-retained-records: 1000
+  imagery:
+    nasa:
+      base-url: http://localhost:9999
+      connect-timeout-ms: 2000
+      read-timeout-ms: 2000
+      cache-ttl-seconds: 300
+      cache-max-entries: 100
   security:
     cors:
       allowed-origins:

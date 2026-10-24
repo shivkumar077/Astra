@@ -105,7 +105,7 @@ public class SecurityConfig {
                         // 2. WebSocket & STOMP transport
                         .requestMatchers("/ws/**").permitAll()
 
-                        // 3. Public read-only queries (telemetry, spacecraft, simulation status, scenarios)
+                        // 3. Public read-only queries (telemetry, spacecraft, simulation status, scenarios, space imagery)
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/simulation/status",
                                 "/api/v1/simulation/continuous/status",
@@ -114,7 +114,8 @@ public class SecurityConfig {
                                 "/api/v1/faults/**",
                                 "/api/v1/commands/**",
                                 "/api/v1/events/**",
-                                "/api/v1/anomalies/**"
+                                "/api/v1/anomalies/**",
+                                "/api/v1/imagery/**"
                         ).permitAll()
 
                         // 4. Operator command execution & simulation clock advancement

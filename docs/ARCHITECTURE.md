@@ -535,3 +535,99 @@ ASTRA defines 4 explicit operational security roles:
   - `ASTRA_SECURITY_VIEWER_PASSWORD`, `ASTRA_SECURITY_OPERATOR_PASSWORD`, `ASTRA_SECURITY_DIRECTOR_PASSWORD`, `ASTRA_SECURITY_ADMIN_PASSWORD`
 - Credentials, tokens, and password hashes are filtered from all application logs and error response payloads.
 - Authentication failures return uniform JSON error objects (`ApiErrorResponse`) without leaking internal exception stack traces or database schema details.
+
+---
+
+## 13. Space Imagery Gateway & Multi-Destination Architecture (Phase 6)
+
+ASTRA Phase 6 introduces a high-performance, resilient gateway to NASA's public Image and Video Library (`https://images-api.nasa.gov`), providing scientific discovery across celestial destinations without placing external network dependencies inside the deterministic simulation engine.
+
+```
+                           [ CLIENT BROWSER ]
+                                   │
+                                   ▼
+                   +───────────────────────────────+
+                   |  ASTRA Space Imagery Gateway  |
+                   |   /api/v1/imagery/*           |
+                   |   (Spring Security: permitAll)|
+                   +───────────────────────────────+
+                                   │
+                    ┌──────────────┴──────────────┐
+                    │                             │
+             [ Cache Hit ]                 [ Cache Miss ]
+                    │                             │
+                    ▼                             ▼
+       +─────────────────────────+   +─────────────────────────+
+       |   BoundedTimedCache     |   | SpaceImageryService     |
+       |  - Capacity: 500 items  |   | - Parameter Validation  |
+       |  - TTL: 900 seconds     |   | - Result Sanitization   |
+       |  - Eviction: LRU        |   +─────────────────────────+
+       +─────────────────────────+                │
+                    │                             ▼
+                    │                +─────────────────────────+
+                    │                | DefaultNasaImageClient  |
+                    │                | - RestClient Pool       |
+                    │                | - 5s Connect / 10s Read |
+                    │                +─────────────────────────+
+                    │                             │
+                    │                             ▼
+                    │                +─────────────────────────+
+                    │                | NASA Image & Video API  |
+                    │                | https://images-api.     |
+                    │                | nasa.gov                |
+                    │                +─────────────────────────+
+                    │                             │
+                    ▼                             ▼
+       +───────────────────────────────────────────────────────+
+       |             Standardized ASTRA DTO Contract           |
+       |  - SpaceImagerySearchResult                           |
+       |  - SpaceImageryItem (Attribution, NASA ID, URLs)      |
+       |  - SpaceImageryAssetManifest (Original, 4K, Thumb)    |
+       +───────────────────────────────────────────────────────+
+```
+
+### 13.1 Upstream NASA Gateway Integration
+- **Direct Documented Endpoints:**
+  - `GET /search?q={query}&page={page}&media_type={media_type}&year_start={start}&year_end={end}`
+  - `GET /asset/{nasa_id}` — Manifest of direct image/video/audio URLs across resolutions (`~orig`, `~large`, `~medium`, `~small`, `~thumb`, `metadata.json`).
+  - `GET /search?nasa_id={nasa_id}` — Canonical metadata record including title, description, date, center, and keywords.
+- **Client Resilience:**
+  - Implemented via `DefaultNasaImageLibraryClient` leveraging Spring Boot 3's modern `RestClient`.
+  - Configurable timeouts (5s connection timeout, 10s response read timeout) prevent client thread starvation.
+  - Upstream network errors and HTTP 5xx responses are cleanly mapped to `ExternalServiceException` (HTTP 502 Bad Gateway) or `GatewayTimeoutException` (HTTP 504 Gateway Timeout) without exposing internal stack traces.
+- **Strict Decoupling from Flight Simulation:**
+  - The Space Imagery Gateway operates on dedicated web servlet threads.
+  - The deterministic Keplerian orbital simulation and its 10 Hz telemetry loop remain completely isolated and never wait on external HTTP requests.
+
+### 13.2 In-Memory Caching Strategy (`BoundedTimedCache`)
+- To prevent upstream rate limiting, conserve bandwidth, and eliminate retry storms:
+  - Cache implementation uses a thread-safe synchronized `LinkedHashMap` with access-order (LRU) eviction.
+  - Default capacity is bounded to **500 entries** with a **900-second (15-minute) TTL**.
+  - Eviction automatically purges expired entries during access, preventing unbounded memory growth.
+  - Failed upstream requests (HTTP 5xx, timeouts) are never cached, ensuring transient upstream errors do not poison the cache.
+
+### 13.3 Multi-Destination Solar System Catalog (`PlanetaryMissionCatalog`)
+ASTRA curates a structured planetary exploration catalog covering the Sun and all 8 major planets, enriched with verified scientific missions and active rovers:
+
+| Destination | Type | Composition Layout | Historic & Active Exploration Missions | Key Surface / Orbital Assets |
+| :--- | :--- | :--- | :--- | :--- |
+| **Sun** | Star | Center Cinematic | SOHO, Parker Solar Probe, SDO | High-resolution coronagraphs, solar flares |
+| **Mercury** | Planet | Left (Missions Right) | Mariner 10, MESSENGER, BepiColombo | MDIS orbital imaging, surface craters |
+| **Venus** | Planet | Right (Missions Left)| Magellan, Venus Express, Akatsuki, DAVINCI | Synthetic aperture radar mapping |
+| **Earth** | Planet | Left (Missions Right) | Landsat, Terra, Aqua, ISS | Multispectral Earth observation |
+| **Mars** | Planet | Right (Missions Left)| Viking, Pathfinder, Odyssey, MRO, MSL, Mars 2020 | **Curiosity** (Gale Crater), **Perseverance** (Jezero Crater) |
+| **Jupiter** | Planet | Left (Missions Right) | Voyager, Galileo, Juno, Europa Clipper | Great Red Spot, Jovian moon flybys |
+| **Saturn** | Planet | Right (Missions Left)| Pioneer 11, Voyager, Cassini-Huygens | Ring system dynamics, Titan landing |
+| **Uranus** | Planet | Left (Missions Right) | Voyager 2 | Archival ice giant flyby imagery |
+| **Neptune** | Planet | Right (Missions Left)| Voyager 2, HST | Great Dark Spot, Triton plumes |
+
+- **Storytelling Layout Contract:** The backend destination metadata explicitly defines the `layoutAlignment` (`LEFT`, `RIGHT`, `CENTER`) ensuring the future frontend alternating composition (Mercury on Left, Venus on Right, Earth on Left, Mars on Right...) is driven by authoritative configuration rather than hard-coded templates.
+- **Mobile Composition Rule:** On mobile viewports ($< 768\text{px}$), the alternating composition collapses intentionally into a stacked vertical narrative with full-width planetary imagery viewports and touch-optimized mission drawers.
+
+### 13.4 Attribution & Usage Policy
+- All imagery records delivered by `/api/v1/imagery/**` preserve upstream attribution fields:
+  - `center`: Originating NASA center (e.g., `JPL`, `GSFC`, `ARC`, `JSC`).
+  - `photographer`: Credited photographer or instrument PI where recorded.
+  - `secondaryCreator`: Contributing university or scientific instrument consortium.
+  - `nasaId`: Immutable unique NASA identifier for archival verification.
+- ASTRA explicitly displays NASA and partner institution attribution, never claiming proprietary copyright over public spaceflight assets.
