@@ -119,9 +119,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           className="astra-wordmark-wrapper"
           style={{
             position: 'relative',
-            display: 'block',
-            maxWidth: '680px',
-            width: '100%',
+            display: 'inline-block',
+            lineHeight: 0,
+            maxWidth: '100%',
             filter: 'drop-shadow(0 4px 32px rgba(0, 0, 0, 0.95))',
           }}
         >
@@ -617,8 +617,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           }
           .astra-wordmark-wrapper {
             max-width: min(90vw, 360px) !important;
-            display: flex;
-            justify-content: center;
+            display: inline-block !important;
           }
           .astra-editorial-statement {
             font-size: 16px !important;

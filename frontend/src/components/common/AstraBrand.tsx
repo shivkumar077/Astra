@@ -43,9 +43,10 @@ export const AstraWordmark: React.FC<AstraWordmarkProps> = ({
     xmlns="http://www.w3.org/2000/svg"
     className={`astra-hero-wordmark ${className}`}
     style={{
-      display: 'inline-block',
+      display: 'block',
       maxWidth: '100%',
       height: typeof height === 'number' ? `${height}px` : height,
+      aspectRatio: '540 / 88',
       overflow: 'visible',
       ...style,
     }}

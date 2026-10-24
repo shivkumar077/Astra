@@ -181,14 +181,16 @@ function generateVerifiedLetterParticles(): ParticleDefinition[] {
         if (l.fn(x, y)) {
           const seed = (id * 9301 + 49297) % 233280;
           const rnd = seed / 233280;
-          const color = rnd > 0.65 ? '#FDE68A' : rnd > 0.85 ? '#FFFFFF' : '#F0EFEA';
+          // High-fidelity starlight colors matching the original white/ivory ASTRA wordmark:
+          // 70% pure white, 30% ivory-white, ensuring zero perceived color shift when dissolving
+          const color = rnd > 0.30 ? '#FFFFFF' : '#F0EFEA';
 
           particles.push({
             id: id++,
             u: (l.xOff + x) / 540,
             v: y / 88,
             letterIdx,
-            scale: 0.36 + rnd * 0.22,
+            scale: 0.38 + rnd * 0.16,
             color,
           });
         }
@@ -205,6 +207,13 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const particles = useMemo(() => generateVerifiedLetterParticles(), []);
+  const [, setResizeNonce] = React.useState(0);
+
+  useEffect(() => {
+    const handleResize = () => setResizeNonce((n) => n + 1);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Extra margin so the converged star and dispersing stars have room without clipping
   const PADDING = 60;
@@ -231,10 +240,19 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
     const parent = canvas.parentElement;
     if (!parent) return;
 
-    const rect = parent.getBoundingClientRect();
+    const svgEl = parent.querySelector('svg.astra-hero-wordmark') as SVGSVGElement | null;
+    const parentRect = parent.getBoundingClientRect();
+    const svgRect = svgEl ? svgEl.getBoundingClientRect() : null;
+
+    // Use exact SVG rendered dimensions if available, falling back safely
+    const baseW = (svgRect && svgRect.width > 0) ? svgRect.width : (parentRect.width > 0 ? parentRect.width : 540);
+    const baseH = (svgRect && svgRect.height > 0) ? svgRect.height : (parentRect.height > 0 ? parentRect.height : 88);
+    const offsetX = (svgRect && svgRect.width > 0) ? (svgRect.left - parentRect.left) : 0;
+    const offsetY = (svgRect && svgRect.height > 0) ? (svgRect.top - parentRect.top) : 0;
+
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const displayWidth = rect.width + PADDING * 2;
-    const displayHeight = rect.height + PADDING * 2;
+    const displayWidth = parentRect.width + PADDING * 2;
+    const displayHeight = parentRect.height + PADDING * 2;
 
     const targetWidth = Math.round(displayWidth * dpr);
     const targetHeight = Math.round(displayHeight * dpr);
@@ -248,20 +266,20 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, displayWidth, displayHeight);
 
-    const baseW = rect.width;
-    const baseH = rect.height;
+    // Dynamic scale factor relative to standard 88px cap grid
+    const svgScale = baseH / 88;
 
-    // Convergence target point: Final 'A' apex (anchored directly to #astra-signature-star at 470, 18)
-    const targetX = PADDING + (470 / 540) * baseW;
-    const targetY = PADDING + (18 / 88) * baseH;
+    // Convergence target point: Final 'A' apex (anchored directly to #astra-signature-star at 470, 12)
+    const targetX = PADDING + offsetX + (470 / 540) * baseW;
+    const targetY = PADDING + offsetY + (12 / 88) * baseH;
 
     // =========================================================================
-    // PHASE B: Wordmark Dissolves into Small Signature Stars (t: 0.05 -> 0.20)
+    // PHASE B: Wordmark Dissolves into Small Signature Stars (t: 0.05 -> 0.16)
     // =========================================================================
-    // Small stars emerge on letter strokes as solid SVG fades out
+    // Small stars emerge in-place on letter strokes as solid SVG fades out
     let smallStarsAlpha = 1.0;
-    if (scrollProgress < 0.12) {
-      smallStarsAlpha = (scrollProgress - 0.045) / 0.075;
+    if (scrollProgress < 0.16) {
+      smallStarsAlpha = Math.min(Math.max((scrollProgress - 0.05) / 0.11, 0), 1.0);
     }
 
     // =========================================================================
@@ -281,18 +299,19 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
     if (currentSmallAlpha > 0.01) {
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-        const originX = PADDING + p.u * baseW;
-        const originY = PADDING + p.v * baseH;
+        const originX = PADDING + offsetX + p.u * baseW;
+        const originY = PADDING + offsetY + p.v * baseH;
 
         // Smooth trajectory from letter stroke towards the convergence focal point
         const curX = originX + (targetX - originX) * easeC;
         const curY = originY + (targetY - originY) * easeC;
 
         // Micro starlight scintillation
-        const shimmer = 0.85 + 0.15 * Math.sin(scrollProgress * 28 + p.id);
+        const shimmer = 0.88 + 0.12 * Math.sin(scrollProgress * 28 + p.id);
         const pAlpha = currentSmallAlpha * shimmer;
+        const pScale = p.scale * svgScale;
 
-        drawSignatureStar(ctx, curX, curY, p.scale, p.color, pAlpha, true);
+        drawSignatureStar(ctx, curX, curY, pScale, p.color, pAlpha, true);
       }
     }
 
@@ -302,7 +321,7 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
     // The prominent single star grows as small stars gather, reaching full scale at t=0.35
     if (convergenceProg > 0.02) {
       let largeStarAlpha = Math.min(easeC * 1.4, 1.0);
-      let largeStarScale = easeC * 2.8; // Expands to 2.8x prominent scale (~24px diameter)
+      let largeStarScale = easeC * 2.8 * svgScale; // Expands to 2.8x prominent scale
 
       // =======================================================================
       // PHASE D HANDOFF (t: 0.35 -> 0.38): Smooth handoff to 3D star in Three.js
