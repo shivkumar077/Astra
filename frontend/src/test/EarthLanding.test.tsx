@@ -16,6 +16,7 @@ import {
 describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.location.hash = '';
   });
 
   it('renders the core ASTRA product identity and editorial typography without diagnostic clutter', () => {
@@ -66,17 +67,18 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
     expect(within(spaceImageryBtn).getByText(/II\. SPACE IMAGERY/i)).toBeInTheDocument();
   });
 
-  it('opens and closes the informative briefing modal on entry point interaction', () => {
+  it('opens and closes the mission control briefing modal and transitions to space imagery exploration', () => {
     render(<App />);
 
     // Initially modal is not open
     expect(screen.queryByTestId('entry-modal')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('space-imagery-view')).not.toBeInTheDocument();
 
     // Click Mission Control
     const missionControlBtn = screen.getByTestId('entry-mission-control');
     fireEvent.click(missionControlBtn);
 
-    // Modal opens with Phase 2 status
+    // Modal opens with Mission Control briefing
     const mcModal = screen.getByTestId('entry-modal');
     expect(mcModal).toBeInTheDocument();
     expect(within(mcModal).getByText(/Flight Readiness/i)).toBeInTheDocument();
@@ -87,19 +89,20 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
     fireEvent.click(ackButton);
     expect(screen.queryByTestId('entry-modal')).not.toBeInTheDocument();
 
-    // Click Space Imagery
+    // Click Space Imagery -> Transitions to Space Imagery exploration experience
     const spaceImageryBtn = screen.getByTestId('entry-space-imagery');
     fireEvent.click(spaceImageryBtn);
 
-    const spaceModal = screen.getByTestId('entry-modal');
-    expect(spaceModal).toBeInTheDocument();
-    expect(within(spaceModal).getByText(/Astronomical Archives/i)).toBeInTheDocument();
-    expect(within(spaceModal).getByText(/ENGINEERING STAGE GATE: PHASE 5 SCHEDULED/i)).toBeInTheDocument();
+    const spaceView = screen.getByTestId('space-imagery-view');
+    expect(spaceView).toBeInTheDocument();
+    expect(within(spaceView).getByText(/SPACE IMAGERY & MISSION ARCHIVE/i)).toBeInTheDocument();
+    expect(within(spaceView).getByText(/The Solar System Exploration Journey/i)).toBeInTheDocument();
 
-    // Close via close icon button
-    const closeBtn = within(spaceModal).getByRole('button', { name: /Close modal dialog/i });
-    fireEvent.click(closeBtn);
-    expect(screen.queryByTestId('entry-modal')).not.toBeInTheDocument();
+    // Return to Landing via Return button
+    const returnBtn = screen.getByTestId('return-to-landing');
+    fireEvent.click(returnBtn);
+    expect(screen.queryByTestId('space-imagery-view')).not.toBeInTheDocument();
+    expect(screen.getByTestId('entry-space-imagery')).toBeInTheDocument();
   });
 
   it('renders graceful tactical fallback when WebGL is unavailable in JSDOM', () => {

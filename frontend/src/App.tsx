@@ -4,9 +4,16 @@ import { HeroSection } from './components/ui/HeroSection';
 import { Footer } from './components/ui/Footer';
 import { EarthCanvas } from './components/earth/EarthCanvas';
 import { EntryModal, DestinationType } from './components/ui/EntryModal';
+import { SpaceImageryView } from './components/imagery/SpaceImageryView';
 
 export const App: React.FC = () => {
-  const [selectedDestination, setSelectedDestination] = useState<DestinationType | null>(null);
+  const [viewMode, setViewMode] = useState<'landing' | 'space-imagery'>(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#space-imagery') {
+      return 'space-imagery';
+    }
+    return 'landing';
+  });
+  const [missionControlModalOpen, setMissionControlModalOpen] = useState<boolean>(false);
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
 
@@ -23,6 +30,22 @@ export const App: React.FC = () => {
       mediaQuery.addEventListener?.('change', handleChange);
       return () => mediaQuery.removeEventListener?.('change', handleChange);
     }
+  }, []);
+
+  useEffect(() => {
+    // Synchronize browser history and hash changes for deep linking
+    const handleHashChange = () => {
+      if (typeof window !== 'undefined') {
+        if (window.location.hash === '#space-imagery') {
+          setViewMode('space-imagery');
+        } else {
+          setViewMode('landing');
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   useEffect(() => {
@@ -45,6 +68,33 @@ export const App: React.FC = () => {
 
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleSelectDestination = (dest: DestinationType) => {
+    if (dest === 'space-imagery') {
+      setViewMode('space-imagery');
+      if (typeof window !== 'undefined') {
+        window.location.hash = 'space-imagery';
+      }
+    } else {
+      setMissionControlModalOpen(true);
+    }
+  };
+
+  const handleReturnHome = () => {
+    setViewMode('landing');
+    if (typeof window !== 'undefined' && window.location.hash) {
+      window.history.pushState(null, '', window.location.pathname);
+    }
+  };
+
+  if (viewMode === 'space-imagery') {
+    return (
+      <SpaceImageryView
+        onReturnHome={handleReturnHome}
+        reducedMotion={reducedMotion}
+      />
+    );
+  }
 
   return (
     <div
@@ -69,15 +119,15 @@ export const App: React.FC = () => {
       <HeroSection
         scrollProgress={scrollProgress}
         reducedMotion={reducedMotion}
-        onSelectDestination={setSelectedDestination}
+        onSelectDestination={handleSelectDestination}
       />
 
       <Footer />
 
-      {/* Destination Preview Briefing Modal */}
+      {/* Mission Control Flight Readiness Modal */}
       <EntryModal
-        destination={selectedDestination}
-        onClose={() => setSelectedDestination(null)}
+        destination={missionControlModalOpen ? 'mission-control' : null}
+        onClose={() => setMissionControlModalOpen(false)}
       />
     </div>
   );

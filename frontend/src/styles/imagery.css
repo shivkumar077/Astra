@@ -1,0 +1,883 @@
+/* ==============================================================================
+   ASTRA SPACE IMAGERY & MISSION ARCHIVE STYLES
+   Art Direction: Cinematic Aerospace Editorial x Authentic Planetary Science
+   ============================================================================== */
+
+.astra-imagery-root {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--color-void);
+  color: var(--color-text-body);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ------------------------------------------------------------------------------
+   1. FIXED APEX HEADER & NAVIGATION
+   ------------------------------------------------------------------------------ */
+.astra-imagery-topbar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 80;
+  background-color: rgba(5, 6, 8, 0.88);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--color-border-hairline);
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  transition: var(--transition-quick);
+}
+
+.astra-imagery-nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.astra-return-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.astra-return-btn:hover {
+  background-color: rgba(255, 255, 255, 0.09);
+  border-color: var(--color-border-active);
+  color: var(--color-star-warm);
+}
+
+.astra-return-btn:focus-visible {
+  outline: 1px solid var(--color-text-accent);
+  outline-offset: 2px;
+}
+
+.astra-gateway-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background-color: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--color-nominal);
+  text-transform: uppercase;
+}
+
+.astra-gateway-pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-nominal);
+  box-shadow: 0 0 8px var(--color-nominal);
+  animation: pulse-nominal 2.4s infinite ease-in-out;
+}
+
+@keyframes pulse-nominal {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* ------------------------------------------------------------------------------
+   2. SOLAR SYSTEM NAVIGATOR (STICKY ORBITAL SELECTOR)
+   ------------------------------------------------------------------------------ */
+.astra-solar-navigator {
+  position: sticky;
+  top: 59px;
+  left: 0;
+  width: 100%;
+  z-index: 70;
+  background-color: rgba(9, 11, 16, 0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding: 8px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.astra-solar-navigator::-webkit-scrollbar {
+  display: none;
+}
+
+.astra-nav-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 1300px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.astra-nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 180ms ease;
+}
+
+.astra-nav-item:hover {
+  color: var(--color-text-display);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.astra-nav-item.active {
+  color: var(--color-text-display);
+  background-color: rgba(56, 189, 248, 0.08);
+  border-color: var(--color-border-accent);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+}
+
+.astra-nav-item-symbol {
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* ------------------------------------------------------------------------------
+   3. HEROIC INTRODUCTORY STAGE
+   ------------------------------------------------------------------------------ */
+.astra-imagery-hero {
+  position: relative;
+  width: 100%;
+  padding: 64px 44px 48px;
+  max-width: 1380px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.astra-hero-lead-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-earth-cyan);
+}
+
+.astra-imagery-title {
+  font-family: var(--font-serif);
+  font-size: clamp(34px, 5.2vw, 60px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  color: var(--color-text-display);
+  margin: 0;
+}
+
+.astra-imagery-subtitle {
+  max-width: 760px;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------------------
+   4. FREE-FORM ARCHIVE SEARCH BAR
+   ------------------------------------------------------------------------------ */
+.astra-search-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 840px;
+  background-color: rgba(13, 16, 22, 0.85);
+  border: 1px solid var(--color-border-hairline);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  transition: all 200ms ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.astra-search-container:focus-within {
+  border-color: var(--color-border-accent);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.12);
+}
+
+.astra-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--color-text-display);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+}
+
+.astra-search-input::placeholder {
+  color: var(--color-text-ghost);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.astra-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background-color: rgba(56, 189, 248, 0.1);
+  border: 1px solid var(--color-border-accent);
+  border-radius: var(--radius-xs);
+  color: var(--color-earth-cyan);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.astra-search-btn:hover {
+  background-color: rgba(56, 189, 248, 0.2);
+  color: #fff;
+}
+
+/* ------------------------------------------------------------------------------
+   5. PLANETARY JOURNEY SECTIONS & ALTERNATING DESKTOP COMPOSITION
+   ------------------------------------------------------------------------------ */
+.astra-planetary-section {
+  position: relative;
+  width: 100%;
+  padding: 96px 44px;
+  border-top: 1px solid var(--color-border-subtle);
+  overflow: hidden;
+}
+
+.astra-planetary-section:first-of-type {
+  border-top: none;
+}
+
+.astra-section-container {
+  max-width: 1380px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 56px;
+  align-items: center;
+}
+
+/* Mercury, Earth, Jupiter, Uranus: Visual LEFT, Content RIGHT */
+.layout-left-planet .astra-visual-column {
+  order: 1;
+}
+.layout-left-planet .astra-content-column {
+  order: 2;
+}
+
+/* Venus, Mars, Saturn, Neptune: Visual RIGHT, Content LEFT */
+.layout-right-planet .astra-visual-column {
+  order: 2;
+}
+.layout-right-planet .astra-content-column {
+  order: 1;
+}
+
+/* Sun Special Center/Heroic Composition */
+.layout-center-planet .astra-section-container {
+  grid-template-columns: 1fr;
+  text-align: center;
+  gap: 40px;
+}
+.layout-center-planet .astra-visual-column {
+  order: 1;
+  display: flex;
+  justify-content: center;
+}
+.layout-center-planet .astra-content-column {
+  order: 2;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ------------------------------------------------------------------------------
+   6. PLANETARY VISUAL COLUMN
+   ------------------------------------------------------------------------------ */
+.astra-visual-column {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 380px;
+}
+
+.astra-planet-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.astra-planet-glow {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  border-radius: 50%;
+  filter: blur(48px);
+  opacity: 0.35;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ------------------------------------------------------------------------------
+   7. CONTENT COLUMN & TYPOGRAPHY
+   ------------------------------------------------------------------------------ */
+.astra-content-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.astra-destination-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-ghost);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.astra-destination-name {
+  font-family: var(--font-serif);
+  font-size: clamp(36px, 4vw, 54px);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--color-text-display);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.astra-destination-type {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-earth-cyan);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.astra-destination-summary {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------------------
+   8. MISSIONS & ACTIVE ROVERS SECTION
+   ------------------------------------------------------------------------------ */
+.astra-missions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.astra-missions-header {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+
+.astra-missions-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.astra-mission-card {
+  background-color: rgba(13, 16, 22, 0.65);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 180ms ease;
+}
+
+.astra-mission-card:hover {
+  border-color: var(--color-border-active);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.astra-mission-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.astra-mission-name {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text-display);
+}
+
+.astra-status-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  padding: 2px 6px;
+  border-radius: 2px;
+  text-transform: uppercase;
+}
+
+.status-operational, .status-active {
+  background-color: rgba(16, 185, 129, 0.12);
+  color: var(--color-nominal);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-completed, .status-retired, .status-accomplished {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-muted);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.astra-mission-desc {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.astra-mission-agency {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-ghost);
+}
+
+/* ------------------------------------------------------------------------------
+   9. ROVER SHOWCASE (MARS SPECIALIZATION)
+   ------------------------------------------------------------------------------ */
+.astra-rover-showcase {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: rgba(193, 68, 14, 0.04);
+  border: 1px solid rgba(193, 68, 14, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 16px 18px;
+  margin-top: 4px;
+}
+
+.astra-rover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.astra-rover-item {
+  background-color: rgba(13, 16, 22, 0.7);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astra-instruments-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.instrument-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 5px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-body);
+}
+
+/* ------------------------------------------------------------------------------
+   10. REAL NASA IMAGERY ARCHIVE GRID
+   ------------------------------------------------------------------------------ */
+.astra-destination-gallery {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.astra-gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--color-border-subtle);
+  padding-bottom: 8px;
+}
+
+.astra-gallery-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-display);
+}
+
+.astra-imagery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.astra-imagery-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: rgba(13, 16, 22, 0.75);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 220ms ease;
+  outline: none;
+  text-align: left;
+}
+
+.astra-imagery-card:hover, .astra-imagery-card:focus-visible {
+  border-color: var(--color-border-active);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+
+.astra-card-image-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background-color: #06070a;
+  overflow: hidden;
+}
+
+.astra-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 300ms ease;
+}
+
+.astra-imagery-card:hover .astra-card-img {
+  transform: scale(1.03);
+}
+
+.astra-card-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background-color: rgba(5, 6, 8, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 2px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--color-text-display);
+  letter-spacing: 0.06em;
+}
+
+.astra-card-content {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex-grow: 1;
+}
+
+.astra-card-title {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--color-text-display);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.astra-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-ghost);
+  letter-spacing: 0.04em;
+}
+
+/* ------------------------------------------------------------------------------
+   11. PRESET QUERY PILLS
+   ------------------------------------------------------------------------------ */
+.astra-preset-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.preset-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 4px 10px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.preset-pill:hover {
+  background-color: rgba(56, 189, 248, 0.08);
+  border-color: var(--color-border-accent);
+  color: var(--color-text-display);
+}
+
+/* ------------------------------------------------------------------------------
+   12. IMAGE DETAIL MODAL & ASSET INSPECTOR
+   ------------------------------------------------------------------------------ */
+.astra-detail-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(5, 6, 8, 0.92);
+  backdrop-filter: blur(16px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.astra-detail-modal {
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  background-color: var(--color-panel);
+  border: 1px solid var(--color-border-active);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.08);
+}
+
+.astra-modal-header {
+  padding: 16px 20px;
+  background-color: var(--color-ground);
+  border-bottom: 1px solid var(--color-border-hairline);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.astra-modal-scroll-area {
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.astra-modal-img-wrap {
+  width: 100%;
+  max-height: 520px;
+  background-color: #030406;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.astra-modal-img {
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+}
+
+.astra-modal-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 14px;
+}
+
+.astra-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.astra-meta-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+
+.astra-meta-val {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-display);
+}
+
+.astra-resolution-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.resolution-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: rgba(56, 189, 248, 0.06);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-decoration: none;
+  transition: all 180ms ease;
+}
+
+.resolution-pill:hover {
+  background-color: rgba(56, 189, 248, 0.15);
+  border-color: var(--color-border-accent);
+  color: var(--color-earth-cyan);
+}
+
+/* ------------------------------------------------------------------------------
+   13. LOADING SKELETONS & ERROR STATES
+   ------------------------------------------------------------------------------ */
+.astra-skeleton {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.02) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 2s infinite ease-in-out;
+  border-radius: var(--radius-xs);
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.astra-error-banner {
+  padding: 16px 20px;
+  background-color: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-xs);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ------------------------------------------------------------------------------
+   14. RESPONSIVE MEDIA QUERIES (MOBILE & TABLET INTENTIONAL LAYOUT)
+   ------------------------------------------------------------------------------ */
+@media (max-width: 960px) {
+  .astra-section-container {
+    grid-template-columns: 1fr !important;
+    gap: 40px !important;
+  }
+
+  /* On mobile/narrow screens, visual always stacks on top of content cleanly */
+  .layout-left-planet .astra-visual-column,
+  .layout-right-planet .astra-visual-column {
+    order: 1 !important;
+  }
+
+  .layout-left-planet .astra-content-column,
+  .layout-right-planet .astra-content-column {
+    order: 2 !important;
+  }
+
+  .astra-planetary-section {
+    padding: 64px 20px;
+  }
+
+  .astra-imagery-hero {
+    padding: 40px 20px 32px;
+  }
+
+  .astra-imagery-topbar {
+    padding: 12px 16px;
+  }
+
+  .astra-solar-navigator {
+    padding: 8px 16px;
+    justify-content: flex-start;
+  }
+
+  .astra-planet-canvas-wrapper {
+    max-width: 320px;
+  }
+}
