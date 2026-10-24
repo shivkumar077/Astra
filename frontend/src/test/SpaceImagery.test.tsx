@@ -134,7 +134,7 @@ const MOCK_ASSET_MANIFEST: SpaceImageryAssetManifest = {
   assets: [],
 };
 
-describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integration', () => {
+describe('ASTRA Space Imagery Redesign V1 — Immersive Solar System Experience', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(imageryApi, 'getPlanetaryDestinations').mockResolvedValue(MOCK_DESTINATIONS);
@@ -146,7 +146,7 @@ describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integrat
     vi.spyOn(imageryApi, 'getAssetManifest').mockResolvedValue(MOCK_ASSET_MANIFEST);
   });
 
-  it('renders the Space Imagery view with gateway connectivity indicator and solar navigator', async () => {
+  it('renders the Space Imagery view with gateway connectivity indicator, compact solar navigator, and Sun opening scene', async () => {
     const handleReturn = vi.fn();
     render(<SpaceImageryView onReturnHome={handleReturn} />);
 
@@ -166,8 +166,9 @@ describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integrat
     expect(screen.getByTestId('nav-item-mercury')).toBeInTheDocument();
     expect(screen.getByTestId('nav-item-mars')).toBeInTheDocument();
 
-    // Check hero title
-    expect(screen.getByText(/The Solar System Exploration Journey/i)).toBeInTheDocument();
+    // Opening scene is the Sun
+    expect(screen.getByTestId('section-sun')).toBeInTheDocument();
+    expect(within(screen.getByTestId('section-sun')).getByText('Sun')).toBeInTheDocument();
   });
 
   it('triggers return home when operator clicks the return button', async () => {
@@ -196,7 +197,7 @@ describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integrat
     });
 
     const marsSection = screen.getByTestId('section-mars');
-    expect(within(marsSection).getByText(/Mars Science Laboratory/i)).toBeInTheDocument();
+    expect(within(marsSection).getAllByText(/Mars Science Laboratory/i).length).toBeGreaterThan(0);
     expect(within(marsSection).getAllByText(/Perseverance/i).length).toBeGreaterThan(0);
     expect(within(marsSection).getAllByText(/Curiosity/i).length).toBeGreaterThan(0);
     expect(within(marsSection).getByText(/Jezero Crater/i)).toBeInTheDocument();
@@ -210,10 +211,19 @@ describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integrat
     expect(screen.getByTestId('planet-fallback-mars')).toBeInTheDocument();
   });
 
-  it('opens ImageDetailModal on image click, displays scientific metadata, and loads asset manifest', async () => {
+  it('opens DedicatedImageryDrawer, clicks image card to open ImageDetailModal, and displays scientific metadata', async () => {
     render(<SpaceImageryView onReturnHome={vi.fn()} />);
 
     await waitFor(() => {
+      expect(screen.getByTestId('explore-imagery-mars')).toBeInTheDocument();
+    });
+
+    // Open dedicated imagery drawer for Mars
+    const exploreMarsBtn = screen.getByTestId('explore-imagery-mars');
+    fireEvent.click(exploreMarsBtn);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('imagery-drawer')).toBeInTheDocument();
       expect(screen.getAllByTestId('image-card-PIA25687').length).toBeGreaterThan(0);
     });
 
@@ -239,7 +249,7 @@ describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integrat
     expect(screen.queryByTestId('image-detail-modal')).not.toBeInTheDocument();
   });
 
-  it('executes global archive search and displays results', async () => {
+  it('executes global archive search and displays results in overlay drawer', async () => {
     render(<SpaceImageryView onReturnHome={vi.fn()} />);
 
     const searchInput = screen.getByTestId('search-archive-input');
@@ -255,7 +265,7 @@ describe('ASTRA Phase 7 — Interactive Space Imagery Experience & NASA Integrat
       expect(screen.getByTestId('search-results-panel')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Archive Query Results: "Jupiter Europa"/i)).toBeInTheDocument();
+    expect(screen.getByText(/Query: "Jupiter Europa"/i)).toBeInTheDocument();
   });
 
   it('handles destination loading failure with retry button', async () => {

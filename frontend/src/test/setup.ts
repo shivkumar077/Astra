@@ -18,6 +18,28 @@ if (typeof window !== 'undefined') {
     })),
   });
 
+  // Mock IntersectionObserver for JSDOM
+  class MockIntersectionObserver implements IntersectionObserver {
+    readonly root: Element | Document | null = null;
+    readonly rootMargin: string = '';
+    readonly thresholds: ReadonlyArray<number> = [];
+    disconnect = vi.fn();
+    observe = vi.fn();
+    takeRecords = vi.fn().mockReturnValue([]);
+    unobserve = vi.fn();
+    constructor(public callback: IntersectionObserverCallback, public options?: IntersectionObserverInit) {}
+  }
+  Object.defineProperty(window, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: MockIntersectionObserver,
+  });
+  Object.defineProperty(global, 'IntersectionObserver', {
+    writable: true,
+    configurable: true,
+    value: MockIntersectionObserver,
+  });
+
   // Mock HTMLCanvasElement.getContext for basic canvas calls
   const originalGetContext = HTMLCanvasElement.prototype.getContext;
   // @ts-expect-error Mocking canvas context for testing environment

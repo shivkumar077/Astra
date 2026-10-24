@@ -1,84 +1,95 @@
-import React, { useState } from 'react';
-import { PlanetaryDestination, SpaceImageryItem } from '../../types/imagery';
+import React from 'react';
+import { PlanetaryDestination } from '../../types/imagery';
 import { PlanetVisual } from './PlanetVisual';
-import { DestinationImageryGrid } from './DestinationImageryGrid';
 import { RoverShowcase } from './RoverShowcase';
-import { Search, ShieldCheck } from 'lucide-react';
+import { SignatureStar } from '../common/CelestialIcons';
+import { Sparkles, ArrowRight, ShieldCheck, Search } from 'lucide-react';
 
 interface PlanetarySectionProps {
   destination: PlanetaryDestination;
-  onSelectImage: (item: SpaceImageryItem) => void;
+  onOpenImagery: (destination: PlanetaryDestination, query?: string) => void;
   reducedMotion?: boolean;
 }
 
 export const PlanetarySection: React.FC<PlanetarySectionProps> = ({
   destination,
-  onSelectImage,
+  onOpenImagery,
   reducedMotion = false,
 }) => {
-  const [activeQuery, setActiveQuery] = useState<string | undefined>(undefined);
-
   const isSun = destination.id.toLowerCase() === 'sun';
-  const layoutClass = isSun
-    ? 'layout-center-planet'
-    : destination.layoutComposition === 'RIGHT_PLANET'
-    ? 'layout-right-planet'
-    : 'layout-left-planet';
 
   return (
     <section
       id={`destination-${destination.id.toLowerCase()}`}
-      className={`astra-planetary-section ${layoutClass}`}
+      className={`astra-cinematic-planet-stage ${isSun ? 'stage-sun' : ''}`}
       data-testid={`section-${destination.id.toLowerCase()}`}
     >
-      <div className="astra-section-container">
-        {/* Visual Column */}
-        <div className="astra-visual-column">
-          <PlanetVisual
-            destinationId={destination.id}
-            name={destination.name}
-            type={destination.type}
-            reducedMotion={reducedMotion}
-          />
-        </div>
-
-        {/* Content Column */}
-        <div className="astra-content-column">
-          {/* Destination Header & Hierarchy */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <span className="astra-destination-badge">
-              [ {destination.orbitalOrder === 0 ? 'CENTRAL STAR' : `DESTINATION 0${destination.orbitalOrder}`} // SOLAR SYSTEM ]
-            </span>
-            <h2 className="astra-destination-name">{destination.name}</h2>
-            <span className="astra-destination-type">
-              {destination.type.replace('_', ' ')}
+      <div className="astra-stage-inner">
+        {/* LEFT COLUMN: Editorial Narrative, Verified Missions & Exploration Actions */}
+        <div className="astra-stage-briefing">
+          {/* Celestial Classification Tag */}
+          <div className="astra-classification-row">
+            <SignatureStar
+              size={12}
+              color={isSun ? 'var(--color-star-warm)' : 'var(--color-earth-cyan)'}
+            />
+            <span className="astra-classification-text">
+              {destination.orbitalOrder === 0
+                ? '[ 00 // CENTRAL STAR // SOLAR SYSTEM CORONA ]'
+                : `[ 0${destination.orbitalOrder} // ${destination.type.replace('_', ' ')} // ${destination.name.toUpperCase()} ]`}
             </span>
           </div>
 
-          <p className="astra-destination-summary">{destination.summary}</p>
+          {/* Monumental Destination Title */}
+          <h2 className="astra-stage-title">{destination.name}</h2>
 
-          {/* Historical & Operational Exploration Missions */}
+          {/* Scientific Context Summary */}
+          <p className="astra-stage-summary">{destination.summary}</p>
+
+          {/* Editorial Missions Sequence (Unboxed, Hairline Separators) */}
           {destination.historicalMissions && destination.historicalMissions.length > 0 && (
-            <div className="astra-missions-container">
-              <span className="astra-missions-header">
-                Key Spacecraft & Archival Exploration Missions
+            <div className="astra-stage-missions">
+              <span className="astra-missions-eyebrow">
+                {isSun ? 'HELIOPHYSICS OBSERVATIONAL FLEET' : 'VERIFIED EXPLORATION MISSIONS'}
               </span>
-              <div className="astra-missions-list">
+
+              <div className="astra-missions-editorial-list">
                 {destination.historicalMissions.map((m) => {
                   const isOp = m.operationalStatus === 'OPERATIONAL';
 
                   return (
-                    <div key={m.missionCode} className="astra-mission-card">
-                      <div className="astra-mission-title-row">
-                        <span className="astra-mission-name">{m.missionName}</span>
-                        <span className={`astra-status-badge ${isOp ? 'status-operational' : 'status-completed'}`}>
-                          {isOp ? 'ACTIVE' : 'COMPLETED'}
+                    <div key={m.missionCode} className="astra-mission-editorial-item">
+                      <div className="astra-mission-top">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="astra-mission-title">{m.missionName}</span>
+                          <span className="astra-mission-metadata">
+                            {m.operatorAgency} &middot; {m.launchYear}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`astra-editorial-status ${
+                            isOp ? 'status-active' : 'status-complete'
+                          }`}
+                        >
+                          <span className="astra-status-dot" />
+                          <span>{isOp ? 'ACTIVE' : 'COMPLETED'}</span>
                         </span>
                       </div>
-                      <span className="astra-mission-agency">
-                        {m.operatorAgency} ({m.launchYear})
-                      </span>
-                      <p className="astra-mission-desc">{m.description}</p>
+
+                      <p className="astra-mission-narrative">{m.description}</p>
+
+                      {m.primarySearchQuery && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenImagery(destination, m.primarySearchQuery)}
+                          className="astra-mission-archive-link"
+                          aria-label={`View ${m.missionName} imagery`}
+                        >
+                          <span>Inspect {m.missionName} Data Archive</span>
+                          <ArrowRight size={11} />
+                        </button>
+                      )}
                     </div>
                   );
                 })}
@@ -88,74 +99,61 @@ export const PlanetarySection: React.FC<PlanetarySectionProps> = ({
 
           {/* Active Surface Rovers (Mars Specialization) */}
           {destination.activeRovers && destination.activeRovers.length > 0 && (
-            <RoverShowcase
-              rovers={destination.activeRovers}
-              onSearchRover={(query) => setActiveQuery(query)}
-            />
-          )}
-
-          {/* Preset Scientific Queries */}
-          {destination.presetQueries && destination.presetQueries.length > 0 && (
-            <div>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '10px',
-                  color: 'var(--color-text-ghost)',
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  display: 'block',
-                  marginBottom: '6px',
-                }}
-              >
-                Curated Scientific Query Presets
-              </span>
-              <div className="astra-preset-pills">
-                {destination.presetQueries.map((query) => (
-                  <button
-                    key={query}
-                    onClick={() => setActiveQuery(query === activeQuery ? undefined : query)}
-                    className="preset-pill"
-                    style={{
-                      borderColor: query === activeQuery ? 'var(--color-border-accent)' : undefined,
-                      color: query === activeQuery ? 'var(--color-earth-cyan)' : undefined,
-                    }}
-                    aria-label={`Search for ${query}`}
-                  >
-                    <Search size={10} style={{ display: 'inline', marginRight: '4px' }} />
-                    {query}
-                  </button>
-                ))}
-              </div>
+            <div style={{ marginTop: '20px' }}>
+              <RoverShowcase
+                rovers={destination.activeRovers}
+                onSearchRover={(query) => onOpenImagery(destination, query)}
+              />
             </div>
           )}
 
-          {/* Real NASA Imagery Gallery */}
-          <DestinationImageryGrid
-            destinationId={destination.id}
-            destinationName={destination.name}
-            activeQuery={activeQuery}
-            onSelectImage={onSelectImage}
-          />
+          {/* Dedicated Imagery Action & Preset Scientific Queries */}
+          <div className="astra-imagery-action-zone">
+            <button
+              onClick={() => onOpenImagery(destination)}
+              className="astra-stage-imagery-btn"
+              data-testid={`explore-imagery-${destination.id.toLowerCase()}`}
+            >
+              <Sparkles size={14} />
+              <span>EXPLORE {destination.name.toUpperCase()} IMAGERY ARCHIVE</span>
+            </button>
 
-          {/* Source Attribution & Data Integrity */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              paddingTop: '16px',
-              borderTop: '1px solid var(--color-border-subtle)',
-              fontFamily: 'var(--font-mono)',
-              fontSize: '10px',
-              color: 'var(--color-text-ghost)',
-            }}
-          >
-            <ShieldCheck size={13} color="var(--color-text-ghost)" />
+            {destination.presetQueries && destination.presetQueries.length > 0 && (
+              <div className="astra-stage-presets">
+                <span className="astra-presets-label">OR DISPATCH PRESET QUERY:</span>
+                <div className="astra-presets-pills">
+                  {destination.presetQueries.map((q) => (
+                    <button
+                      key={q}
+                      onClick={() => onOpenImagery(destination, q)}
+                      className="astra-stage-preset-pill"
+                    >
+                      <Search size={10} />
+                      <span>{q}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Scientific Integrity Annotation */}
+          <div className="astra-stage-attribution">
+            <ShieldCheck size={12} color="var(--color-text-ghost)" />
             <span>
-              Source: {destination.sourceAttribution} // {destination.verificationNote}
+              Source: {destination.sourceAttribution} &middot; {destination.verificationNote}
             </span>
           </div>
+        </div>
+
+        {/* RIGHT COLUMN: 3D Unboxed Celestial Visual */}
+        <div className="astra-stage-visual">
+          <PlanetVisual
+            destinationId={destination.id}
+            name={destination.name}
+            type={destination.type}
+            reducedMotion={reducedMotion}
+          />
         </div>
       </div>
     </section>

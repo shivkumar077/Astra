@@ -95,8 +95,8 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
 
     const spaceView = screen.getByTestId('space-imagery-view');
     expect(spaceView).toBeInTheDocument();
-    expect(within(spaceView).getByText(/SPACE IMAGERY & MISSION ARCHIVE/i)).toBeInTheDocument();
-    expect(within(spaceView).getByText(/The Solar System Exploration Journey/i)).toBeInTheDocument();
+    expect(within(spaceView).getByTestId('search-archive-input')).toBeInTheDocument();
+    expect(within(spaceView).getByTestId('return-to-landing')).toBeInTheDocument();
 
     // Return to Landing via Return button
     const returnBtn = screen.getByTestId('return-to-landing');

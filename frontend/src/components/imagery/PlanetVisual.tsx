@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { getProceduralPlanetTexture, getProceduralRingTexture } from './PlanetTextureGenerator';
 
 interface PlanetVisualProps {
   destinationId: string;
@@ -13,89 +14,243 @@ interface PlanetConfig {
   secondaryColor: string;
   atmosphereColor: string;
   glowColor: string;
+  radius: number;
   hasRings?: boolean;
-  ringColor?: string;
   ringInner?: number;
   ringOuter?: number;
   ringTilt?: number;
   isStar?: boolean;
   roughness?: number;
+  metalness?: number;
+  axialTilt?: number;
 }
 
 const PLANET_CONFIGS: Record<string, PlanetConfig> = {
   sun: {
     primaryColor: '#F59E0B',
-    secondaryColor: '#FDE68A',
-    atmosphereColor: '#EA580C',
-    glowColor: 'rgba(245, 158, 11, 0.45)',
+    secondaryColor: '#EA580C',
+    atmosphereColor: '#FDE68A',
+    glowColor: 'rgba(245, 158, 11, 0.55)',
+    radius: 1.55,
     isStar: true,
   },
   mercury: {
     primaryColor: '#8C827A',
     secondaryColor: '#524B46',
     atmosphereColor: '#3F3B37',
-    glowColor: 'rgba(140, 130, 122, 0.2)',
-    roughness: 0.9,
+    glowColor: 'rgba(140, 130, 122, 0.18)',
+    radius: 1.15,
+    roughness: 0.95,
+    metalness: 0.05,
+    axialTilt: 0.03,
   },
   venus: {
     primaryColor: '#E3BB7B',
     secondaryColor: '#C49B58',
     atmosphereColor: '#EED9A4',
-    glowColor: 'rgba(227, 187, 123, 0.3)',
-    roughness: 0.5,
+    glowColor: 'rgba(227, 187, 123, 0.35)',
+    radius: 1.30,
+    roughness: 0.45,
+    metalness: 0.02,
+    axialTilt: 177.3,
   },
   earth: {
     primaryColor: '#2563EB',
     secondaryColor: '#10B981',
     atmosphereColor: '#38BDF8',
-    glowColor: 'rgba(56, 189, 248, 0.35)',
-    roughness: 0.4,
+    glowColor: 'rgba(56, 189, 248, 0.40)',
+    radius: 1.35,
+    roughness: 0.65,
+    metalness: 0.05,
+    axialTilt: 23.44,
   },
   mars: {
     primaryColor: '#C1440E',
     secondaryColor: '#E07A5F',
     atmosphereColor: '#F97316',
-    glowColor: 'rgba(193, 68, 14, 0.3)',
+    glowColor: 'rgba(193, 68, 14, 0.32)',
+    radius: 1.20,
     roughness: 0.85,
+    metalness: 0.08,
+    axialTilt: 25.19,
   },
   jupiter: {
     primaryColor: '#C99039',
     secondaryColor: '#E8D2B0',
     atmosphereColor: '#B45309',
-    glowColor: 'rgba(201, 144, 57, 0.25)',
-    roughness: 0.3,
+    glowColor: 'rgba(201, 144, 57, 0.30)',
+    radius: 1.50,
+    roughness: 0.35,
+    metalness: 0.02,
+    axialTilt: 3.13,
   },
   saturn: {
     primaryColor: '#E2BF7D',
     secondaryColor: '#C5A059',
     atmosphereColor: '#FDE68A',
-    glowColor: 'rgba(226, 191, 125, 0.28)',
+    glowColor: 'rgba(226, 191, 125, 0.32)',
+    radius: 1.35,
     hasRings: true,
-    ringColor: '#D8B36E',
-    ringInner: 1.3,
-    ringOuter: 2.1,
-    ringTilt: -26,
-    roughness: 0.35,
+    ringInner: 1.35,
+    ringOuter: 2.35,
+    ringTilt: -26.73,
+    roughness: 0.40,
+    metalness: 0.02,
+    axialTilt: 26.73,
   },
   uranus: {
     primaryColor: '#70D6FF',
     secondaryColor: '#38BDF8',
     atmosphereColor: '#BAE6FD',
-    glowColor: 'rgba(112, 214, 255, 0.3)',
+    glowColor: 'rgba(112, 214, 255, 0.35)',
+    radius: 1.30,
     hasRings: true,
-    ringColor: '#93C5FD',
-    ringInner: 1.25,
-    ringOuter: 1.55,
-    ringTilt: 82,
-    roughness: 0.2,
+    ringInner: 1.45,
+    ringOuter: 1.85,
+    ringTilt: 82.23,
+    roughness: 0.25,
+    metalness: 0.01,
+    axialTilt: 97.77,
   },
   neptune: {
     primaryColor: '#1E40AF',
     secondaryColor: '#3B82F6',
     atmosphereColor: '#60A5FA',
-    glowColor: 'rgba(30, 64, 175, 0.35)',
-    roughness: 0.25,
+    glowColor: 'rgba(30, 64, 175, 0.40)',
+    radius: 1.30,
+    roughness: 0.30,
+    metalness: 0.02,
+    axialTilt: 28.32,
   },
+};
+
+/**
+ * GLSL Shaders for the Sun:
+ * Turbulent multi-octave 3D simplex noise with dynamic time plasma convection,
+ * solar convective granules, limb darkening, and radiant flare knots.
+ */
+const SunShader = {
+  vertexShader: `
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    void main() {
+      vUv = uv;
+      vNormal = normalize(normalMatrix * normal);
+      vPosition = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float uTime;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+
+    // Simplex Noise 3D Implementation in GLSL
+    vec4 permute(vec4 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+    vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+
+    float snoise(vec3 v) {
+      const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+      const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+      vec3 i  = floor(v + dot(v, C.yyy));
+      vec3 x0 = v - i + dot(i, C.xxx);
+      vec3 g = step(x0.yzx, x0.xyz);
+      vec3 l = 1.0 - g;
+      vec3 i1 = min(g.xyz, l.zxy);
+      vec3 i2 = max(g.xyz, l.zxy);
+      vec3 x1 = x0 - i1 + 1.0 * C.xxx;
+      vec3 x2 = x0 - i2 + 2.0 * C.xxx;
+      vec3 x3 = x0 - 1.0 + 3.0 * C.xxx;
+      i = mod(i, 289.0);
+      vec4 p = permute(permute(permute(
+                i.z + vec4(0.0, i1.z, i2.z, 1.0))
+              + i.y + vec4(0.0, i1.y, i2.y, 1.0))
+              + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+      float n_ = 0.142857142857;
+      vec3 ns = n_ * D.wyz - D.xzx;
+      vec4 j = p - 49.0 * floor(p * ns.z.xxxx);
+      vec4 x_ = floor(j * ns.z);
+      vec4 y_ = floor(j - 7.0 * x_);
+      vec4 x = x_ *ns.x + ns.yyyy;
+      vec4 y = y_ *ns.x + ns.yyyy;
+      vec4 h = 1.0 - abs(x) - abs(y);
+      vec4 b0 = vec4(x.xy, y.xy);
+      vec4 b1 = vec4(x.zw, y.zw);
+      vec4 s0 = floor(b0)*2.0 + 1.0;
+      vec4 s1 = floor(b1)*2.0 + 1.0;
+      vec4 sh = -step(h, vec4(0.0));
+      vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;
+      vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;
+      vec3 p0 = vec3(a0.xy, h.x);
+      vec3 p1 = vec3(a0.zw, h.y);
+      vec3 p2 = vec3(a1.xy, h.z);
+      vec3 p3 = vec3(a1.zw, h.w);
+      vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2, p2), dot(p3,p3)));
+      p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+      vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+      m = m * m;
+      return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+    }
+
+    void main() {
+      vec3 pos = normalize(vPosition);
+
+      // Multi-octave convective plasma granulation
+      float t = uTime * 0.18;
+      float n1 = snoise(pos * 4.2 + vec3(0.0, t * 0.8, 0.0));
+      float n2 = snoise(pos * 9.5 - vec3(t * 0.5, 0.0, t * 0.4));
+      float n3 = snoise(pos * 18.0 + vec3(t * 0.2, t * 0.2, 0.0));
+      float plasma = n1 * 0.55 + n2 * 0.30 + n3 * 0.15;
+
+      // Solar Limb Darkening: I(mu) = I0 * (1 - u*(1 - mu))
+      float mu = max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0);
+      float limbDarkening = pow(mu, 0.42);
+
+      // Color Ramping: Dark Red-Orange -> Golden Amber -> Brilliant Flare White
+      vec3 deepMolten = vec3(0.82, 0.22, 0.04); // Intergranular valleys (dark orange-red)
+      vec3 goldenPlasma = vec3(0.98, 0.65, 0.08); // Photospheric granules (rich gold)
+      vec3 stellarCore = vec3(1.0, 0.96, 0.82); // Active magnetic flare knots (white-yellow)
+
+      float cellFactor = smoothstep(-0.4, 0.6, plasma);
+      vec3 baseColor = mix(deepMolten, goldenPlasma, cellFactor);
+
+      // Hot flare highlights
+      float flareKnot = smoothstep(0.48, 0.85, plasma);
+      baseColor = mix(baseColor, stellarCore, flareKnot * 0.75);
+
+      // Apply physical limb darkening
+      vec3 finalColor = baseColor * (0.35 + 0.65 * limbDarkening);
+
+      // Outer rim corona flare boost
+      float rim = 1.0 - mu;
+      finalColor += vec3(0.95, 0.45, 0.08) * pow(rim, 2.8) * 0.8;
+
+      gl_FragColor = vec4(finalColor, 1.0);
+    }
+  `,
+};
+
+/**
+ * Atmospheric Coronal Glow Shell Shader
+ */
+const CoronalGlowShader = {
+  vertexShader: `
+    varying vec3 vNormal;
+    void main() {
+      vNormal = normalize(normalMatrix * normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform vec3 uGlowColor;
+    varying vec3 vNormal;
+    void main() {
+      float intensity = pow(0.65 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.6);
+      gl_FragColor = vec4(uGlowColor, intensity * 0.85);
+    }
+  `,
 };
 
 export const PlanetVisual: React.FC<PlanetVisualProps> = ({
@@ -110,7 +265,7 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
   const config = PLANET_CONFIGS[destinationId.toLowerCase()] || PLANET_CONFIGS.earth;
 
   useEffect(() => {
-    // Detect WebGL availability safely
+    // 1. Safe WebGL Detection
     const checkWebGL = (): boolean => {
       try {
         const canvas = document.createElement('canvas');
@@ -136,12 +291,13 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
     let animId: number;
     let isDisposed = false;
 
-    const width = container.clientWidth || 360;
-    const height = container.clientHeight || 360;
+    const width = container.clientWidth || 480;
+    const height = container.clientHeight || 480;
 
+    // 2. Scene, Camera & WebGL Renderer
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    camera.position.set(0, 0, 5.2);
+    camera.position.set(0, 0, 5.6);
 
     let renderer: THREE.WebGLRenderer;
     try {
@@ -153,97 +309,243 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.setSize(width, height);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = config.isStar ? 1.25 : 1.05;
       container.appendChild(renderer.domElement);
     } catch {
       setWebglAvailable(false);
       return;
     }
 
-    // Celestial Group
-    const planetGroup = new THREE.Group();
-    scene.add(planetGroup);
+    // 3. Celestial Hierarchy Group
+    const celestialGroup = new THREE.Group();
+    scene.add(celestialGroup);
 
-    // Planet Sphere Geometry
-    const sphereRadius = config.hasRings ? 1.05 : 1.25;
-    const geometry = new THREE.SphereGeometry(sphereRadius, 48, 48);
+    if (config.axialTilt) {
+      celestialGroup.rotation.z = THREE.MathUtils.degToRad(-config.axialTilt);
+    }
 
-    // Realistic Lighting & Material
-    let material: THREE.Material;
+    const sphereRadius = config.radius;
+    const sphereGeometry = new THREE.SphereGeometry(sphereRadius, 64, 64);
+
+    let sphereMesh: THREE.Mesh;
+    let sunUniforms: { uTime: { value: number } } | null = null;
+    let glowMesh: THREE.Mesh | null = null;
+    let ringMesh: THREE.Mesh | null = null;
+    let cloudsMesh: THREE.Mesh | null = null;
+
     if (config.isStar) {
-      // Sun Self-Illuminated Mesh
-      material = new THREE.MeshBasicMaterial({
-        color: new THREE.Color(config.primaryColor),
+      // -------------------------------------------------------------
+      // THE SUN: Dynamic Solar Convective Plasma & Volumetric Corona
+      // -------------------------------------------------------------
+      sunUniforms = { uTime: { value: 0 } };
+      const solarMaterial = new THREE.ShaderMaterial({
+        uniforms: sunUniforms,
+        vertexShader: SunShader.vertexShader,
+        fragmentShader: SunShader.fragmentShader,
       });
 
-      // Internal Point Light
-      const starLight = new THREE.PointLight(0xffedd5, 1.5, 20);
-      scene.add(starLight);
-    } else {
-      material = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(config.primaryColor),
-        roughness: config.roughness ?? 0.6,
-        metalness: 0.1,
+      sphereMesh = new THREE.Mesh(sphereGeometry, solarMaterial);
+      celestialGroup.add(sphereMesh);
+
+      // Layered Atmospheric Coronal Glow Shell
+      const glowGeo = new THREE.SphereGeometry(sphereRadius * 1.22, 48, 48);
+      const glowMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uGlowColor: { value: new THREE.Color(0xf59e0b) },
+        },
+        vertexShader: CoronalGlowShader.vertexShader,
+        fragmentShader: CoronalGlowShader.fragmentShader,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+      });
+      glowMesh = new THREE.Mesh(glowGeo, glowMat);
+      celestialGroup.add(glowMesh);
+
+      // Internal Point Light radiating warm solar energy
+      const sunLight = new THREE.PointLight(0xffeedd, 2.5, 30);
+      scene.add(sunLight);
+    } else if (destinationId.toLowerCase() === 'earth') {
+      // -------------------------------------------------------------
+      // EARTH: Real NASA 2K Textures + Dynamic Atmosphere
+      // -------------------------------------------------------------
+      const textureLoader = new THREE.TextureLoader();
+      const earthMap = textureLoader.load('/assets/earth/earth_2048.jpg');
+      earthMap.colorSpace = THREE.SRGBColorSpace;
+
+      const earthMaterial = new THREE.MeshStandardMaterial({
+        map: earthMap,
+        roughness: 0.65,
+        metalness: 0.05,
       });
 
-      // Directional Sun Light from upper-left
-      const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
-      sunLight.position.set(4, 3, 5);
+      sphereMesh = new THREE.Mesh(sphereGeometry, earthMaterial);
+      celestialGroup.add(sphereMesh);
+
+      // Realistic Clouds Layer
+      const cloudsTexture = textureLoader.load('/assets/earth/earth_clouds_2048.jpg');
+      cloudsTexture.colorSpace = THREE.SRGBColorSpace;
+      const cloudsGeo = new THREE.SphereGeometry(sphereRadius * 1.018, 64, 64);
+      const cloudsMat = new THREE.MeshStandardMaterial({
+        map: cloudsTexture,
+        transparent: true,
+        opacity: 0.55,
+        blending: THREE.AdditiveBlending,
+      });
+      cloudsMesh = new THREE.Mesh(cloudsGeo, cloudsMat);
+      celestialGroup.add(cloudsMesh);
+
+      // Soft Rayleigh Blue Atmospheric Horizon
+      const earthGlowGeo = new THREE.SphereGeometry(sphereRadius * 1.14, 48, 48);
+      const earthGlowMat = new THREE.ShaderMaterial({
+        uniforms: {
+          uGlowColor: { value: new THREE.Color(0x38bdf8) },
+        },
+        vertexShader: CoronalGlowShader.vertexShader,
+        fragmentShader: CoronalGlowShader.fragmentShader,
+        side: THREE.BackSide,
+        blending: THREE.AdditiveBlending,
+        transparent: true,
+        depthWrite: false,
+      });
+      glowMesh = new THREE.Mesh(earthGlowGeo, earthGlowMat);
+      celestialGroup.add(glowMesh);
+
+      // Directional Sun lighting from upper-left
+      const sunLight = new THREE.DirectionalLight(0xffffff, 2.4);
+      sunLight.position.set(5, 3, 4);
       scene.add(sunLight);
 
-      // Soft Ambient Space Light
-      const ambientLight = new THREE.AmbientLight(0x1a202c, 0.4);
+      const ambientLight = new THREE.AmbientLight(0x0e131f, 0.45);
+      scene.add(ambientLight);
+    } else {
+      // -------------------------------------------------------------
+      // PLANETS: High-Fidelity Procedural Scientific Textures
+      // -------------------------------------------------------------
+      const planetTexture = getProceduralPlanetTexture(destinationId);
+
+      const planetMaterial = new THREE.MeshStandardMaterial({
+        map: planetTexture || undefined,
+        color: planetTexture ? 0xffffff : new THREE.Color(config.primaryColor),
+        roughness: config.roughness ?? 0.6,
+        metalness: config.metalness ?? 0.05,
+      });
+
+      sphereMesh = new THREE.Mesh(sphereGeometry, planetMaterial);
+      celestialGroup.add(sphereMesh);
+
+      // Optional Planetary Rings (Saturn & Uranus)
+      if (config.hasRings && config.ringInner && config.ringOuter) {
+        const ringGeo = new THREE.RingGeometry(
+          sphereRadius * config.ringInner,
+          sphereRadius * config.ringOuter,
+          96
+        );
+        const ringTexture = getProceduralRingTexture(destinationId);
+
+        const ringMat = new THREE.MeshStandardMaterial({
+          map: ringTexture || undefined,
+          color: ringTexture ? 0xffffff : new THREE.Color(config.secondaryColor),
+          side: THREE.DoubleSide,
+          transparent: true,
+          opacity: 0.88,
+          roughness: 0.35,
+        });
+
+        ringMesh = new THREE.Mesh(ringGeo, ringMat);
+        ringMesh.rotation.x = Math.PI / 2;
+        if (config.ringTilt) {
+          celestialGroup.rotation.z = THREE.MathUtils.degToRad(config.ringTilt);
+        }
+        celestialGroup.add(ringMesh);
+      }
+
+      // Soft Atmospheric Rim Glow (Venus, Mars, Jupiter, Neptune)
+      if (config.atmosphereColor) {
+        const glowGeo = new THREE.SphereGeometry(sphereRadius * 1.12, 48, 48);
+        const glowMat = new THREE.ShaderMaterial({
+          uniforms: {
+            uGlowColor: { value: new THREE.Color(config.atmosphereColor) },
+          },
+          vertexShader: CoronalGlowShader.vertexShader,
+          fragmentShader: CoronalGlowShader.fragmentShader,
+          side: THREE.BackSide,
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+        });
+        glowMesh = new THREE.Mesh(glowGeo, glowMat);
+        celestialGroup.add(glowMesh);
+      }
+
+      // Directional Sun lighting from upper-left
+      const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
+      sunLight.position.set(5, 3, 4);
+      scene.add(sunLight);
+
+      const ambientLight = new THREE.AmbientLight(0x0e131f, 0.4);
       scene.add(ambientLight);
     }
 
-    const sphereMesh = new THREE.Mesh(geometry, material);
-    planetGroup.add(sphereMesh);
+    // 4. Render & Animation Loop
+    const rotationSpeed = reducedMotion ? 0.0006 : 0.003;
+    const clock = new THREE.Clock();
 
-    // Optional Rings (Saturn, Uranus)
-    let ringMesh: THREE.Mesh | null = null;
-    if (config.hasRings && config.ringInner && config.ringOuter) {
-      const ringGeo = new THREE.RingGeometry(
-        sphereRadius * config.ringInner,
-        sphereRadius * config.ringOuter,
-        64
-      );
-      const ringMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(config.ringColor || config.secondaryColor),
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.85,
-        roughness: 0.4,
-      });
-      ringMesh = new THREE.Mesh(ringGeo, ringMat);
-      ringMesh.rotation.x = Math.PI / 2;
-      if (config.ringTilt) {
-        planetGroup.rotation.z = THREE.MathUtils.degToRad(config.ringTilt);
-      }
-      planetGroup.add(ringMesh);
-    }
-
-    // Animation Render Loop
-    const rotationSpeed = reducedMotion ? 0.0005 : 0.004;
     const animate = () => {
       if (isDisposed) return;
-      sphereMesh.rotation.y += rotationSpeed;
-      if (ringMesh) {
-        ringMesh.rotation.z += rotationSpeed * 0.4;
+      const elapsedTime = clock.getElapsedTime();
+
+      // Update animated Sun plasma
+      if (sunUniforms) {
+        sunUniforms.uTime.value = elapsedTime;
       }
+
+      // Rotate planet on its axis
+      sphereMesh.rotation.y += rotationSpeed;
+
+      // Rotate cloud layer at different speed for Earth
+      if (cloudsMesh) {
+        cloudsMesh.rotation.y += rotationSpeed * 1.25;
+      }
+
+      // Rotate rings subtly
+      if (ringMesh) {
+        ringMesh.rotation.z += rotationSpeed * 0.3;
+      }
+
       renderer.render(scene, camera);
       animId = requestAnimationFrame(animate);
     };
 
     animate();
 
-    // Clean up on unmount
+    // 5. Cleanup on unmount
     return () => {
       isDisposed = true;
       cancelAnimationFrame(animId);
-      geometry.dispose();
-      material.dispose();
+      sphereGeometry.dispose();
+      if (sphereMesh.material instanceof THREE.Material) {
+        sphereMesh.material.dispose();
+      }
+      if (glowMesh) {
+        glowMesh.geometry.dispose();
+        if (glowMesh.material instanceof THREE.Material) {
+          glowMesh.material.dispose();
+        }
+      }
       if (ringMesh) {
         ringMesh.geometry.dispose();
-        (ringMesh.material as THREE.Material).dispose();
+        if (ringMesh.material instanceof THREE.Material) {
+          ringMesh.material.dispose();
+        }
+      }
+      if (cloudsMesh) {
+        cloudsMesh.geometry.dispose();
+        if (cloudsMesh.material instanceof THREE.Material) {
+          cloudsMesh.material.dispose();
+        }
       }
       renderer.dispose();
       if (container && renderer.domElement && container.contains(renderer.domElement)) {
@@ -254,116 +556,53 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
 
   return (
     <div
-      className="astra-planet-canvas-wrapper"
-      data-testid={`planet-visual-${destinationId}`}
-      style={{ position: 'relative' }}
+      ref={mountRef}
+      className="astra-planet-visual-root"
+      data-testid={`planet-visual-${destinationId.toLowerCase()}`}
+      aria-label={`3D visual of ${name} (${type})`}
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        minHeight: '440px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
     >
-      {/* Radial Atmospheric Bloom */}
-      <div
-        className="astra-planet-glow"
-        style={{
-          background: `radial-gradient(circle, ${config.glowColor} 0%, rgba(5,6,8,0) 70%)`,
-        }}
-        aria-hidden="true"
-      />
-
-      {/* WebGL Canvas Container */}
-      {webglAvailable ? (
+      {/* Tactical 2D Fallback for JSDOM / WebGL disabled environments */}
+      {!webglAvailable && (
         <div
-          ref={mountRef}
-          style={{ width: '100%', height: '100%', position: 'relative', zIndex: 2 }}
-          role="img"
-          aria-label={`${name} celestial sphere visualization`}
-        />
-      ) : (
-        /* Tactical 2D SVG Fallback */
-        <div
-          className="astra-planet-2d-fallback"
-          data-testid={`planet-fallback-${destinationId}`}
+          data-testid={`planet-fallback-${destinationId.toLowerCase()}`}
           style={{
             width: '280px',
             height: '280px',
             borderRadius: '50%',
+            background: config.isStar
+              ? 'radial-gradient(circle, #fffbeb 10%, #fbbf24 45%, #ea580c 75%, transparent 100%)'
+              : `radial-gradient(circle at 35% 35%, ${config.secondaryColor} 0%, ${config.primaryColor} 65%, #050608 100%)`,
+            boxShadow: `0 0 60px ${config.glowColor}`,
             position: 'relative',
-            zIndex: 2,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
-          role="img"
-          aria-label={`${name} tactical 2D display`}
         >
-          <svg
-            width="280"
-            height="280"
-            viewBox="0 0 280 280"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <defs>
-              <radialGradient id={`planet-grad-${destinationId}`} cx="35%" cy="35%" r="65%">
-                <stop offset="0%" stopColor={config.secondaryColor} />
-                <stop offset="60%" stopColor={config.primaryColor} />
-                <stop offset="100%" stopColor="#050608" />
-              </radialGradient>
-              <filter id={`glow-${destinationId}`} x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="10" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-
-            {/* Atmosphere Rim */}
-            <circle
-              cx="140"
-              cy="140"
-              r="105"
-              stroke={config.atmosphereColor}
-              strokeWidth="1.5"
-              opacity="0.4"
+          {config.hasRings && (
+            <div
+              style={{
+                position: 'absolute',
+                width: '380px',
+                height: '18px',
+                borderRadius: '50%',
+                border: '4px solid rgba(226, 191, 125, 0.7)',
+                transform: `rotate(${config.ringTilt || -25}deg)`,
+                boxShadow: '0 0 20px rgba(226, 191, 125, 0.4)',
+              }}
             />
-
-            {/* Primary Sphere Body */}
-            <circle
-              cx="140"
-              cy="140"
-              r="95"
-              fill={`url(#planet-grad-${destinationId})`}
-              filter={`url(#glow-${destinationId})`}
-            />
-
-            {/* Optional Rings for Saturn / Uranus */}
-            {config.hasRings && (
-              <ellipse
-                cx="140"
-                cy="140"
-                rx="135"
-                ry="38"
-                stroke={config.ringColor || config.secondaryColor}
-                strokeWidth="6"
-                opacity="0.75"
-                transform={config.ringTilt ? `rotate(${config.ringTilt} 140 140)` : undefined}
-              />
-            )}
-          </svg>
+          )}
         </div>
       )}
-
-      {/* Astronomical Telemetry Tag */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '8px',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '10px',
-          color: 'var(--color-text-ghost)',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          zIndex: 3,
-        }}
-      >
-        {type} // {name}
-      </div>
     </div>
   );
 };

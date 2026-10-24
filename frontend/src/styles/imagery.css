@@ -1,13 +1,16 @@
 /* ==============================================================================
-   ASTRA SPACE IMAGERY & MISSION ARCHIVE STYLES
-   Art Direction: Cinematic Aerospace Editorial x Authentic Planetary Science
+   ASTRA CINEMATIC SOLAR SYSTEM & SPACE IMAGERY REDESIGN V1
+   Art Direction: Cinematic Aerospace Editorial × Living Planetary Environments
    ============================================================================== */
 
-.astra-imagery-root {
+/* ------------------------------------------------------------------------------
+   1. MASTER JOURNEY CONTAINER & DYNAMIC CELESTIAL ATMOSPHERE
+   ------------------------------------------------------------------------------ */
+.astra-solar-journey-root {
   position: relative;
   width: 100%;
   min-height: 100vh;
-  background-color: var(--color-void);
+  background-color: #06070a;
   color: var(--color-text-body);
   font-family: var(--font-sans);
   overflow-x: hidden;
@@ -15,592 +18,824 @@
   flex-direction: column;
 }
 
+/* Subtle deep space background starfield overlay */
+.astra-solar-journey-root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(1px 1px at 20px 30px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1.2px 1.2px at 40px 70px, rgba(255,255,255,0.7), rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 90px 40px, rgba(255,245,220,0.8), rgba(0,0,0,0)),
+    radial-gradient(1.5px 1.5px at 160px 120px, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(1px 1px at 230px 190px, rgba(200,225,255,0.7), rgba(0,0,0,0)),
+    radial-gradient(1.2px 1.2px at 290px 80px, #ffffff, rgba(0,0,0,0));
+  background-repeat: repeat;
+  background-size: 380px 380px;
+  opacity: 0.45;
+  z-index: 1;
+}
+
 /* ------------------------------------------------------------------------------
-   1. FIXED APEX HEADER & NAVIGATION
+   2. DISCREET FLOATING RETURN ARROW (TOP-LEFT)
    ------------------------------------------------------------------------------ */
-.astra-imagery-topbar {
-  position: sticky;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 80;
-  background-color: rgba(5, 6, 8, 0.88);
-  backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--color-border-hairline);
-  padding: 14px 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  transition: var(--transition-quick);
-}
-
-.astra-imagery-nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.astra-return-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 14px;
-  background-color: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
+.astra-minimal-return-btn {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 100;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(12, 15, 22, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   color: var(--color-text-display);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 180ms ease;
+  transition: all 220ms ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
-.astra-return-btn:hover {
-  background-color: rgba(255, 255, 255, 0.09);
-  border-color: var(--color-border-active);
+.astra-minimal-return-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-star-warm);
   color: var(--color-star-warm);
+  transform: translateX(-2px);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
 }
 
-.astra-return-btn:focus-visible {
-  outline: 1px solid var(--color-text-accent);
+.astra-minimal-return-btn:focus-visible {
+  outline: 2px solid var(--color-earth-cyan);
   outline-offset: 2px;
 }
 
-.astra-gateway-pill {
+/* ------------------------------------------------------------------------------
+   3. CENTERED FLOATING SCIENTIFIC SEARCH INSTRUMENT (TOP-CENTER)
+   ------------------------------------------------------------------------------ */
+.astra-floating-instrument-bar {
+  position: fixed;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 95;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 680px;
+  padding: 0 16px;
+  pointer-events: none;
+}
+
+.astra-compact-search-instrument {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 40px;
+  background: rgba(10, 13, 20, 0.82);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 0 6px 0 16px;
+  transition: all 240ms ease;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.astra-compact-search-instrument:focus-within {
+  border-color: var(--color-border-active);
+  background: rgba(14, 18, 28, 0.95);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.18), 0 8px 32px rgba(0, 0, 0, 0.8);
+}
+
+.astra-search-icon {
+  color: var(--color-text-ghost);
+  flex-shrink: 0;
+}
+
+.astra-compact-search-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-display);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+}
+
+.astra-compact-search-input::placeholder {
+  color: rgba(156, 163, 175, 0.55);
+  font-size: 12px;
+}
+
+.astra-compact-clear-btn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-ghost);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: color 150ms ease;
+}
+
+.astra-compact-clear-btn:hover {
+  color: var(--color-text-display);
+}
+
+.astra-compact-submit-btn {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 180ms ease;
+  flex-shrink: 0;
+}
+
+.astra-compact-submit-btn:hover {
+  background: var(--color-earth-cyan);
+  border-color: var(--color-earth-cyan);
+  color: #030712;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.4);
+}
+
+.astra-telemetry-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  background-color: rgba(16, 185, 129, 0.08);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  border-radius: 999px;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--color-nominal);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: rgba(16, 185, 129, 0.85);
   text-transform: uppercase;
+  background: rgba(6, 10, 16, 0.6);
+  backdrop-filter: blur(8px);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
 }
 
-.astra-gateway-pill-dot {
-  width: 6px;
-  height: 6px;
+.astra-telemetry-dot {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   background-color: var(--color-nominal);
-  box-shadow: 0 0 8px var(--color-nominal);
-  animation: pulse-nominal 2.4s infinite ease-in-out;
+  box-shadow: 0 0 6px var(--color-nominal);
+  animation: pulse-telemetry 2.2s infinite ease-in-out;
 }
 
-@keyframes pulse-nominal {
+@keyframes pulse-telemetry {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.85); }
 }
 
 /* ------------------------------------------------------------------------------
-   2. SOLAR SYSTEM NAVIGATOR (STICKY ORBITAL SELECTOR)
+   4. COMPACT EDGE-ALIGNED SOLAR SYSTEM NAVIGATOR (VERTICAL RAIL)
    ------------------------------------------------------------------------------ */
-.astra-solar-navigator {
-  position: sticky;
-  top: 59px;
-  left: 0;
-  width: 100%;
-  z-index: 70;
-  background-color: rgba(9, 11, 16, 0.92);
+.astra-compact-solar-nav {
+  position: fixed;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 85;
+}
+
+.astra-nav-spine {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(9, 12, 18, 0.65);
   backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--color-border-subtle);
-  padding: 8px 32px;
+  padding: 12px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.astra-compact-nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  transition: all 180ms ease;
+}
+
+.astra-nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  transition: all 200ms ease;
+  flex-shrink: 0;
+}
+
+.astra-nav-symbol {
+  font-size: 13px;
+  opacity: 0.65;
+  transition: opacity 180ms ease;
+}
+
+.astra-nav-label {
+  display: none;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  color: var(--color-text-display);
+}
+
+.astra-compact-nav-item:hover .astra-nav-dot {
+  background: var(--color-star-warm);
+  transform: scale(1.4);
+}
+
+.astra-compact-nav-item:hover .astra-nav-symbol {
+  opacity: 1;
+  color: var(--color-star-warm);
+}
+
+.astra-compact-nav-item.active .astra-nav-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-earth-cyan);
+  box-shadow: 0 0 10px var(--color-earth-cyan);
+}
+
+.astra-compact-nav-item.active .astra-nav-symbol {
+  opacity: 1;
+  color: var(--color-earth-cyan);
+}
+
+/* Tooltip appearance on hover */
+.astra-compact-nav-item:hover .astra-nav-label {
+  display: block;
+  position: absolute;
+  right: calc(100% + 12px);
+  background: rgba(13, 16, 24, 0.95);
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-border-subtle);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+/* ------------------------------------------------------------------------------
+   5. CINEMATIC CELESTIAL STAGE (EACH PLANET & THE SUN IS A FULLSTAGE)
+   ------------------------------------------------------------------------------ */
+.astra-celestial-journey {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+.astra-cinematic-planet-stage {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-x: auto;
-  scrollbar-width: none;
+  padding: 100px 48px;
+  box-sizing: border-box;
 }
 
-.astra-solar-navigator::-webkit-scrollbar {
-  display: none;
+.astra-stage-inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 46% 54%;
+  align-items: center;
+  gap: 32px;
 }
 
-.astra-nav-track {
+/* LEFT COLUMN: Scientific Briefing & Missions */
+.astra-stage-briefing {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-right: 24px;
+}
+
+.astra-classification-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-classification-text {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-earth-cyan);
+}
+
+.stage-sun .astra-classification-text {
+  color: var(--color-star-warm);
+}
+
+.astra-stage-title {
+  font-family: var(--font-serif);
+  font-size: clamp(52px, 6.4vw, 92px);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.0;
+  color: var(--color-text-display);
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.astra-stage-summary {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-text-muted);
+  max-width: 540px;
+  margin: 0;
+}
+
+/* Editorial Missions Presentation (Unboxed with Hairline Separators) */
+.astra-stage-missions {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.astra-missions-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+
+.astra-missions-editorial-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.astra-mission-editorial-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.astra-mission-top {
   display: flex;
   align-items: center;
-  gap: 6px;
-  max-width: 1300px;
-  width: 100%;
   justify-content: space-between;
+  gap: 12px;
 }
 
-.astra-nav-item {
+.astra-mission-title {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-display);
+}
+
+.astra-mission-metadata {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-ghost);
+}
+
+.astra-editorial-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.astra-editorial-status.status-active {
+  color: var(--color-nominal);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.astra-editorial-status.status-complete {
+  color: var(--color-text-ghost);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.astra-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
+
+.astra-mission-narrative {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  margin: 0;
+  max-width: 560px;
+}
+
+.astra-mission-archive-link {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  align-self: flex-start;
+  margin-top: 4px;
   background: transparent;
-  border: 1px solid transparent;
+  border: none;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--color-earth-cyan);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.astra-mission-archive-link:hover {
+  color: var(--color-text-display);
+  text-decoration: underline;
+}
+
+/* Primary Imagery Action Zone */
+.astra-imagery-action-zone {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.astra-stage-imagery-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+  border: 1px solid var(--color-border-active);
   border-radius: var(--radius-xs);
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 220ms ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.stage-sun .astra-stage-imagery-btn {
+  border-color: rgba(245, 158, 11, 0.5);
+  box-shadow: 0 4px 24px rgba(245, 158, 11, 0.15);
+}
+
+.astra-stage-imagery-btn:hover {
+  background: var(--color-earth-cyan);
+  border-color: var(--color-earth-cyan);
+  color: #030712;
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.4);
+  transform: translateY(-1px);
+}
+
+.stage-sun .astra-stage-imagery-btn:hover {
+  background: var(--color-star-warm);
+  border-color: var(--color-star-warm);
+  color: #0a0602;
+  box-shadow: 0 0 28px rgba(245, 158, 11, 0.5);
+}
+
+.astra-stage-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astra-presets-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-ghost);
+}
+
+.astra-presets-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.astra-stage-preset-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--color-text-muted);
   font-family: var(--font-mono);
   font-size: 11px;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.astra-stage-preset-pill:hover {
+  color: var(--color-text-display);
+  border-color: var(--color-border-active);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.astra-stage-attribution {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-ghost);
+}
+
+/* RIGHT COLUMN: 3D Celestial Body (Border-free, Unboxed) */
+.astra-stage-visual {
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------------------
+   6. DEDICATED IMAGERY DRAWER (SLIDE-OVER / MODAL OVERLAY)
+   ------------------------------------------------------------------------------ */
+.astra-imagery-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: rgba(4, 6, 10, 0.88);
+  backdrop-filter: blur(24px);
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn 220ms ease;
+}
+
+.astra-imagery-drawer-content {
+  width: 100%;
+  max-width: 980px;
+  height: 100%;
+  background: rgba(11, 14, 22, 0.98);
+  border-left: 1px solid var(--color-border-active);
+  box-shadow: -16px 0 60px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  animation: slideLeft 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideLeft {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.astra-drawer-header {
+  padding: 24px 32px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.astra-drawer-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-earth-cyan);
+}
+
+.astra-drawer-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--color-text-display);
+  margin: 0;
+}
+
+.astra-drawer-close-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-xs);
+  color: var(--color-text-display);
+  font-family: var(--font-mono);
+  font-size: 11px;
   letter-spacing: 0.08em;
-  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.astra-drawer-close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--color-border-active);
+}
+
+.astra-drawer-presets {
+  padding: 14px 32px;
+  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow-x: auto;
+}
+
+.astra-drawer-presets-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--color-text-ghost);
+  white-space: nowrap;
+}
+
+.astra-drawer-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-drawer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
   cursor: pointer;
   white-space: nowrap;
   transition: all 180ms ease;
 }
 
-.astra-nav-item:hover {
+.astra-drawer-pill:hover {
   color: var(--color-text-display);
-  background-color: rgba(255, 255, 255, 0.03);
-}
-
-.astra-nav-item.active {
-  color: var(--color-text-display);
-  background-color: rgba(56, 189, 248, 0.08);
-  border-color: var(--color-border-accent);
-  box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
-}
-
-.astra-nav-item-symbol {
-  font-size: 13px;
-  opacity: 0.8;
-}
-
-/* ------------------------------------------------------------------------------
-   3. HEROIC INTRODUCTORY STAGE
-   ------------------------------------------------------------------------------ */
-.astra-imagery-hero {
-  position: relative;
-  width: 100%;
-  padding: 64px 44px 48px;
-  max-width: 1380px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.astra-hero-lead-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-earth-cyan);
-}
-
-.astra-imagery-title {
-  font-family: var(--font-serif);
-  font-size: clamp(34px, 5.2vw, 60px);
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  line-height: 1.1;
-  color: var(--color-text-display);
-  margin: 0;
-}
-
-.astra-imagery-subtitle {
-  max-width: 760px;
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
-/* ------------------------------------------------------------------------------
-   4. FREE-FORM ARCHIVE SEARCH BAR
-   ------------------------------------------------------------------------------ */
-.astra-search-container {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  max-width: 840px;
-  background-color: rgba(13, 16, 22, 0.85);
-  border: 1px solid var(--color-border-hairline);
-  border-radius: var(--radius-sm);
-  padding: 6px 14px;
-  transition: all 200ms ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-}
-
-.astra-search-container:focus-within {
-  border-color: var(--color-border-accent);
-  box-shadow: 0 0 20px rgba(56, 189, 248, 0.12);
-}
-
-.astra-search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--color-text-display);
-  font-family: var(--font-sans);
-  font-size: 14px;
-  outline: none;
-}
-
-.astra-search-input::placeholder {
-  color: var(--color-text-ghost);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-
-.astra-search-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  background-color: rgba(56, 189, 248, 0.1);
-  border: 1px solid var(--color-border-accent);
-  border-radius: var(--radius-xs);
-  color: var(--color-earth-cyan);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 180ms ease;
-}
-
-.astra-search-btn:hover {
-  background-color: rgba(56, 189, 248, 0.2);
-  color: #fff;
-}
-
-/* ------------------------------------------------------------------------------
-   5. PLANETARY JOURNEY SECTIONS & ALTERNATING DESKTOP COMPOSITION
-   ------------------------------------------------------------------------------ */
-.astra-planetary-section {
-  position: relative;
-  width: 100%;
-  padding: 96px 44px;
-  border-top: 1px solid var(--color-border-subtle);
-  overflow: hidden;
-}
-
-.astra-planetary-section:first-of-type {
-  border-top: none;
-}
-
-.astra-section-container {
-  max-width: 1380px;
-  margin: 0 auto;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 56px;
-  align-items: center;
-}
-
-/* Mercury, Earth, Jupiter, Uranus: Visual LEFT, Content RIGHT */
-.layout-left-planet .astra-visual-column {
-  order: 1;
-}
-.layout-left-planet .astra-content-column {
-  order: 2;
-}
-
-/* Venus, Mars, Saturn, Neptune: Visual RIGHT, Content LEFT */
-.layout-right-planet .astra-visual-column {
-  order: 2;
-}
-.layout-right-planet .astra-content-column {
-  order: 1;
-}
-
-/* Sun Special Center/Heroic Composition */
-.layout-center-planet .astra-section-container {
-  grid-template-columns: 1fr;
-  text-align: center;
-  gap: 40px;
-}
-.layout-center-planet .astra-visual-column {
-  order: 1;
-  display: flex;
-  justify-content: center;
-}
-.layout-center-planet .astra-content-column {
-  order: 2;
-  max-width: 960px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-/* ------------------------------------------------------------------------------
-   6. PLANETARY VISUAL COLUMN
-   ------------------------------------------------------------------------------ */
-.astra-visual-column {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 380px;
-}
-
-.astra-planet-canvas-wrapper {
-  position: relative;
-  width: 100%;
-  max-width: 440px;
-  aspect-ratio: 1 / 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.astra-planet-glow {
-  position: absolute;
-  width: 80%;
-  height: 80%;
-  border-radius: 50%;
-  filter: blur(48px);
-  opacity: 0.35;
-  pointer-events: none;
-  z-index: 1;
-}
-
-/* ------------------------------------------------------------------------------
-   7. CONTENT COLUMN & TYPOGRAPHY
-   ------------------------------------------------------------------------------ */
-.astra-content-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.astra-destination-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-text-ghost);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.astra-destination-name {
-  font-family: var(--font-serif);
-  font-size: clamp(36px, 4vw, 54px);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: var(--color-text-display);
-  margin: 0;
-  line-height: 1.1;
-}
-
-.astra-destination-type {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-earth-cyan);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.astra-destination-summary {
-  font-family: var(--font-sans);
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
-/* ------------------------------------------------------------------------------
-   8. MISSIONS & ACTIVE ROVERS SECTION
-   ------------------------------------------------------------------------------ */
-.astra-missions-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-top: 8px;
-}
-
-.astra-missions-header {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-ghost);
-}
-
-.astra-missions-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.astra-mission-card {
-  background-color: rgba(13, 16, 22, 0.65);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  transition: all 180ms ease;
-}
-
-.astra-mission-card:hover {
   border-color: var(--color-border-active);
-  background-color: rgba(255, 255, 255, 0.03);
 }
 
-.astra-mission-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.astra-mission-name {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 13px;
+.astra-drawer-pill.active {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: var(--color-earth-cyan);
   color: var(--color-text-display);
 }
 
-.astra-status-badge {
+.astra-drawer-gallery-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+
+.astra-drawer-footer {
+  padding: 16px 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(6, 8, 12, 0.6);
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-  padding: 2px 6px;
-  border-radius: 2px;
-  text-transform: uppercase;
-}
-
-.status-operational, .status-active {
-  background-color: rgba(16, 185, 129, 0.12);
-  color: var(--color-nominal);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-}
-
-.status-completed, .status-retired, .status-accomplished {
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-muted);
-  border: 1px solid var(--color-border-subtle);
-}
-
-.astra-mission-desc {
-  font-size: 11.5px;
-  line-height: 1.45;
-  color: var(--color-text-muted);
-}
-
-.astra-mission-agency {
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 11px;
   color: var(--color-text-ghost);
 }
 
 /* ------------------------------------------------------------------------------
-   9. ROVER SHOWCASE (MARS SPECIALIZATION)
+   7. SCIENTIFIC SEARCH OVERLAY PANEL
    ------------------------------------------------------------------------------ */
-.astra-rover-showcase {
+.astra-search-overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 105;
+  background: rgba(4, 6, 10, 0.85);
+  backdrop-filter: blur(20px);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  background-color: rgba(193, 68, 14, 0.04);
-  border: 1px solid rgba(193, 68, 14, 0.2);
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  animation: fadeIn 200ms ease;
+}
+
+.astra-search-overlay-content {
+  width: 100%;
+  max-width: 1180px;
+  max-height: 85vh;
+  background: rgba(12, 16, 24, 0.98);
+  border: 1px solid var(--color-border-active);
   border-radius: var(--radius-sm);
-  padding: 16px 18px;
-  margin-top: 4px;
-}
-
-.astra-rover-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 12px;
-}
-
-.astra-rover-item {
-  background-color: rgba(13, 16, 22, 0.7);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
-  padding: 12px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.9);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  overflow: hidden;
+  padding: 24px 32px;
 }
 
-.astra-instruments-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-
-.instrument-tag {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  padding: 2px 5px;
-  border-radius: 2px;
-  background-color: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-body);
-}
-
-/* ------------------------------------------------------------------------------
-   10. REAL NASA IMAGERY ARCHIVE GRID
-   ------------------------------------------------------------------------------ */
-.astra-destination-gallery {
-  margin-top: 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.astra-gallery-header {
+.astra-search-overlay-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--color-border-subtle);
-  padding-bottom: 8px;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 16px;
 }
 
-.astra-gallery-title {
+.astra-search-tag {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-display);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--color-earth-cyan);
 }
 
+.astra-search-heading {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--color-text-display);
+  margin: 4px 0 0;
+}
+
+/* ------------------------------------------------------------------------------
+   8. IMAGERY CARDS & GALLERY GRID (USED IN DRAWERS & MODALS)
+   ------------------------------------------------------------------------------ */
 .astra-imagery-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  gap: 20px;
 }
 
 .astra-imagery-card {
-  position: relative;
   display: flex;
   flex-direction: column;
-  background-color: rgba(13, 16, 22, 0.75);
-  border: 1px solid var(--color-border-subtle);
+  background: rgba(18, 22, 32, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xs);
   overflow: hidden;
+  text-align: left;
   cursor: pointer;
   transition: all 220ms ease;
-  outline: none;
-  text-align: left;
+  padding: 0;
 }
 
-.astra-imagery-card:hover, .astra-imagery-card:focus-visible {
+.astra-imagery-card:hover {
   border-color: var(--color-border-active);
-  transform: translateY(-2px);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6), 0 0 16px rgba(56, 189, 248, 0.15);
 }
 
 .astra-card-image-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 10;
-  background-color: #06070a;
+  height: 180px;
+  background: #080a0e;
   overflow: hidden;
 }
 
@@ -612,37 +847,35 @@
 }
 
 .astra-imagery-card:hover .astra-card-img {
-  transform: scale(1.03);
+  transform: scale(1.05);
 }
 
 .astra-card-badge {
   position: absolute;
   top: 8px;
-  left: 8px;
-  background-color: rgba(5, 6, 8, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 2px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-xs);
   padding: 2px 6px;
   font-family: var(--font-mono);
   font-size: 9px;
-  color: var(--color-text-display);
   letter-spacing: 0.06em;
+  color: var(--color-text-display);
 }
 
 .astra-card-content {
-  padding: 12px 14px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex-grow: 1;
+  gap: 8px;
 }
 
 .astra-card-title {
   font-family: var(--font-sans);
-  font-weight: 500;
   font-size: 13px;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.45;
   color: var(--color-text-display);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -654,171 +887,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: auto;
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--color-text-ghost);
-  letter-spacing: 0.04em;
 }
 
-/* ------------------------------------------------------------------------------
-   11. PRESET QUERY PILLS
-   ------------------------------------------------------------------------------ */
-.astra-preset-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.preset-pill {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.06em;
-  padding: 4px 10px;
-  background-color: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 999px;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  transition: all 160ms ease;
-}
-
-.preset-pill:hover {
-  background-color: rgba(56, 189, 248, 0.08);
-  border-color: var(--color-border-accent);
-  color: var(--color-text-display);
-}
-
-/* ------------------------------------------------------------------------------
-   12. IMAGE DETAIL MODAL & ASSET INSPECTOR
-   ------------------------------------------------------------------------------ */
-.astra-detail-modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(5, 6, 8, 0.92);
-  backdrop-filter: blur(16px);
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-}
-
-.astra-detail-modal {
-  width: 100%;
-  max-width: 960px;
-  max-height: 90vh;
-  background-color: var(--color-panel);
-  border: 1px solid var(--color-border-active);
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.08);
-}
-
-.astra-modal-header {
-  padding: 16px 20px;
-  background-color: var(--color-ground);
-  border-bottom: 1px solid var(--color-border-hairline);
+/* Error Banner */
+.astra-error-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.astra-modal-scroll-area {
-  padding: 24px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.astra-modal-img-wrap {
-  width: 100%;
-  max-height: 520px;
-  background-color: #030406;
-  border: 1px solid var(--color-border-subtle);
+  gap: 16px;
+  padding: 14px 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.35);
   border-radius: var(--radius-xs);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.astra-modal-img {
-  max-width: 100%;
-  max-height: 520px;
-  object-fit: contain;
-}
-
-.astra-modal-meta-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  background-color: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
-  padding: 14px;
-}
-
-.astra-meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.astra-meta-label {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-text-ghost);
-}
-
-.astra-meta-val {
+  color: #fca5a5;
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--color-text-display);
 }
 
-.astra-resolution-links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-
-.resolution-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: rgba(56, 189, 248, 0.06);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-xs);
-  color: var(--color-text-display);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-decoration: none;
-  transition: all 180ms ease;
-}
-
-.resolution-pill:hover {
-  background-color: rgba(56, 189, 248, 0.15);
-  border-color: var(--color-border-accent);
-  color: var(--color-earth-cyan);
-}
-
-/* ------------------------------------------------------------------------------
-   13. LOADING SKELETONS & ERROR STATES
-   ------------------------------------------------------------------------------ */
+/* Skeleton Loading */
 .astra-skeleton {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 25%, rgba(255, 255, 255, 0.06) 50%, rgba(255, 255, 255, 0.02) 75%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 2s infinite ease-in-out;
   border-radius: var(--radius-xs);
@@ -829,55 +920,55 @@
   100% { background-position: -200% 0; }
 }
 
-.astra-error-banner {
-  padding: 16px 20px;
-  background-color: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.25);
-  border-radius: var(--radius-xs);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+/* ------------------------------------------------------------------------------
+   9. RESPONSIVE DESIGN & MOBILE BEHAVIOR
+   ------------------------------------------------------------------------------ */
+@media (max-width: 1024px) {
+  .astra-stage-inner {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+
+  .astra-stage-visual {
+    order: -1;
+    min-height: 380px;
+  }
+
+  .astra-cinematic-planet-stage {
+    padding: 80px 24px;
+  }
+
+  .astra-compact-solar-nav {
+    display: none; /* Hide vertical rail on tablet/mobile to avoid obscuring text */
+  }
+
+  .astra-floating-instrument-bar {
+    max-width: 90%;
+  }
 }
 
-/* ------------------------------------------------------------------------------
-   14. RESPONSIVE MEDIA QUERIES (MOBILE & TABLET INTENTIONAL LAYOUT)
-   ------------------------------------------------------------------------------ */
-@media (max-width: 960px) {
-  .astra-section-container {
-    grid-template-columns: 1fr !important;
-    gap: 40px !important;
+@media (max-width: 640px) {
+  .astra-cinematic-planet-stage {
+    padding: 90px 16px 40px;
   }
 
-  /* On mobile/narrow screens, visual always stacks on top of content cleanly */
-  .layout-left-planet .astra-visual-column,
-  .layout-right-planet .astra-visual-column {
-    order: 1 !important;
+  .astra-stage-title {
+    font-size: 44px;
   }
 
-  .layout-left-planet .astra-content-column,
-  .layout-right-planet .astra-content-column {
-    order: 2 !important;
+  .astra-floating-instrument-bar {
+    top: 14px;
+    padding: 0 8px;
   }
 
-  .astra-planetary-section {
-    padding: 64px 20px;
+  .astra-minimal-return-btn {
+    top: 14px;
+    left: 12px;
+    width: 38px;
+    height: 38px;
   }
 
-  .astra-imagery-hero {
-    padding: 40px 20px 32px;
-  }
-
-  .astra-imagery-topbar {
-    padding: 12px 16px;
-  }
-
-  .astra-solar-navigator {
-    padding: 8px 16px;
-    justify-content: flex-start;
-  }
-
-  .astra-planet-canvas-wrapper {
-    max-width: 320px;
+  .astra-imagery-drawer-content {
+    max-width: 100%;
   }
 }

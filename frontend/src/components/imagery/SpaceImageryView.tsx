@@ -3,14 +3,27 @@ import { PlanetaryDestination, SpaceImageryItem, SpaceImagerySearchResult } from
 import { getPlanetaryDestinations, searchImagery } from '../../api/imageryApi';
 import { SolarSystemNavigator } from './SolarSystemNavigator';
 import { PlanetarySection } from './PlanetarySection';
+import { DedicatedImageryDrawer } from './DedicatedImageryDrawer';
 import { ImageDetailModal } from './ImageDetailModal';
-import { SignatureStar } from '../common/CelestialIcons';
-import { ArrowLeft, Search, RefreshCw, AlertCircle, Eye } from 'lucide-react';
+import { ArrowLeft, Search, RefreshCw, AlertCircle, Eye, X } from 'lucide-react';
 
 interface SpaceImageryViewProps {
   onReturnHome: () => void;
   reducedMotion?: boolean;
 }
+
+// Atmospheric gradient palettes for each celestial environment
+const ATMOSPHERIC_GRADIENTS: Record<string, string> = {
+  sun: 'radial-gradient(ellipse 70% 65% at 75% 50%, rgba(245, 158, 11, 0.26) 0%, rgba(234, 88, 12, 0.12) 40%, rgba(10, 6, 2, 0.95) 85%)',
+  mercury: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(140, 130, 122, 0.16) 0%, rgba(40, 36, 33, 0.08) 45%, rgba(6, 7, 9, 0.96) 85%)',
+  venus: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(227, 187, 123, 0.24) 0%, rgba(196, 155, 88, 0.10) 45%, rgba(9, 7, 3, 0.96) 85%)',
+  earth: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(56, 189, 248, 0.22) 0%, rgba(37, 99, 235, 0.12) 40%, rgba(3, 7, 18, 0.96) 85%)',
+  mars: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(193, 68, 14, 0.26) 0%, rgba(153, 27, 27, 0.10) 45%, rgba(10, 4, 3, 0.96) 85%)',
+  jupiter: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(201, 144, 57, 0.24) 0%, rgba(180, 83, 9, 0.10) 45%, rgba(10, 6, 3, 0.96) 85%)',
+  saturn: 'radial-gradient(ellipse 70% 65% at 75% 50%, rgba(226, 191, 125, 0.24) 0%, rgba(197, 160, 89, 0.10) 45%, rgba(10, 8, 4, 0.96) 85%)',
+  uranus: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(112, 214, 255, 0.22) 0%, rgba(56, 189, 248, 0.08) 45%, rgba(2, 9, 15, 0.96) 85%)',
+  neptune: 'radial-gradient(ellipse 65% 60% at 75% 50%, rgba(30, 64, 175, 0.28) 0%, rgba(37, 99, 235, 0.12) 45%, rgba(2, 5, 18, 0.96) 85%)',
+};
 
 export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   onReturnHome,
@@ -20,14 +33,23 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Active celestial body determined by scroll position
   const [activeDestinationId, setActiveDestinationId] = useState<string>('sun');
+
+  // Single Image Inspection Modal
   const [selectedImage, setSelectedImage] = useState<SpaceImageryItem | null>(null);
 
-  // Free-form global search across NASA archives
+  // Dedicated Imagery Drawer State (for viewing gallery without scene clutter)
+  const [drawerOpen, setDrawerOpen] = useState<boolean>(false);
+  const [drawerDestination, setDrawerDestination] = useState<PlanetaryDestination | null>(null);
+  const [drawerQuery, setDrawerQuery] = useState<string | undefined>(undefined);
+
+  // Compact Scientific Instrument Search
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [searching, setSearching] = useState<boolean>(false);
   const [searchResults, setSearchResults] = useState<SpaceImagerySearchResult | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchPanelOpen, setSearchPanelOpen] = useState<boolean>(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,18 +74,55 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     loadDestinations();
   }, []);
 
-  // Handle global Escape key to return home when no modal is open
+  // Global Escape key handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !selectedImage) {
-        onReturnHome();
+      if (e.key === 'Escape') {
+        if (selectedImage) {
+          setSelectedImage(null);
+        } else if (drawerOpen) {
+          setDrawerOpen(false);
+        } else if (searchPanelOpen) {
+          setSearchPanelOpen(false);
+        } else {
+          onReturnHome();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, onReturnHome]);
+  }, [selectedImage, drawerOpen, searchPanelOpen, onReturnHome]);
 
-  // Destination Jump Scrolling
+  // Scroll Spy via IntersectionObserver to dynamically adjust environmental palette
+  useEffect(() => {
+    if (destinations.length === 0) return;
+    if (typeof window === 'undefined' || typeof window.IntersectionObserver === 'undefined') return;
+
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const destId = entry.target.id.replace('destination-', '');
+            if (destId) {
+              setActiveDestinationId(destId);
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.45,
+      }
+    );
+
+    destinations.forEach((dest) => {
+      const el = document.getElementById(`destination-${dest.id.toLowerCase()}`);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [destinations]);
+
+  // Jump to Celestial Destination
   const handleSelectDestination = (destId: string) => {
     setActiveDestinationId(destId);
     const element = document.getElementById(`destination-${destId.toLowerCase()}`);
@@ -72,13 +131,22 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     }
   };
 
-  // Global NASA Archive Search
+  // Open Dedicated Imagery Drawer for a Planet
+  const handleOpenImagery = (dest: PlanetaryDestination, query?: string) => {
+    setDrawerDestination(dest);
+    setDrawerQuery(query);
+    setDrawerOpen(true);
+  };
+
+  // Execute Compact Scientific Archive Search
   const handleExecuteSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!searchQuery.trim()) return;
 
     setSearching(true);
     setSearchError(null);
+    setSearchPanelOpen(true);
+
     searchImagery({ query: searchQuery.trim(), pageSize: 12 })
       .then((data) => {
         setSearchResults(data);
@@ -94,59 +162,74 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     setSearchQuery('');
     setSearchResults(null);
     setSearchError(null);
+    setSearchPanelOpen(false);
   };
+
+  const currentGradient =
+    ATMOSPHERIC_GRADIENTS[activeDestinationId.toLowerCase()] || ATMOSPHERIC_GRADIENTS.sun;
 
   return (
     <div
-      className="astra-imagery-root"
+      className="astra-solar-journey-root"
       data-testid="space-imagery-view"
       style={{
-        position: 'relative',
-        width: '100%',
-        minHeight: '100vh',
-        backgroundColor: 'var(--color-void)',
+        background: currentGradient,
+        transition: reducedMotion ? 'none' : 'background 700ms ease',
       }}
     >
-      {/* 1. APEX HEADER & RETURN BUTTON */}
-      <header className="astra-imagery-topbar">
-        <div className="astra-imagery-nav-brand">
-          <button
-            onClick={onReturnHome}
-            className="astra-return-btn"
-            aria-label="Return to ASTRA landing interface"
-            data-testid="return-to-landing"
-          >
-            <ArrowLeft size={14} />
-            <span>RETURN TO ASTRA</span>
-          </button>
+      {/* 1. DISCREET CORNER RETURN ARROW */}
+      <button
+        onClick={onReturnHome}
+        className="astra-minimal-return-btn"
+        aria-label="Return to ASTRA"
+        data-testid="return-to-landing"
+        title="Return to ASTRA [Esc]"
+      >
+        <ArrowLeft size={16} />
+      </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '12px' }}>
-            <SignatureStar size={13} color="var(--color-star-warm)" />
-            <span
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: '15px',
-                fontWeight: 600,
-                letterSpacing: '0.04em',
-                color: 'var(--color-text-display)',
-                textTransform: 'uppercase',
-              }}
+      {/* 2. CENTERED SCIENTIFIC SEARCH INSTRUMENT */}
+      <header className="astra-floating-instrument-bar" role="banner">
+        <form onSubmit={handleExecuteSearch} className="astra-compact-search-instrument" role="search">
+          <Search size={14} className="astra-search-icon" aria-hidden="true" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search NASA scientific archive (e.g. 'Curiosity selfie', 'Jupiter Red Spot')..."
+            className="astra-compact-search-input"
+            aria-label="Search NASA multimedia archive"
+            data-testid="search-archive-input"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="astra-compact-clear-btn"
+              aria-label="Clear query"
             >
-              SPACE IMAGERY & MISSION ARCHIVE
-            </span>
-          </div>
-        </div>
+              <X size={12} />
+            </button>
+          )}
+          <button
+            type="submit"
+            className="astra-compact-submit-btn"
+            data-testid="search-archive-button"
+            aria-label="Dispatch NASA archive query"
+          >
+            DISPATCH
+          </button>
+        </form>
 
-        {/* Telemetry Indicator */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div className="astra-gateway-pill" data-testid="gateway-status">
-            <span className="astra-gateway-pill-dot" />
-            <span>GATEWAY: NASA IMAGES API [CONNECTED]</span>
-          </div>
+        {/* Discreet Gateway Telemetry Indicator */}
+        <div className="astra-telemetry-badge" data-testid="gateway-status">
+          <span className="astra-telemetry-dot" />
+          <span>GATEWAY: NASA IMAGES API [CONNECTED]</span>
         </div>
       </header>
 
-      {/* 2. SOLAR SYSTEM ORBITAL NAVIGATOR */}
+      {/* 3. COMPACT EDGE-ALIGNED SOLAR SYSTEM NAVIGATOR */}
       {destinations.length > 0 && (
         <SolarSystemNavigator
           destinations={destinations}
@@ -155,110 +238,55 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         />
       )}
 
-      {/* 3. HEROIC INTRODUCTORY STAGE */}
-      <section className="astra-imagery-hero">
-        <div className="astra-hero-lead-tag">
-          <SignatureStar size={12} color="var(--color-earth-cyan)" />
-          <span>ASTRA OBSERVATIONAL TELEMETRY // MULTI-SPECTRAL ARCHIVE</span>
-        </div>
-
-        <h1 className="astra-imagery-title">The Solar System Exploration Journey</h1>
-
-        <p className="astra-imagery-subtitle">
-          Interrogate real, high-resolution scientific photography from NASA’s deep-space archives.
-          Traverse our celestial neighborhood from the Sun through the outer ice giants, discovering historical
-          orbiters, surface exploration rovers, and multi-spectral imaging datasets.
-        </p>
-
-        {/* Free-form archive search container */}
-        <form onSubmit={handleExecuteSearch} className="astra-search-container" role="search">
-          <Search size={16} color="var(--color-text-ghost)" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search all NASA archives (e.g. 'Curiosity selfie', 'Jupiter Great Red Spot', 'James Webb NIRCam')..."
-            className="astra-search-input"
-            aria-label="Search NASA multimedia archive"
-            data-testid="search-archive-input"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={handleClearSearch}
-              className="astra-return-btn"
-              style={{ padding: '2px 8px', fontSize: '10px' }}
-            >
-              CLEAR
-            </button>
-          )}
-          <button type="submit" className="astra-search-btn" data-testid="search-archive-button">
-            <span>DISPATCH QUERY</span>
-          </button>
-        </form>
-
-        {/* Ad-Hoc Global Search Results Drawer */}
-        {searching && (
-          <div style={{ marginTop: '24px' }} data-testid="search-loading">
-            <div className="astra-skeleton" style={{ width: '100%', height: '140px' }} />
-          </div>
-        )}
-
-        {searchError && (
-          <div className="astra-error-banner" style={{ marginTop: '24px' }}>
-            <AlertCircle size={16} color="var(--color-critical)" />
-            <span>{searchError}</span>
-          </div>
-        )}
-
-        {searchResults && (
-          <div
-            style={{
-              marginTop: '32px',
-              padding: '24px',
-              backgroundColor: 'rgba(13, 16, 22, 0.9)',
-              border: '1px solid var(--color-border-active)',
-              borderRadius: 'var(--radius-sm)',
-            }}
-            data-testid="search-results-panel"
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: '16px',
-                borderBottom: '1px solid var(--color-border-subtle)',
-                paddingBottom: '10px',
-              }}
-            >
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '12px',
-                  color: 'var(--color-earth-cyan)',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Archive Query Results: "{searchResults.query}" ({searchResults.totalHits.toLocaleString()} matches)
-              </span>
+      {/* 4. SEARCH RESULTS OVERLAY PANEL (Does not disrupt celestial stage) */}
+      {searchPanelOpen && (
+        <div
+          className="astra-search-overlay-backdrop"
+          data-testid="search-results-panel"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSearchPanelOpen(false);
+          }}
+        >
+          <div className="astra-search-overlay-content">
+            <div className="astra-search-overlay-header">
+              <div>
+                <span className="astra-search-tag">[ NASA ARCHIVAL QUERY RESULTS ]</span>
+                <h3 className="astra-search-heading">
+                  Query: "{searchResults?.query || searchQuery}"
+                  {searchResults && ` (${searchResults.totalHits.toLocaleString()} records)`}
+                </h3>
+              </div>
               <button
-                onClick={handleClearSearch}
-                className="astra-return-btn"
-                style={{ padding: '3px 8px', fontSize: '10px' }}
+                onClick={() => setSearchPanelOpen(false)}
+                className="astra-drawer-close-btn"
+                aria-label="Close search overlay"
               >
-                CLOSE RESULTS
+                <X size={16} />
+                <span>CLOSE</span>
               </button>
             </div>
 
-            {searchResults.items.length === 0 ? (
-              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                No records matched your search query in NASA's repository.
+            {searching && (
+              <div style={{ padding: '32px' }} data-testid="search-loading">
+                <div className="astra-skeleton" style={{ width: '100%', height: '220px' }} />
+              </div>
+            )}
+
+            {searchError && (
+              <div className="astra-error-banner" style={{ margin: '24px 0' }}>
+                <AlertCircle size={16} color="var(--color-critical)" />
+                <span>{searchError}</span>
+              </div>
+            )}
+
+            {!searching && searchResults && searchResults.items.length === 0 && (
+              <p style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--color-text-muted)', padding: '24px' }}>
+                No records matched your query in NASA's public media library.
               </p>
-            ) : (
-              <div className="astra-imagery-grid">
+            )}
+
+            {!searching && searchResults && searchResults.items.length > 0 && (
+              <div className="astra-imagery-grid" style={{ padding: '24px 0' }}>
                 {searchResults.items.map((item) => (
                   <button
                     key={item.nasaId}
@@ -284,12 +312,19 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
               </div>
             )}
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
-      {/* 4. DESTINATION LOAD FAILURE / RETRY */}
+      {/* 5. DESTINATIONS SKELETON LOADING */}
+      {loading && (
+        <div style={{ maxWidth: '1200px', margin: '140px auto 40px', padding: '0 40px' }} data-testid="destinations-loading">
+          <div className="astra-skeleton" style={{ width: '100%', height: '480px', marginBottom: '32px' }} />
+        </div>
+      )}
+
+      {/* 6. CONNECTION ERROR BANNER */}
       {error && (
-        <div style={{ maxWidth: '1200px', margin: '40px auto', padding: '0 24px' }}>
+        <div style={{ maxWidth: '1000px', margin: '140px auto 40px', padding: '0 24px' }}>
           <div className="astra-error-banner" data-testid="destinations-error">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-critical)' }}>
               <AlertCircle size={18} />
@@ -303,34 +338,31 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
         </div>
       )}
 
-      {/* 5. DESTINATIONS SKELETON LOADING */}
-      {loading && (
-        <div style={{ maxWidth: '1380px', margin: '40px auto', padding: '0 44px' }} data-testid="destinations-loading">
-          {[1, 2, 3].map((n) => (
-            <div
-              key={n}
-              className="astra-skeleton"
-              style={{ width: '100%', height: '420px', marginBottom: '32px' }}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* 6. SEQUENTIAL PLANETARY JOURNEY */}
+      {/* 7. CINEMATIC SOLAR SYSTEM JOURNEY (Sun is the opening stage) */}
       {!loading && !error && destinations.length > 0 && (
-        <div className="astra-planetary-journey" data-testid="planetary-journey">
+        <main className="astra-celestial-journey" data-testid="planetary-journey">
           {destinations.map((dest) => (
             <PlanetarySection
               key={dest.id}
               destination={dest}
-              onSelectImage={(item) => setSelectedImage(item)}
+              onOpenImagery={handleOpenImagery}
               reducedMotion={reducedMotion}
             />
           ))}
-        </div>
+        </main>
       )}
 
-      {/* 7. IMAGE DETAIL MODAL OVERLAY */}
+      {/* 8. DEDICATED IMAGERY DRAWER */}
+      <DedicatedImageryDrawer
+        destination={drawerDestination}
+        activeQuery={drawerQuery}
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onSelectQuery={(q) => setDrawerQuery(q)}
+        onSelectImage={(item) => setSelectedImage(item)}
+      />
+
+      {/* 9. IMAGE DETAIL MODAL OVERLAY */}
       <ImageDetailModal
         item={selectedImage}
         onClose={() => setSelectedImage(null)}

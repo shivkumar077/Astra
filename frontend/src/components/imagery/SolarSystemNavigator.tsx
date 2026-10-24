@@ -26,12 +26,12 @@ export const SolarSystemNavigator: React.FC<SolarSystemNavigatorProps> = ({
 }) => {
   return (
     <nav
-      className="astra-solar-navigator"
+      className="astra-compact-solar-nav"
       role="navigation"
-      aria-label="Solar System celestial destination navigator"
+      aria-label="Solar System destination navigator"
       data-testid="solar-system-navigator"
     >
-      <div className="astra-nav-track">
+      <div className="astra-nav-spine">
         {destinations.map((dest) => {
           const isActive = dest.id.toLowerCase() === activeDestinationId.toLowerCase();
           const symbol = CELESTIAL_SYMBOLS[dest.id.toLowerCase()] || '○';
@@ -40,16 +40,17 @@ export const SolarSystemNavigator: React.FC<SolarSystemNavigatorProps> = ({
             <button
               key={dest.id}
               onClick={() => onSelectDestination(dest.id)}
-              className={`astra-nav-item ${isActive ? 'active' : ''}`}
+              className={`astra-compact-nav-item ${isActive ? 'active' : ''}`}
               aria-current={isActive ? 'true' : undefined}
               aria-label={`Jump to ${dest.name}`}
               data-testid={`nav-item-${dest.id}`}
             >
-              <span className="astra-nav-item-symbol" aria-hidden="true">
+              <span className="astra-nav-dot" aria-hidden="true" />
+              <span className="astra-nav-symbol" aria-hidden="true">
                 {symbol}
               </span>
-              <span>
-                {dest.orbitalOrder === 0 ? 'SOL' : `[${dest.orbitalOrder}]`} {dest.name}
+              <span className="astra-nav-label">
+                {dest.orbitalOrder === 0 ? 'SOL' : `0${dest.orbitalOrder}`} {dest.name.toUpperCase()}
               </span>
             </button>
           );
