@@ -25,6 +25,27 @@ if (typeof window !== 'undefined') {
     if (contextType === 'webgl' || contextType === 'experimental-webgl' || contextType === 'webgl2') {
       return null; // Return null in JSDOM to test graceful fallback
     }
-    return originalGetContext.call(this, contextType, options);
+    if (contextType === '2d') {
+      return {
+        clearRect: vi.fn(),
+        fillRect: vi.fn(),
+        beginPath: vi.fn(),
+        arc: vi.fn(),
+        fill: vi.fn(),
+        stroke: vi.fn(),
+        save: vi.fn(),
+        restore: vi.fn(),
+        scale: vi.fn(),
+        translate: vi.fn(),
+        fillStyle: '',
+        strokeStyle: '',
+        globalAlpha: 1,
+      };
+    }
+    try {
+      return originalGetContext.call(this, contextType, options);
+    } catch {
+      return null;
+    }
   };
 }

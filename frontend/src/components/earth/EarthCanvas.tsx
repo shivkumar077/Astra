@@ -698,7 +698,8 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     const meteorZ = -3.2; // Situated strictly behind Earth (Earth is at z: -1.6 to 0.0)
 
     const updateMeteorOrientation = (sx: number, sy: number, ex: number, ey: number) => {
-      const angleRad = Math.atan2(ey - sy, ex - sx) + Math.PI / 2;
+      // Rotate plane so incandescent head (+Y) points along trajectory vector and tail (-Y) streams behind
+      const angleRad = Math.atan2(ey - sy, ex - sx) - Math.PI / 2;
       meteorMesh.rotation.z = angleRad;
     };
     updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);

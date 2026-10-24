@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Spacecraft, OpticalAperture, SignatureStar } from '../common/CelestialIcons';
 import { AstraWordmark } from '../common/AstraBrand';
+import { WordmarkDissolutionField } from './WordmarkDissolutionField';
 import { DestinationType } from './EntryModal';
 
 interface HeroSectionProps {
@@ -38,8 +39,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const settledOpacity = Math.min(Math.max((t - 0.58) / 0.38, 0), 1);
   const settledTranslateY = (1.0 - settledOpacity) * 24;
 
-  // Detach signature star from wordmark as scroll begins (t: 0.05 -> 0.18)
-  const signatureStarOpacity = Math.max(1.0 - t * 7.0, 0);
+  // Detach signature star from wordmark as scroll begins (Phase B: t: 0.05 -> 0.16)
+  const signatureStarOpacity = Math.max(1.0 - Math.max(t - 0.05, 0) / 0.11, 0);
+
+  // Solid vector wordmark cross-fades into the particle dissolution field (Phase C: t: 0.14 -> 0.32)
+  const solidWordmarkOpacity = reducedMotion
+    ? 1.0
+    : (starsFormed ? 1.0 : 0.75) * Math.max(1.0 - Math.max(t - 0.14, 0) / 0.18, 0);
 
   return (
     <div
@@ -153,18 +159,26 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </div>
           )}
 
+          {/* Cinematic Wordmark-to-Particles Dissolution Overlay (Phase C & D) */}
+          {!reducedMotion && (
+            <WordmarkDissolutionField
+              scrollProgress={t}
+              reducedMotion={reducedMotion}
+            />
+          )}
+
           <AstraWordmark
             height="clamp(44px, 5.8vw, 76px)"
             color="var(--color-star-ivory)"
             accentColor="var(--color-star-warm)"
             style={{
-              opacity: starsFormed ? 1 : 0.75,
-              transition: 'opacity 700ms ease-out',
+              opacity: solidWordmarkOpacity,
+              transition: t === 0 ? 'opacity 700ms ease-out' : 'none',
             }}
           />
         </div>
 
-        {/* Quiet Editorial Statement */}
+        {/* Quiet Editorial Statement (Fades quietly as dissolution begins) */}
         <p
           className="astra-editorial-statement"
           style={{
@@ -176,6 +190,8 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             maxWidth: '520px',
             lineHeight: 1.45,
             filter: 'drop-shadow(0 2px 16px rgba(0, 0, 0, 0.8))',
+            opacity: Math.max(1.0 - t * 3.5, 0),
+            transition: 'opacity 250ms ease-out',
           }}
         >
           The quiet expanse of planetary operations and orbital intelligence.

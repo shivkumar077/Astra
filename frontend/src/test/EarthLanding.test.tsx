@@ -177,6 +177,15 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
     const earthCanvas = screen.getByTestId('earth-canvas-container');
     expect(earthCanvas.style.zIndex).toBe('3');
   });
+
+  it('renders the cinematic wordmark dissolution particle field in the hero stage', () => {
+    const { container } = render(<App />);
+
+    // Dissolution canvas overlay exists inside the wordmark wrapper
+    const dissolutionCanvas = container.querySelector('.astra-wordmark-dissolution-canvas');
+    expect(dissolutionCanvas).toBeInTheDocument();
+    expect(dissolutionCanvas).toHaveAttribute('aria-hidden', 'true');
+  });
 });
 
 
