@@ -19,7 +19,8 @@ public record CommandRecord(
         Instant executionEpoch,
         String message,
         Map<String, Object> outputData,
-        boolean idempotentReplay
+        boolean idempotentReplay,
+        String operatorUsername
 ) {
 
     public CommandRecord {
@@ -40,14 +41,30 @@ public record CommandRecord(
             CommandType type,
             Map<String, String> parameters,
             CommandStatus status,
+            Instant submittedAt,
+            Instant executionEpoch,
+            String message,
+            Map<String, Object> outputData,
+            boolean idempotentReplay
+    ) {
+        this(commandId, clientCommandId, spacecraftId, type, parameters, status, submittedAt, executionEpoch, message, outputData, idempotentReplay, null);
+    }
+
+    public CommandRecord(
+            String commandId,
+            String clientCommandId,
+            String spacecraftId,
+            CommandType type,
+            Map<String, String> parameters,
+            CommandStatus status,
             String message,
             Instant executionEpoch,
             Instant submittedAt
     ) {
-        this(commandId, clientCommandId, spacecraftId, type, parameters, status, submittedAt != null ? submittedAt : Instant.now(), executionEpoch != null ? executionEpoch : Instant.now(), message, Collections.emptyMap(), false);
+        this(commandId, clientCommandId, spacecraftId, type, parameters, status, submittedAt != null ? submittedAt : Instant.now(), executionEpoch != null ? executionEpoch : Instant.now(), message, Collections.emptyMap(), false, null);
     }
 
-    public static CommandRecord from(CommandRequest request, CommandResult result) {
+    public static CommandRecord from(CommandRequest request, CommandResult result, String operatorUsername) {
         String clientKey = request.parameters().get("clientCommandId");
         if (clientKey == null || clientKey.isBlank()) {
             clientKey = request.commandId();
@@ -63,7 +80,12 @@ public record CommandRecord(
                 result.executionEpoch(),
                 result.message(),
                 result.outputData(),
-                result.idempotentReplay()
+                result.idempotentReplay(),
+                operatorUsername
         );
+    }
+
+    public static CommandRecord from(CommandRequest request, CommandResult result) {
+        return from(request, result, null);
     }
 }

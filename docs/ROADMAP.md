@@ -12,23 +12,23 @@
 ASTRA is built in ten deliberate, verifiable phases. Each phase concludes with an explicit **Stage Gate Review** containing measurable acceptance criteria before proceeding to the next stage.
 
 ```
-[Phase 1] Foundation & Specification  <-- (CURRENT STAGE - COMPLETED)
+[Phase 1] Foundation & Specification  <-- (COMPLETED)
     │
-[Phase 2] Core Domain & Deterministic Simulation Engine (Spring Boot / Java 21)
+[Phase 2] Core Domain & Deterministic Simulation Engine (Spring Boot / Java 21) <-- (COMPLETED)
     │
-[Phase 3] Real-Time Telemetry Stream & Command Pipeline (WebSockets / STOMP)
+[Phase 3] Real-Time Telemetry Stream & Command Pipeline (WebSockets / STOMP) <-- (COMPLETED)
     │
-[Phase 4] Failure Lab & Six-Domain Anomaly Engine
+[Phase 4] Failure Lab & Six-Domain Anomaly Engine <-- (COMPLETED)
     │
-[Phase 5] External Space Imagery Gateway (NASA API & GIBS Integration)
+[Phase 5] Persistence, Security & Operational Reliability (Flyway / JPA / RBAC) <-- (COMPLETED - 60% MILESTONE)
     │
-[Phase 6] Frontend Foundation & Aerospace Design System (React / TS / Vite)
+[Phase 6] Space Imagery Gateway & Multi-Destination Experience (NASA API & GIBS)
     │
-[Phase 7] Three.js 3D Orbital Scene & Spacecraft Rendering
+[Phase 7] Mission Control Frontend Foundation & Aerospace Design System (React / TS / Vite)
     │
-[Phase 8] Integrated Mission Control Console & Operation Workflows
+[Phase 8] Three.js 3D Orbital Scene & Spacecraft Rendering
     │
-[Phase 9] Supabase Persistence & Database Migrations (Flyway)
+[Phase 9] Integrated Mission Control Console & Operation Workflows
     │
 [Phase 10] Performance Optimization, Integration Testing & Portfolio Packaging
 ```
@@ -37,7 +37,7 @@ ASTRA is built in ten deliberate, verifiable phases. Each phase concludes with a
 
 ## Phase Details & Measurable Stage Gates
 
-### Phase 1: Foundation & Specification (Current)
+### Phase 1: Foundation & Specification (COMPLETED)
 - **Goal:** Establish architecture, domain models, visual guidelines, environment templates, and development discipline before writing application code.
 - **Deliverables:**
   - `README.md`
@@ -120,15 +120,76 @@ ASTRA is built in ten deliberate, verifiable phases. Each phase concludes with a
 
 ---
 
-### Phase 5: Space Imagery Gateway (NASA API & GIBS)
-- **Goal:** Build the backend proxy and caching layer for NASA media assets.
+### Phase 5: Persistence, Security & Operational Reliability [COMPLETED] (60% Milestone)
+- **Goal:** Implement persistent storage boundaries, database schema migrations via Flyway, and robust server-enforced role-based access control (RBAC) to ensure operational reliability and security across restarts.
+- **Deliverables:**
+  - [x] **Durable Persistence Boundary:** Separated ephemeral high-frequency simulation tick state from durable operational ledger.
+    - Durable: Spacecraft fleet catalog, command execution history & idempotency cache, Failure Lab fault records with full lifecycle history & operator attribution, monotonically sequenced operational audit events, periodic sampled telemetry snapshots.
+    - Ephemeral: Real-time 5 Hz Keplerian propagation state and high-frequency in-memory ring buffers.
+  - [x] **PostgreSQL & Flyway Migrations:** Versioned migration `V1__initial_schema.sql` creating relational schema (`spacecraft_records`, `command_records`, `fault_records`, `simulation_event_records`, `telemetry_snapshots`) with foreign keys, JSONB-compatible columns, and lookup indexes (`idx_cmd_client_id`, `idx_cmd_spacecraft`, `idx_fault_spacecraft`, `idx_fault_lifecycle`, `idx_events_seq`, `idx_telem_snap_sc_time`).
+  - [x] **Database Isolation & Migration Testing:** Flyway baseline configuration configured (`table: astra_migrations`, `baseline-version: 0`). Hermetic in-memory test datasource configuration in `maven-surefire-plugin` ensures test suites run without external dependencies, while production integrates cleanly with live PostgreSQL/Neon/Supabase instances.
+  - [x] **Restart Survivability & Idempotency Recovery:** `CommandHistoryService` restores command history and idempotency cache on startup; duplicate submissions return cached results even after server restart. `FailureLabService` restores fault ledger on startup while leaving physical hardware nominal on fresh restart. `EventBroadcaster` resumes monotonically increasing sequence numbers from database ledger (`max(sequenceNumber) + 1`).
+  - [x] **Telemetry Archival Policy:** `TelemetryArchiveService` samples authoritative fleet telemetry every 30 seconds into `telemetry_snapshots` with automatic retention pruning (retaining up to 50,000 historical records) to avoid uncontrolled database growth.
+  - [x] **Spring Security & RBAC Foundation:**
+    - Role hierarchy: `VIEWER`, `OPERATOR`, `FLIGHT_DIRECTOR`, `ADMIN`.
+    - Authorization boundaries:
+      - Public/Viewer: `/actuator/health`, `/actuator/info`, `/ws/**`, `GET /api/v1/simulation/status`, `GET /api/v1/spacecraft/**`, `GET /api/v1/faults/**`, `GET /api/v1/commands/**`, `GET /api/v1/events/**`.
+      - Operator (`ROLE_OPERATOR`): Telecommand submission (`POST /api/v1/commands/**`), simulation clock advance (`POST /api/v1/simulation/advance`), simulation pause/resume (`POST /api/v1/simulation/pause`, `POST /api/v1/simulation/resume`).
+      - Flight Director (`ROLE_FLIGHT_DIRECTOR`): Failure Lab fault injection (`POST /api/v1/faults/inject`), recovery actions (`POST /api/v1/faults/*/recover`), alert clearance (`DELETE /api/v1/faults/*`), legacy anomaly injection/clearing (`POST /api/v1/anomalies/inject`, `DELETE /api/v1/anomalies/*`).
+      - Admin (`ROLE_ADMIN`): Cold simulation initialization (`POST /api/v1/simulation/initialize`), continuous autonomous scheduler control (`POST /api/v1/simulation/continuous/*`).
+    - Operator attribution: Captured via `SecurityUtils.getCurrentOperatorUsername()` and permanently recorded in command execution and fault lifecycle audit records.
+    - Custom JSON security responses conforming to `ApiErrorResponse` for HTTP 401 Unauthorized and HTTP 403 Forbidden.
+    - Environment-driven BCrypt credentials (`ASTRA_SECURITY_*`) outside source control.
+  - [x] **Automated Test Suite Expansion:** 103 backend automated tests passing cleanly with zero failures (including 14 dedicated persistence, RBAC, and restart recovery tests).
+- **Stage Gate 5 Acceptance Criteria:**
+  1. [x] Application successfully boots, applies Flyway migrations, and connects to relational database.
+  2. [x] Command executions, idempotency records, fault histories, and audit events persist across application restarts.
+  3. [x] Privileged operations (telecommand dispatch, fault injection, fault recovery, simulation control) strictly reject unauthenticated (401) and unauthorized (403) callers.
+  4. [x] Telemetry snapshot policy prunes older snapshots and prevents high-frequency database bloat.
+  5. [x] Test coverage: 103/103 automated tests passing with zero failures.
+
+---
+
+### Space Imagery — Future Design Brief (Preserved Specification)
+
+> [!IMPORTANT]
+> The frontend source code remains intentionally visually frozen in this phase. The following requirements represent the approved future design brief for the Space Imagery experience to be implemented when frontend visual work resumes.
+
+#### Overall Experience
+A cinematic, immersive planetary journey featuring rotating planets, carefully changing environments, and real space imagery.
+
+#### Alternating Desktop Composition
+- **Mercury:** Planet globe positioned on the left; spacecraft, mission, and imagery options on the right.
+- **Venus:** Planet globe positioned on the right; mission and imagery options on the left.
+- **Earth, Mars, and subsequent destinations:** Continue alternating sides to establish a deliberate visual rhythm and avoid repetitive generic cards.
+
+#### Navigation and Content
+- Smooth transitions between planetary sections.
+- Transition choreography will be designed and reviewed with the user after an initial interactive implementation is visible.
+- Planet-specific mission discovery powered by verified spacecraft and mission records.
+- Authentic rover and spacecraft photography where supported by the source (NASA Image and Video Library / GIBS).
+- Progressively loaded, randomized image galleries with proper attribution and duplicate avoidance.
+
+#### Mobile Requirements
+- Design specifically for mobile viewports rather than merely shrinking down the desktop layout.
+- Preserve the alternating storytelling rhythm through deliberate responsive composition.
+- Touch-friendly mission controls, readable typography, and performant planetary rendering.
+- Respect `prefers-reduced-motion` user preferences and provide a graceful fallback experience if WebGL/3D rendering is unavailable.
+
+#### Scope Boundary
+The user will provide further visual direction when frontend development resumes. Do not invent final transitions or prematurely finalize the planetary visual design.
+
+---
+
+### Phase 6: Space Imagery Gateway & Multi-Destination Experience
+- **Goal:** Build backend proxy and caching layer for NASA media assets (NASA Image and Video Library, GIBS tiles) and integrate the alternating planetary destination design.
 - **Deliverables:**
   - Spring HTTP client for NASA Image and Video Library (`images-api.nasa.gov`).
   - NASA GIBS WMTS tile URL resolver and metadata service.
-  - Server-side in-memory cache for asset manifests and search queries.
-  - Circuit breaker and graceful rate-limit handling.
-- **Stage Gate 5 Acceptance Criteria:**
-  1. `/api/v1/imagery/random` returns 12 curated space photography items with full metadata.
+  - Multi-destination mission records (Mercury, Venus, Earth, Mars).
+  - In-memory cache for asset manifests, randomized galleries, and search queries with rate-limit circuit breaking.
+- **Stage Gate 6 Acceptance Criteria:**
+  1. `/api/v1/imagery/random` returns 12 curated space photography items with full metadata and attribution.
   2. Search queries execute cleanly against NASA API with pagination.
   3. Disconnecting external network causes service to serve cached fallbacks without crashing.
   4. Zero NASA API keys exposed in responses or client code.

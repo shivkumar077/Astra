@@ -47,6 +47,9 @@ public class SimulationEngine {
     private SimulationLifecycle lifecycle;
     private final Map<String, Spacecraft> fleet = new ConcurrentHashMap<>();
 
+    private final org.astra.persistence.repository.SpacecraftRecordRepository spacecraftRepository;
+    private final org.astra.telemetry.TelemetryArchiveService telemetryArchiveService;
+
     // Tracks initial orbital elements at t0 for each spacecraft to preserve analytical Keplerian truth
     private final Map<String, KeplerianElements> baseElements = new ConcurrentHashMap<>();
     private Instant baseEpoch;
@@ -58,6 +61,8 @@ public class SimulationEngine {
             Optional<AnomalyManager> anomalyManager,
             Optional<org.astra.anomalies.FailureLabService> failureLabService,
             Optional<org.astra.websocket.TelemetryStreamBroadcaster> telemetryBroadcaster,
+            Optional<org.astra.persistence.repository.SpacecraftRecordRepository> spacecraftRepository,
+            Optional<org.astra.telemetry.TelemetryArchiveService> telemetryArchiveService,
             @Value("${astra.simulation.initial-epoch:2026-10-24T00:00:00Z}") String initialEpochStr
     ) {
         this(
@@ -67,6 +72,8 @@ public class SimulationEngine {
                 anomalyManager.orElse(null),
                 failureLabService.orElse(null),
                 telemetryBroadcaster.orElse(null),
+                spacecraftRepository.orElse(null),
+                telemetryArchiveService.orElse(null),
                 Instant.parse(initialEpochStr)
         );
     }
@@ -76,7 +83,7 @@ public class SimulationEngine {
             TelemetryService telemetryService,
             Instant initialEpoch
     ) {
-        this(orbitalPropagator, telemetryService, null, null, null, null, initialEpoch);
+        this(orbitalPropagator, telemetryService, null, null, null, null, null, null, initialEpoch);
     }
 
     public SimulationEngine(
@@ -87,7 +94,7 @@ public class SimulationEngine {
             org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster,
             Instant initialEpoch
     ) {
-        this(orbitalPropagator, telemetryService, eventPublisher, anomalyManager, null, telemetryBroadcaster, initialEpoch);
+        this(orbitalPropagator, telemetryService, eventPublisher, anomalyManager, null, telemetryBroadcaster, null, null, initialEpoch);
     }
 
     public SimulationEngine(
@@ -99,12 +106,28 @@ public class SimulationEngine {
             org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster,
             Instant initialEpoch
     ) {
+        this(orbitalPropagator, telemetryService, eventPublisher, anomalyManager, failureLabService, telemetryBroadcaster, null, null, initialEpoch);
+    }
+
+    public SimulationEngine(
+            OrbitalPropagator orbitalPropagator,
+            TelemetryService telemetryService,
+            SimulationEventPublisher eventPublisher,
+            AnomalyManager anomalyManager,
+            org.astra.anomalies.FailureLabService failureLabService,
+            org.astra.websocket.TelemetryStreamBroadcaster telemetryBroadcaster,
+            org.astra.persistence.repository.SpacecraftRecordRepository spacecraftRepository,
+            org.astra.telemetry.TelemetryArchiveService telemetryArchiveService,
+            Instant initialEpoch
+    ) {
         this.orbitalPropagator = Objects.requireNonNull(orbitalPropagator, "orbitalPropagator must not be null");
         this.telemetryService = Objects.requireNonNull(telemetryService, "telemetryService must not be null");
         this.eventPublisher = eventPublisher;
         this.anomalyManager = anomalyManager;
         this.failureLabService = failureLabService;
         this.telemetryBroadcaster = telemetryBroadcaster;
+        this.spacecraftRepository = spacecraftRepository;
+        this.telemetryArchiveService = telemetryArchiveService;
         this.baseEpoch = Objects.requireNonNull(initialEpoch, "initialEpoch must not be null");
         this.clock = new SimulationClock(initialEpoch);
         this.lifecycle = SimulationLifecycle.CREATED;
@@ -190,6 +213,32 @@ public class SimulationEngine {
         baseElements.put(spacecraft.getId(), elements);
         // Record initial telemetry
         telemetryService.recordSnapshot(TelemetrySnapshot.fromSpacecraft(spacecraft));
+
+        if (spacecraftRepository != null) {
+            try {
+                org.astra.persistence.entity.SpacecraftRecordEntity entity = new org.astra.persistence.entity.SpacecraftRecordEntity(
+                        spacecraft.getId(),
+                        spacecraft.getCallSign(),
+                        spacecraft.getName(),
+                        spacecraft.getModelType(),
+                        spacecraft.getDryMassKg(),
+                        spacecraft.getPropellantMassKg(),
+                        spacecraft.getOperationalMode().name(),
+                        spacecraft.getOperationalStatus().name(),
+                        spacecraft.getBatterySocPercent(),
+                        spacecraft.getSolarArrayWatts(),
+                        elements.semiMajorAxisKm(),
+                        elements.eccentricity(),
+                        elements.inclinationDeg(),
+                        elements.raanDeg(),
+                        elements.argOfPeriapsisDeg(),
+                        elements.trueAnomalyDeg()
+                );
+                spacecraftRepository.save(entity);
+            } catch (Exception e) {
+                // Log and absorb to keep simulation engine authoritative
+            }
+        }
     }
 
     /**
@@ -258,6 +307,12 @@ public class SimulationEngine {
                 telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
                         lifecycle, targetEpoch, baseEpoch, clock.getElapsedSeconds(), fleet.size()
                 ));
+            }
+
+            if (telemetryArchiveService != null) {
+                for (Spacecraft sc : fleet.values()) {
+                    telemetryArchiveService.sampleAndArchive(sc, targetEpoch);
+                }
             }
 
             return targetEpoch;

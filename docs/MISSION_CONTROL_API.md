@@ -349,3 +349,98 @@ In addition to discrete manual advancement (`POST /api/v1/simulation/advance`), 
 - `POST /api/v1/simulation/continuous/stop`: Stops background ticker.
 
 *Note: The core simulation remains 100% discrete and deterministic; the continuous scheduler simply invokes `simulationEngine.step(Duration)` periodically on an isolated background worker thread.*
+
+---
+
+## 8. Authentication, Authorization & RBAC Specification (Phase 5)
+
+ASTRA enforces server-side Role-Based Access Control (RBAC) on all mutating and privileged operational endpoints using HTTP Basic authentication.
+
+### 8.1 Authentication Header
+Privileged HTTP requests must provide an `Authorization` header containing base64-encoded credentials:
+
+```http
+Authorization: Basic <base64(username:password)>
+```
+
+Example in JavaScript / TypeScript:
+```typescript
+const credentials = btoa('operator:operator123');
+const response = await fetch('http://localhost:8080/api/v1/commands', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Basic ${credentials}`
+  },
+  body: JSON.stringify(commandPayload)
+});
+```
+
+### 8.2 Role-Based Access Control (RBAC) Permissions Matrix
+
+| Endpoint | HTTP Method | Minimum Required Role | Description |
+| :--- | :--- | :--- | :--- |
+| `/actuator/health`, `/actuator/info` | `GET` | *Public* | Service liveness and metadata |
+| `/ws/**` | `CONNECT` | *Public* | STOMP WebSocket telemetry stream |
+| `/api/v1/simulation/status` | `GET` | *Public / VIEWER* | Current simulation clock, lifecycle, and fleet size |
+| `/api/v1/spacecraft/**` | `GET` | *Public / VIEWER* | Orbital states and subsystem diagnostics |
+| `/api/v1/commands/**` | `GET` | *Public / VIEWER* | Historical command execution ledger |
+| `/api/v1/faults/**` | `GET` | *Public / VIEWER* | Failure Lab scenario catalog and fault records |
+| `/api/v1/events/**` | `GET` | *Public / VIEWER* | Monotonically sequenced domain audit log |
+| `/api/v1/commands/**` | `POST` | `ROLE_OPERATOR` | Telecommand dispatch (`SET_OPERATIONAL_MODE`, etc.) |
+| `/api/v1/spacecraft/*/commands` | `POST` | `ROLE_OPERATOR` | Spacecraft-specific telecommand dispatch |
+| `/api/v1/simulation/advance` | `POST` | `ROLE_OPERATOR` | Manual simulation clock step ($\Delta t$) |
+| `/api/v1/simulation/pause` | `POST` | `ROLE_OPERATOR` | Pause simulation engine |
+| `/api/v1/simulation/resume` | `POST` | `ROLE_OPERATOR` | Resume simulation engine |
+| `/api/v1/faults/inject` | `POST` | `ROLE_FLIGHT_DIRECTOR` | Failure Lab fault injection |
+| `/api/v1/faults/*/recover` | `POST` | `ROLE_FLIGHT_DIRECTOR` | Command validated recovery procedure |
+| `/api/v1/faults/*` | `DELETE` | `ROLE_FLIGHT_DIRECTOR` | Clear active console fault alert |
+| `/api/v1/anomalies/inject` | `POST` | `ROLE_FLIGHT_DIRECTOR` | Legacy anomaly injection |
+| `/api/v1/anomalies/*` | `DELETE` | `ROLE_FLIGHT_DIRECTOR` | Legacy anomaly clearance |
+| `/api/v1/simulation/initialize` | `POST` | `ROLE_ADMIN` | Cold engine re-initialization |
+| `/api/v1/simulation/continuous/*` | `POST` | `ROLE_ADMIN` | Start/stop continuous background ticker |
+
+### 8.3 Default Local Credentials & Environment Variables
+For local testing and Mission Control development:
+
+| Role | Default Username | Default Password | Environment Variables |
+| :--- | :--- | :--- | :--- |
+| `ROLE_VIEWER` | `viewer` | `viewer123` | `ASTRA_SECURITY_VIEWER_USERNAME`, `ASTRA_SECURITY_VIEWER_PASSWORD` |
+| `ROLE_OPERATOR` | `operator` | `operator123` | `ASTRA_SECURITY_OPERATOR_USERNAME`, `ASTRA_SECURITY_OPERATOR_PASSWORD` |
+| `ROLE_FLIGHT_DIRECTOR` | `director` | `director123` | `ASTRA_SECURITY_DIRECTOR_USERNAME`, `ASTRA_SECURITY_DIRECTOR_PASSWORD` |
+| `ROLE_ADMIN` | `admin` | `admin123` | `ASTRA_SECURITY_ADMIN_USERNAME`, `ASTRA_SECURITY_ADMIN_PASSWORD` |
+
+*Security Rule: In production environments, passwords must be supplied via environment variables; default passwords must never be deployed.*
+
+### 8.4 Standard Security Error Responses
+
+#### HTTP 401 Unauthorized
+Returned when authentication credentials are missing or invalid:
+```json
+{
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Full authentication is required to access this resource",
+  "path": "/api/v1/commands",
+  "timestamp": "2026-10-24T16:00:00Z"
+}
+```
+
+#### HTTP 403 Forbidden
+Returned when an authenticated principal lacks the required role:
+```json
+{
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Access Denied: insufficient operational privileges for this action",
+  "path": "/api/v1/faults/inject",
+  "timestamp": "2026-10-24T16:00:00Z"
+}
+```
+
+### 8.5 Operator Principal Audit Recording
+When a privileged command or fault action is submitted, the backend captures the authenticated operator principal and permanently persists it:
+- `CommandRecord.operatorUsername`: Operator who dispatched the command.
+- `FaultRecord.operatorUsername`: Flight Director who injected or recovered the fault.
+- `SimulationEvent.parameters["operatorUsername"]`: Included in STOMP broadcast and database event ledger.
+

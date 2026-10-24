@@ -1,0 +1,52 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: astra-backend-test
+  datasource:
+    url: jdbc:h2:mem:astratestdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    table: astra_migrations
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+astra:
+  simulation:
+    initial-epoch: "2026-10-24T00:00:00Z"
+    default-step-seconds: 1.0
+    auto-start: false
+  telemetry:
+    archive:
+      sampling-interval-seconds: 5
+      max-retained-records: 1000
+  security:
+    cors:
+      allowed-origins:
+        - "*"
+    users:
+      viewer:
+        username: viewer
+        password: viewer123
+      operator:
+        username: operator
+        password: operator123
+      flight-director:
+        username: director
+        password: director123
+      admin:
+        username: admin
+        password: admin123

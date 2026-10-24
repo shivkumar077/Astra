@@ -1,5 +1,6 @@
 package org.astra.anomalies;
 
+import jakarta.annotation.PostConstruct;
 import org.astra.anomalies.dto.FaultScenarioMetadata;
 import org.astra.anomalies.dto.InjectFaultRequest;
 import org.astra.anomalies.dto.RecoverFaultRequest;
@@ -10,8 +11,15 @@ import org.astra.core.domain.SpacecraftStatus;
 import org.astra.core.domain.subsystems.*;
 import org.astra.events.SimulationEventPublisher;
 import org.astra.events.SimulationEventType;
+import org.astra.persistence.JsonUtils;
+import org.astra.persistence.entity.FaultRecordEntity;
+import org.astra.persistence.repository.FaultRecordRepository;
+import org.astra.security.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -26,21 +34,54 @@ import java.util.concurrent.CopyOnWriteArrayList;
 @Service
 public class FailureLabService {
 
+    private static final Logger log = LoggerFactory.getLogger(FailureLabService.class);
     private static final int MAX_FAULT_HISTORY_RECORDS = 500;
 
     private final Map<String, FaultRecord> activeFaults = new ConcurrentHashMap<>();
     private final List<FaultRecord> faultHistory = new CopyOnWriteArrayList<>();
     private final FaultDetectionEngine detectionEngine;
     private final SimulationEventPublisher eventPublisher;
+    private final FaultRecordRepository faultRepository;
 
     public FailureLabService() {
-        this(new FaultDetectionEngine(), event -> {});
+        this(new FaultDetectionEngine(), event -> {}, null);
+    }
+
+    public FailureLabService(FaultDetectionEngine detectionEngine, SimulationEventPublisher eventPublisher) {
+        this(detectionEngine, eventPublisher, null);
     }
 
     @Autowired
-    public FailureLabService(FaultDetectionEngine detectionEngine, SimulationEventPublisher eventPublisher) {
+    public FailureLabService(
+            FaultDetectionEngine detectionEngine,
+            SimulationEventPublisher eventPublisher,
+            Optional<FaultRecordRepository> faultRepository
+    ) {
         this.detectionEngine = Objects.requireNonNull(detectionEngine, "detectionEngine must not be null");
         this.eventPublisher = Objects.requireNonNull(eventPublisher, "eventPublisher must not be null");
+        this.faultRepository = faultRepository != null ? faultRepository.orElse(null) : null;
+    }
+
+    @PostConstruct
+    public void initFromDatabase() {
+        if (faultRepository == null) {
+            return;
+        }
+        try {
+            List<FaultRecordEntity> persisted = faultRepository.findTop500ByOrderByInjectedEpochDesc();
+            if (persisted != null && !persisted.isEmpty()) {
+                List<FaultRecordEntity> chronological = new ArrayList<>(persisted);
+                Collections.reverse(chronological);
+                for (FaultRecordEntity entity : chronological) {
+                    FaultRecord rec = mapToRecord(entity);
+                    faultHistory.removeIf(f -> f.faultId().equals(rec.faultId()));
+                    faultHistory.add(rec);
+                }
+                log.info("Recovered {} durable fault history records from database.", persisted.size());
+            }
+        } catch (Exception e) {
+            log.warn("Could not hydrate fault history from database: {}", e.getMessage());
+        }
     }
 
     /**
@@ -190,6 +231,7 @@ public class FailureLabService {
         FaultScenarioCode code = request.scenarioCode();
         FaultSeverity severity = request.severity() != null ? request.severity() : code.getDefaultSeverity();
         Map<String, Object> params = request.parameters() != null ? new HashMap<>(request.parameters()) : new HashMap<>();
+        String operator = SecurityUtils.getCurrentOperatorUsername().orElse(null);
 
         FaultRecord fault = FaultRecord.of(
                 spacecraft.getId(),
@@ -197,7 +239,8 @@ public class FailureLabService {
                 severity,
                 currentEpoch,
                 params,
-                request.description()
+                request.description(),
+                operator
         );
 
         // Apply initial physical perturbation to subsystem state
@@ -744,7 +787,8 @@ public class FailureLabService {
         // Apply physical restoration to subsystem state
         restoreSubsystemNominalPhysics(fault, spacecraft);
 
-        FaultRecord recovered = fault.withRecovered(currentEpoch, request.operatorNote());
+        String operator = SecurityUtils.getCurrentOperatorUsername().orElse(null);
+        FaultRecord recovered = fault.withRecovered(currentEpoch, request.operatorNote(), operator);
         activeFaults.remove(faultId);
         recordHistory(recovered);
         detectionEngine.clearAlertSignature(faultId);
@@ -855,7 +899,8 @@ public class FailureLabService {
                     .orElseThrow(() -> new NoSuchElementException("Fault not found: " + faultId));
         }
 
-        FaultRecord cleared = fault.withCleared(currentEpoch);
+        String operator = SecurityUtils.getCurrentOperatorUsername().orElse(null);
+        FaultRecord cleared = fault.withCleared(currentEpoch, operator);
         recordHistory(cleared);
         detectionEngine.clearAlertSignature(faultId);
 
@@ -919,12 +964,60 @@ public class FailureLabService {
                         || f.scenarioCode() == FaultScenarioCode.PROP_THRUSTER_COLD);
     }
 
+    @Transactional
     private void recordHistory(FaultRecord record) {
         faultHistory.removeIf(f -> f.faultId().equals(record.faultId()));
         faultHistory.add(record);
         while (faultHistory.size() > MAX_FAULT_HISTORY_RECORDS) {
             faultHistory.remove(0);
         }
+
+        if (faultRepository != null) {
+            try {
+                Optional<FaultRecordEntity> existing = faultRepository.findByFaultId(record.faultId());
+                FaultRecordEntity entity = existing.orElseGet(FaultRecordEntity::new);
+                entity.setFaultId(record.faultId());
+                entity.setSpacecraftId(record.spacecraftId());
+                entity.setSubsystem(record.subsystem().name());
+                entity.setScenarioCode(record.scenarioCode().name());
+                entity.setSeverity(record.severity().name());
+                entity.setLifecycleState(record.lifecycleState().name());
+                entity.setInjectedEpoch(record.injectedEpoch());
+                entity.setDetectedEpoch(record.detectedEpoch());
+                entity.setRecoveredEpoch(record.recoveredEpoch());
+                entity.setClearedEpoch(record.clearedEpoch());
+                entity.setOperatorUsername(record.operatorUsername());
+                entity.setRecoveryActionRequired(record.recoveryActionRequired() != null ? record.recoveryActionRequired().name() : null);
+                entity.setAutoRecoverable(record.autoRecoverable());
+                entity.setDescription(record.description());
+                entity.setOperatorExplanation(record.operatorExplanation());
+                entity.setParametersJson(JsonUtils.toJson(record.parameters()));
+                faultRepository.save(entity);
+            } catch (Exception e) {
+                log.error("Failed to persist fault record {}: {}", record.faultId(), e.getMessage());
+            }
+        }
+    }
+
+    private FaultRecord mapToRecord(FaultRecordEntity entity) {
+        return new FaultRecord(
+                entity.getFaultId(),
+                entity.getSpacecraftId(),
+                SubsystemType.valueOf(entity.getSubsystem()),
+                FaultScenarioCode.valueOf(entity.getScenarioCode()),
+                FaultSeverity.valueOf(entity.getSeverity()),
+                FaultLifecycleState.valueOf(entity.getLifecycleState()),
+                entity.getInjectedEpoch(),
+                entity.getDetectedEpoch(),
+                entity.getRecoveredEpoch(),
+                entity.getClearedEpoch(),
+                JsonUtils.fromJson(entity.getParametersJson()),
+                entity.getDescription(),
+                entity.getOperatorExplanation(),
+                entity.getRecoveryActionRequired() != null ? RecoveryActionType.valueOf(entity.getRecoveryActionRequired()) : null,
+                entity.isAutoRecoverable(),
+                entity.getOperatorUsername()
+        );
     }
 
     public void reset() {

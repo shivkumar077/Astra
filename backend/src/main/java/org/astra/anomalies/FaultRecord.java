@@ -24,7 +24,8 @@ public record FaultRecord(
         String description,
         String operatorExplanation,
         RecoveryActionType recoveryActionRequired,
-        boolean autoRecoverable
+        boolean autoRecoverable,
+        String operatorUsername
 ) {
 
     public FaultRecord {
@@ -38,13 +39,39 @@ public record FaultRecord(
         parameters = parameters == null ? Collections.emptyMap() : Collections.unmodifiableMap(parameters);
     }
 
+    public FaultRecord(
+            String faultId,
+            String spacecraftId,
+            SubsystemType subsystem,
+            FaultScenarioCode scenarioCode,
+            FaultSeverity severity,
+            FaultLifecycleState lifecycleState,
+            Instant injectedEpoch,
+            Instant detectedEpoch,
+            Instant recoveredEpoch,
+            Instant clearedEpoch,
+            Map<String, Object> parameters,
+            String description,
+            String operatorExplanation,
+            RecoveryActionType recoveryActionRequired,
+            boolean autoRecoverable
+    ) {
+        this(
+                faultId, spacecraftId, subsystem, scenarioCode, severity,
+                lifecycleState, injectedEpoch, detectedEpoch, recoveredEpoch,
+                clearedEpoch, parameters, description, operatorExplanation,
+                recoveryActionRequired, autoRecoverable, null
+        );
+    }
+
     public static FaultRecord of(
             String spacecraftId,
             FaultScenarioCode scenarioCode,
             FaultSeverity severity,
             Instant injectedEpoch,
             Map<String, Object> parameters,
-            String description
+            String description,
+            String operatorUsername
     ) {
         return new FaultRecord(
                 UUID.randomUUID().toString(),
@@ -61,8 +88,20 @@ public record FaultRecord(
                 description != null ? description : scenarioCode.name() + " fault active",
                 "Subsystem " + scenarioCode.getSubsystem() + " experiencing " + scenarioCode.name() + "; operator action required: " + scenarioCode.getExpectedRecoveryAction(),
                 scenarioCode.getExpectedRecoveryAction(),
-                false
+                false,
+                operatorUsername
         );
+    }
+
+    public static FaultRecord of(
+            String spacecraftId,
+            FaultScenarioCode scenarioCode,
+            FaultSeverity severity,
+            Instant injectedEpoch,
+            Map<String, Object> parameters,
+            String description
+    ) {
+        return of(spacecraftId, scenarioCode, severity, injectedEpoch, parameters, description, null);
     }
 
     public FaultRecord withDetected(Instant detectedEpoch, String explanation) {
@@ -72,39 +111,54 @@ public record FaultRecord(
                 injectedEpoch, detectedEpoch, recoveredEpoch, clearedEpoch,
                 parameters, description,
                 explanation != null ? explanation : operatorExplanation,
-                recoveryActionRequired, autoRecoverable
+                recoveryActionRequired, autoRecoverable, operatorUsername
         );
     }
 
     public FaultRecord withRecovering(String operatorNote) {
+        return withRecovering(operatorNote, operatorUsername);
+    }
+
+    public FaultRecord withRecovering(String operatorNote, String newOperator) {
         return new FaultRecord(
                 faultId, spacecraftId, subsystem, scenarioCode, severity,
                 FaultLifecycleState.RECOVERING,
                 injectedEpoch, detectedEpoch, recoveredEpoch, clearedEpoch,
                 parameters, description,
                 operatorNote != null ? operatorNote : operatorExplanation,
-                recoveryActionRequired, autoRecoverable
+                recoveryActionRequired, autoRecoverable,
+                newOperator != null ? newOperator : operatorUsername
         );
     }
 
     public FaultRecord withRecovered(Instant recoveredEpoch, String operatorNote) {
+        return withRecovered(recoveredEpoch, operatorNote, operatorUsername);
+    }
+
+    public FaultRecord withRecovered(Instant recoveredEpoch, String operatorNote, String newOperator) {
         return new FaultRecord(
                 faultId, spacecraftId, subsystem, scenarioCode, severity,
                 FaultLifecycleState.RECOVERED,
                 injectedEpoch, detectedEpoch, recoveredEpoch, clearedEpoch,
                 parameters, description,
                 operatorNote != null ? operatorNote : operatorExplanation,
-                recoveryActionRequired, autoRecoverable
+                recoveryActionRequired, autoRecoverable,
+                newOperator != null ? newOperator : operatorUsername
         );
     }
 
     public FaultRecord withCleared(Instant clearedEpoch) {
+        return withCleared(clearedEpoch, operatorUsername);
+    }
+
+    public FaultRecord withCleared(Instant clearedEpoch, String newOperator) {
         return new FaultRecord(
                 faultId, spacecraftId, subsystem, scenarioCode, severity,
                 FaultLifecycleState.CLEARED,
                 injectedEpoch, detectedEpoch, recoveredEpoch, clearedEpoch,
                 parameters, description, operatorExplanation,
-                recoveryActionRequired, autoRecoverable
+                recoveryActionRequired, autoRecoverable,
+                newOperator != null ? newOperator : operatorUsername
         );
     }
 
@@ -114,7 +168,7 @@ public record FaultRecord(
                 lifecycleState,
                 injectedEpoch, detectedEpoch, recoveredEpoch, clearedEpoch,
                 parameters, description, operatorExplanation,
-                recoveryActionRequired, autoRecoverable
+                recoveryActionRequired, autoRecoverable, operatorUsername
         );
     }
 }

@@ -4,6 +4,19 @@ server:
 spring:
   application:
     name: astra-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:astradb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+    baseline-version: 0
+    table: astra_migrations
 
 management:
   endpoints:
@@ -19,3 +32,25 @@ astra:
     initial-epoch: "2026-10-24T00:00:00Z"
     default-step-seconds: 1.0
     auto-start: true
+  telemetry:
+    archive:
+      sampling-interval-seconds: 30
+      max-retained-records: 50000
+  security:
+    cors:
+      allowed-origins:
+        - "http://localhost:5173"
+        - "http://localhost:3000"
+    users:
+      viewer:
+        username: ${ASTRA_SECURITY_VIEWER_USERNAME:viewer}
+        password: ${ASTRA_SECURITY_VIEWER_PASSWORD:viewer123}
+      operator:
+        username: ${ASTRA_SECURITY_OPERATOR_USERNAME:operator}
+        password: ${ASTRA_SECURITY_OPERATOR_PASSWORD:operator123}
+      flight-director:
+        username: ${ASTRA_SECURITY_DIRECTOR_USERNAME:director}
+        password: ${ASTRA_SECURITY_DIRECTOR_PASSWORD:director123}
+      admin:
+        username: ${ASTRA_SECURITY_ADMIN_USERNAME:admin}
+        password: ${ASTRA_SECURITY_ADMIN_PASSWORD:admin123}

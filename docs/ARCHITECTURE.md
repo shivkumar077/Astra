@@ -398,9 +398,140 @@ Recovery requires valid procedures mapped directly to the failure mode (`FaultSc
 
 Incompatible recovery requests are rejected with explicit HTTP 400 errors and emit `FAULT_RECOVERY_FAILED`.
 
-### 10.5 In-Memory Volatility & Architectural Scope
-- Fault records and audit histories are maintained in thread-safe in-memory ring buffers (capacity: 500 records).
-- Fault states and subsystem health remain volatile in memory across JVM restarts until persistent storage is integrated in Phase 9.
+### 10.5 Operational Coherence Across Restarts
+- Historical fault records and operational audit records persist durably to PostgreSQL / Supabase via Spring Data JPA.
+- On backend restarts, historical fault records are restored into memory so operators have immediate visibility into past incidents.
+- Active simulation perturbations are intentionally initialized nominal on cold restarts. Stale active hardware perturbations are not blindly injected into a newly initialized simulation, maintaining a clear separation between durable operational history and ephemeral simulation physics.
 
+---
 
+## 11. Persistence & Data Reliability Architecture (Phase 5)
 
+ASTRA implements a strict, server-authoritative persistence model that balances real-time simulation throughput with long-term auditability and crash recovery.
+
+```
++-------------------------------------------------------------------------------+
+|                            SIMULATION RUNTIME MEMORY                          |
+|                                                                               |
+|  +---------------------------+          +----------------------------------+  |
+|  |     SimulationEngine      |          |       Telemetry Ring Buffer      |  |
+|  |  - Authoritative Physics  |          |  - 5 Hz WebSocket Broadcasts     |  |
+|  |  - Active Perturbations   |          |  - High-Resolution Real-Time Q   |  |
+|  +---------------------------+          +----------------------------------+  |
+|                |                                          |                   |
++----------------|------------------------------------------|-------------------+
+                 | Asynchronous / Transactional             | Sampled Every 30s
+                 v                                          v
++-------------------------------------------------------------------------------+
+|                        POSTGRESQL RELATIONAL PERSISTENCE                      |
+|                                                                               |
+|  +-------------------------+  +-------------------------+  +---------------+  |
+|  |   spacecraft_records    |  |     command_records     |  | fault_records |  |
+|  | - Fleet catalog         |  | - Command execution log |  | - Full states |  |
+|  | - Orbital parameters    |  | - Idempotency cache     |  | - Transitions |  |
+|  | - Operational status    |  | - Operator username     |  | - Operator ID |  |
+|  +-------------------------+  +-------------------------+  +---------------+  |
+|                                                                               |
+|  +-------------------------+  +---------------------------------------------+  |
+|  | simulation_event_records|  |             telemetry_snapshots             |  |
+|  | - Monotonic sequence num|  | - Periodic 30s vehicle orbit & power sample |  |
+|  | - Domain audit events   |  | - Pruned at 50,000 records retention limit  |  |
+|  +-------------------------+  +---------------------------------------------+  |
++-------------------------------------------------------------------------------+
+```
+
+### 11.1 Persistence Boundary & Source of Truth
+To prevent database I/O from introducing jitter into the deterministic simulation tick:
+- **Ephemeral State (In-Memory Authoritative):**
+  - Instantaneous Keplerian orbital vectors ($\vec{r}, \vec{v}$, true anomaly $\nu$).
+  - High-frequency 5 Hz telemetry frames.
+  - Active real-time subsystem state dynamics (e.g. millivolt oscillations, instantaneous radiator thermal gradients).
+- **Durable State (PostgreSQL Authoritative):**
+  - **Spacecraft Records (`spacecraft_records`):** Catalog of registered fleet vehicles, physical constants, call signs, and baseline Keplerian orbital parameters.
+  - **Command Records (`command_records`):** Every submitted telecommand, execution outcome, parameter payload, output data, client idempotency key, and operator principal.
+  - **Fault Records (`fault_records`):** Complete Failure Lab lifecycle records (`ACTIVE`, `DETECTED`, `RECOVERING`, `RECOVERED`, `CLEARED`), operator notes, and resolution procedures.
+  - **Operational Events (`simulation_event_records`):** Monotonically sequenced audit events (`SIMULATION_STARTED`, `COMMAND_EXECUTED`, `FAULT_INJECTED`, `FAULT_RECOVERED`, etc.). Monotonic sequence numbering resumes from `max(sequenceNumber) + 1` across restarts.
+  - **Telemetry Snapshots (`telemetry_snapshots`):** Sampled snapshots persisted every 30 seconds by `TelemetryArchiveService`. Older snapshots beyond the configured retention limit (50,000 rows) are pruned periodically.
+
+### 11.2 Database Migrations & Flyway Strategy
+- All database schema modifications are managed exclusively via versioned Flyway migrations located in `src/main/resources/db/migration/`.
+- Schema history is tracked in a dedicated table: `astra_migrations` with `baseline-version: 0`.
+- Hibernate DDL auto-generation is strictly configured to `validate` in production, ensuring zero uncontrolled DDL side effects.
+- Schema definitions include explicit foreign keys, non-null constraints, JSONB column serialization for complex parameters, and performance indexes:
+  - `idx_cmd_client_id`: Instantaneous $O(1)$ lookups for command idempotency checks.
+  - `idx_cmd_spacecraft`: Filtered command history by target spacecraft.
+  - `idx_fault_spacecraft` & `idx_fault_lifecycle`: Rapid filtering of active vs. historical subsystem faults.
+  - `idx_events_seq`: Ordered streaming of simulation events by monotonic sequence ID.
+  - `idx_telem_snap_sc_time`: Efficient time-series queries for historical flight path review.
+
+### 11.3 Restart Survivability & Idempotency Recovery
+When the backend restarts:
+1. `SpacecraftRecordRepository` synchronizes the known fleet into PostgreSQL.
+2. `CommandHistoryService` queries the last 500 commands into its in-memory idempotency cache. Duplicate command submissions sent during network retries or across restarts are immediately matched by `clientCommandId` and return the cached outcome with `idempotentReplay: true`.
+3. `EventBroadcaster` queries the highest recorded sequence number to prevent sequence regression or duplicate event IDs.
+4. `FailureLabService` loads historical fault logs into memory while maintaining clean operational status for active simulation hardware.
+
+---
+
+## 12. Security & Role-Based Access Control Architecture (Phase 5)
+
+ASTRA employs a zero-trust, server-enforced security architecture built on Spring Security 6.x. Unauthenticated or unauthorized access to privileged spacecraft operations is strictly rejected at the transport layer.
+
+```
+                           [ CLIENT REQUEST ]
+                                   │
+                                   ▼
+                   +───────────────────────────────+
+                   |     Spring Security Filter    |
+                   |   - Stateless HTTP Basic Auth |
+                   |   - Configurable BCrypt Hash  |
+                   |   - Strict CORS & CSRF Policy |
+                   +───────────────────────────────+
+                                   │
+                     ┌─────────────┴─────────────┐
+                     │                           │
+            [ Unauthenticated ]         [ Authenticated ]
+                     │                           │
+                     ▼                           ▼
+        +─────────────────────────+  +─────────────────────────+
+        |   401 Unauthorized      |  |  Role Authorization     |
+        |  Custom ApiErrorResponse|  |  Evaluation Check       |
+        +─────────────────────────+  +─────────────────────────+
+                                                 │
+                               ┌─────────────────┴─────────────────┐
+                               │                                   │
+                        [ Forbidden ]                        [ Permitted ]
+                               │                                   │
+                               ▼                                   ▼
+                  +─────────────────────────+         +─────────────────────────+
+                  |     403 Forbidden       |         |   Domain Controller     |
+                  |  Custom ApiErrorResponse|         | - Captures Operator ID  |
+                  +─────────────────────────+         | - Dispatches Operation  |
+                                                      +─────────────────────────+
+```
+
+### 12.1 Role-Based Access Control (RBAC) Matrix
+ASTRA defines 4 explicit operational security roles:
+
+| Role | Scope | Permitted Endpoints & Operations |
+| :--- | :--- | :--- |
+| **`ROLE_VIEWER`** | Read-Only Monitoring | All `GET` requests (`/api/v1/simulation/status`, `/api/v1/spacecraft/**`, `/api/v1/faults/**`, `/api/v1/commands/**`, `/api/v1/events/**`), WebSocket subscriptions (`/ws/**`), and Actuator health (`/actuator/health`). |
+| **`ROLE_OPERATOR`** | Flight Operations | Telecommand submission (`POST /api/v1/commands/**`, `POST /api/v1/spacecraft/*/commands`), manual simulation clock advance (`POST /api/v1/simulation/advance`), simulation pause/resume (`POST /api/v1/simulation/pause`, `POST /api/v1/simulation/resume`). Inherits all `VIEWER` privileges. |
+| **`ROLE_FLIGHT_DIRECTOR`** | Failure Lab & Anomalies | Fault injection (`POST /api/v1/faults/inject`, `POST /api/v1/anomalies/inject`), recovery execution (`POST /api/v1/faults/*/recover`), alert clearance (`DELETE /api/v1/faults/*`, `DELETE /api/v1/anomalies/*`). Inherits all `OPERATOR` and `VIEWER` privileges. |
+| **`ROLE_ADMIN`** | System & Engine Admin | Cold simulation engine re-initialization (`POST /api/v1/simulation/initialize`), continuous autonomous scheduler management (`POST /api/v1/simulation/continuous/*`). Inherits all lower roles. |
+
+### 12.2 Operator Attribution & Auditability
+- Whenever an authenticated principal triggers a state change (such as commanding a safe mode transition or executing a fault recovery procedure), the username is extracted via `SecurityUtils.getCurrentOperatorUsername()`.
+- The operator username is permanently stored in:
+  - `CommandRecord.operatorUsername` $\rightarrow$ `command_records.operator_username`
+  - `FaultRecord.operatorUsername` $\rightarrow$ `fault_records.operator_username`
+  - `SimulationEvent.parameters["operatorUsername"]` $\rightarrow$ `simulation_event_records.parameters_json`
+- Anonymous or unauthenticated callers are never assigned fabricated operator identities; requests are rejected prior to reaching the domain layer.
+
+### 12.3 Credential Protection & Secret Management
+- Passwords are encrypted using BCrypt (`BCryptPasswordEncoder`).
+- Production credentials and database connection strings are injected strictly through environment variables:
+  - `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
+  - `ASTRA_SECURITY_VIEWER_PASSWORD`, `ASTRA_SECURITY_OPERATOR_PASSWORD`, `ASTRA_SECURITY_DIRECTOR_PASSWORD`, `ASTRA_SECURITY_ADMIN_PASSWORD`
+- Credentials, tokens, and password hashes are filtered from all application logs and error response payloads.
+- Authentication failures return uniform JSON error objects (`ApiErrorResponse`) without leaking internal exception stack traces or database schema details.

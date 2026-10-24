@@ -18,9 +18,11 @@ import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(username = "admin", roles = {"ADMIN", "FLIGHT_DIRECTOR", "OPERATOR", "VIEWER"})
 @DisplayName("Simulation and Spacecraft REST API Integration Tests")
 class SimulationApiControllerTest {
 

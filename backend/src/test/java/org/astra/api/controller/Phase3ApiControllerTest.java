@@ -18,9 +18,11 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.security.test.context.support.WithMockUser;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@WithMockUser(username = "admin", roles = {"ADMIN", "FLIGHT_DIRECTOR", "OPERATOR", "VIEWER"})
 @DisplayName("Phase 3 Extended REST API Integration Tests")
 class Phase3ApiControllerTest {
 
