@@ -2,12 +2,10 @@ import React, { useEffect, useRef, useMemo } from 'react';
 
 interface ParticleDefinition {
   id: number;
-  u: number; // 0..1 relative to wordmark width
-  v: number; // 0..1 relative to wordmark height
-  driftX: number;
-  driftY: number;
-  startT: number;
-  baseSize: number;
+  u: number; // 0..1 relative to wordmark width (540)
+  v: number; // 0..1 relative to wordmark height (88)
+  letterIdx: number;
+  scale: number;
   color: string;
 }
 
@@ -17,98 +15,186 @@ interface WordmarkDissolutionFieldProps {
 }
 
 /**
- * Generates 160 deterministic stroke-anchored particles matching the ASTRA wordmark silhouette.
- * Staggered from left-to-right with subtle cosmic float.
+ * Draws the authentic ASTRA 4-point acute celestial diamond flare
  */
-function createAstraParticles(): ParticleDefinition[] {
-  const particles: ParticleDefinition[] = [];
-  let id = 0;
+function drawSignatureStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  scale: number,
+  color: string,
+  alpha: number,
+  coreSpark: boolean = true
+) {
+  if (alpha <= 0.005 || scale <= 0.04) return;
 
-  function addPt(x: number, y: number, letterIdx: number) {
-    // Deterministic pseudo-random values
-    const seed = (id * 9301 + 49297) % 233280;
-    const rnd1 = seed / 233280;
-    const rnd2 = ((seed * 9301 + 49297) % 233280) / 233280;
-    const rnd3 = ((seed * 49297 + 9301) % 233280) / 233280;
+  const H = 8 * scale;
+  const W = 8 * scale;
+  const H1 = 1.9 * scale;
+  const W1 = 1.6 * scale;
 
-    // Outward cosmic drift with subtle upward expansion into starfield
-    const angle = rnd1 * Math.PI * 2;
-    const speed = 28 + rnd2 * 65; // px drift at maximum extent
-    const driftX = Math.cos(angle) * speed;
-    const driftY = Math.sin(angle) * speed - 18; // gentle float upward into celestial space
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.globalAlpha = Math.min(Math.max(alpha, 0), 1);
+  ctx.fillStyle = color;
 
-    // Staggered departure threshold (t: 0.16 to 0.34)
-    const letterStagger = (letterIdx / 4) * 0.08;
-    const localStagger = rnd3 * 0.08;
-    const startT = 0.16 + letterStagger + localStagger;
+  // 4-point acute celestial diamond flare
+  ctx.beginPath();
+  ctx.moveTo(0, -H);
+  ctx.lineTo(W1, -H1);
+  ctx.lineTo(W, 0);
+  ctx.lineTo(W1, H1);
+  ctx.lineTo(0, H);
+  ctx.lineTo(-W1, H1);
+  ctx.lineTo(-W, 0);
+  ctx.lineTo(-W1, -H1);
+  ctx.closePath();
+  ctx.fill();
 
-    // Palette: Ivory, warm celestial gold, radiant starlight white
-    let color = '#F0EFEA';
-    if (rnd2 > 0.65) color = '#FDE68A';
-    else if (rnd1 > 0.8) color = '#FFFFFF';
+  if (coreSpark) {
+    // Brilliant starlight core
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.max(0.9 * scale, 0.5), 0, Math.PI * 2);
+    ctx.fill();
 
-    particles.push({
-      id: id++,
-      u: x / 540,
-      v: y / 88,
-      driftX,
-      driftY,
-      startT,
-      baseSize: 1.1 + rnd1 * 1.3,
-      color,
-    });
-  }
-
-  function sampleLine(x1: number, y1: number, x2: number, y2: number, n: number, letterIdx: number) {
-    for (let i = 0; i <= n; i++) {
-      const t = i / n;
-      addPt(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, letterIdx);
+    // Subtle golden starlight aureole for prominent stars
+    if (scale > 1.2) {
+      ctx.fillStyle = '#FDE68A';
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.beginPath();
+      ctx.arc(0, 0, 2.6 * scale, 0, Math.PI * 2);
+      ctx.fill();
     }
   }
 
-  // 1. LETTER A1 (letterIdx = 0, X offset = 32)
-  sampleLine(70, 18, 38, 66, 11, 0); // left diagonal leg
-  sampleLine(70, 18, 102, 66, 11, 0); // right diagonal leg
-  sampleLine(54, 50, 86, 50, 6, 0); // continuous crossbar
-  sampleLine(70, 24, 70, 42, 3, 0); // apex core infill
+  ctx.restore();
+}
 
-  // 2. LETTER S (letterIdx = 1, X offset = 136)
-  // Top aerodynamic loop
-  for (let i = 0; i <= 8; i++) {
-    const t = (i / 8) * Math.PI;
-    const px = 168 + Math.cos(t) * 26;
-    const py = 28 - Math.sin(t) * 11;
-    addPt(px, py, 1);
+/**
+ * Ray-casting point-in-polygon test
+ */
+function pointInPoly(x: number, y: number, poly: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i][0], yi = poly[i][1];
+    const xj = poly[j][0], yj = poly[j][1];
+    const intersect = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
   }
-  // Central diagonal spine
-  sampleLine(148, 28, 188, 56, 9, 1);
-  // Bottom aerodynamic loop
-  for (let i = 0; i <= 8; i++) {
-    const t = (i / 8) * Math.PI;
-    const px = 168 - Math.cos(t) * 26;
-    const py = 56 + Math.sin(t) * 11;
-    addPt(px, py, 1);
+  return inside;
+}
+
+// Letter A outer polygon & inner counter hole
+const polyAOuter = [
+  [0, 66], [11, 66], [20.5, 53], [55.5, 53], [65, 66], [76, 66], [41.5, 18], [34.5, 18],
+];
+const polyACounter = [
+  [38, 28.5], [51.5, 47.5], [24.5, 47.5],
+];
+
+function isInsideA(x: number, y: number): boolean {
+  return pointInPoly(x, y, polyAOuter) && !pointInPoly(x, y, polyACounter);
+}
+
+function isInsideT(x: number, y: number): boolean {
+  if (x >= 0 && x <= 72 && y >= 18 && y <= 25) return true;
+  if (x >= 32 && x <= 40 && y >= 25 && y <= 66) return true;
+  return false;
+}
+
+function isInsideR(x: number, y: number): boolean {
+  if (x >= 0 && x <= 8 && y >= 18 && y <= 66) return true;
+  if (y >= 18 && y <= 45 && x >= 8) {
+    const dy = (y - 31.5) / 13.5;
+    if (dy * dy <= 1.0) {
+      const outerX = 40 + 23 * Math.sqrt(Math.max(0, 1.0 - dy * dy));
+      if (x <= outerX) {
+        if (y >= 25 && y <= 38) {
+          const dyIn = (y - 31.5) / 6.5;
+          if (dyIn * dyIn <= 1.0) {
+            const innerX = 40 + 14.5 * Math.sqrt(Math.max(0, 1.0 - dyIn * dyIn));
+            if (x < innerX) return false;
+          }
+        }
+        return true;
+      }
+    }
   }
-
-  // 3. LETTER T (letterIdx = 2, X offset = 234)
-  sampleLine(234, 21.5, 306, 21.5, 14, 2); // horizontal crossbeam
-  sampleLine(270, 21.5, 270, 66, 11, 2); // vertical central pillar
-
-  // 4. LETTER R (letterIdx = 3, X offset = 334)
-  sampleLine(338, 18, 338, 66, 11, 3); // left vertical stem
-  for (let i = 0; i <= 10; i++) {
-    const t = (i / 10) * Math.PI - Math.PI / 2;
-    const px = 358 + Math.cos(t) * 24;
-    const py = 31 + Math.sin(t) * 13;
-    addPt(px, py, 3);
+  if (y >= 44 && y <= 66) {
+    const t = (y - 44) / 22;
+    const leftX = 38 + (60.5 - 38) * t;
+    const rightX = 47.5 + (72 - 47.5) * t;
+    if (x >= leftX && x <= rightX) return true;
   }
-  sampleLine(362, 44, 402, 66, 8, 3); // sweeping diagonal leg
+  return false;
+}
 
-  // 5. LETTER A2 (letterIdx = 4, X offset = 432)
-  sampleLine(470, 18, 438, 66, 11, 4); // left diagonal leg
-  sampleLine(470, 18, 502, 66, 11, 4); // right diagonal leg
-  sampleLine(454, 50, 486, 50, 6, 4); // continuous crossbar
-  sampleLine(470, 24, 470, 42, 3, 4); // apex core infill
+function isInsideS(x: number, y: number): boolean {
+  if (y >= 29 && y <= 55) {
+    const t = (y - 29) / 26;
+    const centerX = 16 + (48 - 16) * t;
+    if (Math.abs(x - centerX) <= 5.5) return true;
+  }
+  if (y >= 17 && y <= 33) {
+    const dy = (y - 25) / 8;
+    if (dy * dy <= 1.0) {
+      const centerX = 33;
+      const rOuter = 28 * Math.sqrt(Math.max(0, 1.0 - dy * dy));
+      const rInner = 18 * Math.sqrt(Math.max(0, 1.0 - dy * dy));
+      const dist = Math.abs(x - centerX);
+      if (dist <= rOuter && (dist >= rInner || y < 20 || (x > 33 && y > 26))) return true;
+    }
+  }
+  if (y >= 51 && y <= 67) {
+    const dy = (y - 59) / 8;
+    if (dy * dy <= 1.0) {
+      const centerX = 31;
+      const rOuter = 28 * Math.sqrt(Math.max(0, 1.0 - dy * dy));
+      const rInner = 18 * Math.sqrt(Math.max(0, 1.0 - dy * dy));
+      const dist = Math.abs(x - centerX);
+      if (dist <= rOuter && (dist >= rInner || y > 64 || (x < 31 && y < 58))) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Samples exactly 272 verified starlight positions stationed strictly within
+ * the visible strokes and silhouettes of all 5 letters: A - S - T - R - A.
+ */
+function generateVerifiedLetterParticles(): ParticleDefinition[] {
+  const particles: ParticleDefinition[] = [];
+  let id = 0;
+
+  const letterConfigs = [
+    { id: 'A1', xOff: 32, fn: isInsideA, w: 76 },
+    { id: 'S',  xOff: 136, fn: isInsideS, w: 62 },
+    { id: 'T',  xOff: 234, fn: isInsideT, w: 72 },
+    { id: 'R',  xOff: 334, fn: isInsideR, w: 74 },
+    { id: 'A2', xOff: 432, fn: isInsideA, w: 76 },
+  ];
+
+  letterConfigs.forEach((l, letterIdx) => {
+    for (let y = 18; y <= 66; y += 4.8) {
+      for (let x = 0; x <= l.w; x += 4.8) {
+        if (l.fn(x, y)) {
+          const seed = (id * 9301 + 49297) % 233280;
+          const rnd = seed / 233280;
+          const color = rnd > 0.65 ? '#FDE68A' : rnd > 0.85 ? '#FFFFFF' : '#F0EFEA';
+
+          particles.push({
+            id: id++,
+            u: (l.xOff + x) / 540,
+            v: y / 88,
+            letterIdx,
+            scale: 0.36 + rnd * 0.22,
+            color,
+          });
+        }
+      }
+    }
+  });
 
   return particles;
 }
@@ -118,10 +204,10 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
   reducedMotion,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const particles = useMemo(() => createAstraParticles(), []);
+  const particles = useMemo(() => generateVerifiedLetterParticles(), []);
 
-  // Padding margin around canvas so particles float outside the wordmark bounds without clipping
-  const PADDING = 50;
+  // Extra margin so the converged star and dispersing stars have room without clipping
+  const PADDING = 60;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -135,8 +221,9 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
     }
     if (!ctx) return;
 
-    // If outside the active dissolution window, keep canvas completely clear
-    if (scrollProgress < 0.05 || scrollProgress > 0.56) {
+    // Phase A: Before t = 0.05, or Phase D complete (t > 0.40):
+    // Canvas is completely clear, keeping the DOM pristine
+    if (scrollProgress < 0.045 || scrollProgress > 0.40) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       return;
     }
@@ -164,59 +251,69 @@ export const WordmarkDissolutionField: React.FC<WordmarkDissolutionFieldProps> =
     const baseW = rect.width;
     const baseH = rect.height;
 
-    // Dissolution Master Alpha Envelope:
-    // Fades in smoothly from t=0.06 to t=0.14 as solid wordmark prepares to dissolve,
-    // holds steady through t=0.40, then finishes dispersing by t=0.54
-    let masterAlpha = 1.0;
-    if (scrollProgress < 0.14) {
-      masterAlpha = (scrollProgress - 0.06) / 0.08;
-    } else if (scrollProgress > 0.42) {
-      masterAlpha = Math.max(1.0 - (scrollProgress - 0.42) / 0.12, 0);
+    // Convergence target point: Final 'A' apex (anchored directly to #astra-signature-star at 470, 18)
+    const targetX = PADDING + (470 / 540) * baseW;
+    const targetY = PADDING + (18 / 88) * baseH;
+
+    // =========================================================================
+    // PHASE B: Wordmark Dissolves into Small Signature Stars (t: 0.05 -> 0.20)
+    // =========================================================================
+    // Small stars emerge on letter strokes as solid SVG fades out
+    let smallStarsAlpha = 1.0;
+    if (scrollProgress < 0.12) {
+      smallStarsAlpha = (scrollProgress - 0.045) / 0.075;
     }
 
-    if (masterAlpha <= 0.001) {
-      ctx.restore();
-      return;
+    // =========================================================================
+    // PHASE C: Stars Gather into One Large Signature Star (t: 0.20 -> 0.35)
+    // =========================================================================
+    let convergenceProg = 0;
+    if (scrollProgress > 0.20) {
+      convergenceProg = Math.min((scrollProgress - 0.20) / 0.15, 1.0);
+    }
+    // Smooth cubic easing for natural gravitational convergence
+    const easeC = convergenceProg * convergenceProg * (3 - 2 * convergenceProg);
+
+    // Alpha of individual small stars decreases as they merge into the core
+    const currentSmallAlpha = Math.max(smallStarsAlpha * (1.0 - convergenceProg * 1.1), 0);
+
+    // Draw all small signature stars
+    if (currentSmallAlpha > 0.01) {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        const originX = PADDING + p.u * baseW;
+        const originY = PADDING + p.v * baseH;
+
+        // Smooth trajectory from letter stroke towards the convergence focal point
+        const curX = originX + (targetX - originX) * easeC;
+        const curY = originY + (targetY - originY) * easeC;
+
+        // Micro starlight scintillation
+        const shimmer = 0.85 + 0.15 * Math.sin(scrollProgress * 28 + p.id);
+        const pAlpha = currentSmallAlpha * shimmer;
+
+        drawSignatureStar(ctx, curX, curY, p.scale, p.color, pAlpha, true);
+      }
     }
 
-    for (let i = 0; i < particles.length; i++) {
-      const p = particles[i];
-      const originX = PADDING + p.u * baseW;
-      const originY = PADDING + p.v * baseH;
+    // =========================================================================
+    // FORMATION OF THE LARGE SIGNATURE STAR (t: 0.20 -> 0.35)
+    // =========================================================================
+    // The prominent single star grows as small stars gather, reaching full scale at t=0.35
+    if (convergenceProg > 0.02) {
+      let largeStarAlpha = Math.min(easeC * 1.4, 1.0);
+      let largeStarScale = easeC * 2.8; // Expands to 2.8x prominent scale (~24px diameter)
 
-      let curX = originX;
-      let curY = originY;
-      let pAlpha = masterAlpha;
-
-      if (scrollProgress > p.startT) {
-        // Controlled celestial dispersion
-        const dispersionT = Math.min((scrollProgress - p.startT) / 0.22, 1.0);
-        const ease = Math.pow(dispersionT, 1.25);
-
-        curX = originX + p.driftX * ease;
-        curY = originY + p.driftY * ease;
-
-        // Scintillating fade as particle drifts into the background starfield
-        const shimmer = 0.82 + 0.18 * Math.sin(scrollProgress * 24 + p.id);
-        pAlpha = Math.max((1.0 - dispersionT) * masterAlpha * shimmer, 0);
+      // =======================================================================
+      // PHASE D HANDOFF (t: 0.35 -> 0.38): Smooth handoff to 3D star in Three.js
+      // =======================================================================
+      if (scrollProgress > 0.35) {
+        const handoffProg = Math.min((scrollProgress - 0.35) / 0.035, 1.0);
+        largeStarAlpha = Math.max(1.0 - handoffProg, 0);
       }
 
-      if (pAlpha < 0.01) continue;
-
-      // Draw celestial starlight core
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = pAlpha;
-      ctx.beginPath();
-      ctx.arc(curX, curY, p.baseSize, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Soft ambient starlight halo for prominent particles
-      if (p.id % 4 === 0 && pAlpha > 0.2) {
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = pAlpha * 0.22;
-        ctx.beginPath();
-        ctx.arc(curX, curY, p.baseSize * 2.4, 0, Math.PI * 2);
-        ctx.fill();
+      if (largeStarAlpha > 0.01) {
+        drawSignatureStar(ctx, targetX, targetY, largeStarScale, '#FDE68A', largeStarAlpha, true);
       }
     }
 

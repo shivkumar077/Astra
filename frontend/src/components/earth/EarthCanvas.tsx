@@ -491,9 +491,36 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       depthWrite: false,
       side: THREE.DoubleSide,
     });
-    const meteorMesh = new THREE.Mesh(meteorGeometry, meteorMaterial);
-    meteorMesh.visible = false;
-    scene.add(meteorMesh);
+    const meteorPoolSize = 3;
+    const meteorPool: {
+      mesh: THREE.Mesh;
+      material: THREE.ShaderMaterial;
+      active: boolean;
+      startTime: number;
+      duration: number;
+      startX: number;
+      startY: number;
+      endX: number;
+      endY: number;
+    }[] = [];
+
+    for (let i = 0; i < meteorPoolSize; i++) {
+      const mat = meteorMaterial.clone();
+      const mesh = new THREE.Mesh(meteorGeometry, mat);
+      mesh.visible = false;
+      scene.add(mesh);
+      meteorPool.push({
+        mesh,
+        material: mat,
+        active: false,
+        startTime: 0,
+        duration: 2500,
+        startX: -7.0,
+        startY: 4.8,
+        endX: 7.0,
+        endY: -4.8,
+      });
+    }
 
     // 10. Signature Star Trajectory: Dynamically Anchored to the Final 'A' Apex of Wordmark
     const starTrailPointsCount = 50;
@@ -686,23 +713,25 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
     // 16. Meteor State Tracking (Upper-Left to Lower-Right, Visibly Emerging Past Earth)
     const mountTime = performance.now();
     let openingMeteorTriggered = false;
-    let meteorActive = false;
-    let meteorStartTime = 0;
-    let meteorDuration = 2600; // ms: majestic flight with visible emergence
-    let nextMeteorTime = mountTime + 16000;
-
-    let meteorStartX = -7.0;
-    let meteorStartY = 4.8;
-    let meteorEndX = 7.0;
-    let meteorEndY = -4.8;
+    let nextMeteorTime = mountTime + 750;
     const meteorZ = -3.2; // Situated strictly behind Earth (Earth is at z: -1.6 to 0.0)
 
-    const updateMeteorOrientation = (sx: number, sy: number, ex: number, ey: number) => {
-      // Rotate plane so incandescent head (+Y) points along trajectory vector and tail (-Y) streams behind
+    const spawnMeteor = (now: number, duration: number, sx: number, sy: number, ex: number, ey: number) => {
+      const slot = meteorPool.find((m) => !m.active);
+      if (!slot) return;
+      slot.active = true;
+      slot.startTime = now;
+      slot.duration = duration;
+      slot.startX = sx;
+      slot.startY = sy;
+      slot.endX = ex;
+      slot.endY = ey;
+      // Leading head points down-right in direction of travel, tail streams up-left
       const angleRad = Math.atan2(ey - sy, ex - sx) - Math.PI / 2;
-      meteorMesh.rotation.z = angleRad;
+      slot.mesh.rotation.z = angleRad;
+      slot.mesh.visible = true;
+      slot.material.uniforms.uOpacity.value = 0;
     };
-    updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);
 
     // 17. Animation Loop
     const baseRotationSpeed = reducedMotion ? 0.0003 : 0.001;
@@ -755,61 +784,54 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       // Path: Upper-Left (-7.0, 4.8) -> traverses behind Earth -> emerges Lower-Right (7.0, -4.8)
       if (!openingMeteorTriggered && now - mountTime > 750 && !reducedMotion) {
         openingMeteorTriggered = true;
-        meteorActive = true;
-        meteorStartTime = now;
-        meteorDuration = 2600;
-        meteorStartX = -7.0;
-        meteorStartY = 4.8;
-        meteorEndX = 7.0;
-        meteorEndY = -4.8;
-        updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);
+        spawnMeteor(now, 2600, -7.0, 4.8, 7.0, -4.8);
+        nextMeteorTime = now + 3000 + Math.random() * 1000;
       }
 
-      // Ambient Recurring Meteor System (Continues after reveal with subtle randomized variations)
-      if (!meteorActive && now > nextMeteorTime && !reducedMotion) {
-        meteorActive = true;
-        meteorStartTime = now;
-        meteorDuration = 2300 + Math.random() * 600;
-        nextMeteorTime = now + 16000 + Math.random() * 12000; // Next meteor every 16-28 seconds
-
-        meteorStartX = -7.2 + Math.random() * 0.8;
-        meteorStartY = 4.4 + Math.random() * 0.8;
-        meteorEndX = 6.6 + Math.random() * 0.8;
-        meteorEndY = -4.4 - Math.random() * 0.8;
-
-        updateMeteorOrientation(meteorStartX, meteorStartY, meteorEndX, meteorEndY);
+      // Ambient Recurring Meteor System (Initiated every 3 to 4 seconds while scene is active)
+      if (openingMeteorTriggered && now > nextMeteorTime && !reducedMotion) {
+        nextMeteorTime = now + 3000 + Math.random() * 1000; // 3.0 to 4.0 second randomized interval
+        const sx = -7.2 + Math.random() * 0.9;
+        const sy = 4.4 + Math.random() * 0.8;
+        const ex = 6.6 + Math.random() * 0.9;
+        const ey = -4.4 - Math.random() * 0.8;
+        const dur = 2300 + Math.random() * 500;
+        spawnMeteor(now, dur, sx, sy, ex, ey);
       }
 
-      // Animate Meteor Flight (Enters upper-left, crosses behind Earth, visibly emerges lower-right)
-      if (meteorActive) {
-        const elapsed = now - meteorStartTime;
-        const mProgress = elapsed / meteorDuration;
+      // Animate Active Meteors in Pool (Enters upper-left, crosses behind Earth, visibly emerges lower-right)
+      for (let i = 0; i < meteorPoolSize; i++) {
+        const m = meteorPool[i];
+        if (m.active) {
+          const elapsed = now - m.startTime;
+          const mProgress = elapsed / m.duration;
 
-        if (mProgress >= 1.0) {
-          meteorActive = false;
-          meteorMesh.visible = false;
-          meteorMaterial.uniforms.uOpacity.value = 0;
-        } else {
-          meteorMesh.visible = true;
+          if (mProgress >= 1.0) {
+            m.active = false;
+            m.mesh.visible = false;
+            m.material.uniforms.uOpacity.value = 0;
+          } else {
+            m.mesh.visible = true;
 
-          const curX = THREE.MathUtils.lerp(meteorStartX, meteorEndX, mProgress);
-          const curY = THREE.MathUtils.lerp(meteorStartY, meteorEndY, mProgress);
-          meteorMesh.position.set(curX, curY, meteorZ);
+            const curX = THREE.MathUtils.lerp(m.startX, m.endX, mProgress);
+            const curY = THREE.MathUtils.lerp(m.startY, m.endY, mProgress);
+            m.mesh.position.set(curX, curY, meteorZ);
 
-          // Sustained brilliance envelope: plateau at 1.0 so emergence on lower-right side is clearly visible
-          let mAlpha = 1.0;
-          if (mProgress < 0.10) {
-            mAlpha = mProgress / 0.10;
-          } else if (mProgress > 0.88) {
-            mAlpha = (1.0 - mProgress) / 0.12;
+            // Sustained brilliance envelope: plateau at 1.0 so emergence on lower-right side is clearly visible
+            let mAlpha = 1.0;
+            if (mProgress < 0.10) {
+              mAlpha = mProgress / 0.10;
+            } else if (mProgress > 0.88) {
+              mAlpha = (1.0 - mProgress) / 0.12;
+            }
+            m.material.uniforms.uOpacity.value = Math.pow(mAlpha, 1.1) * 0.95;
           }
-          meteorMaterial.uniforms.uOpacity.value = Math.pow(mAlpha, 1.1) * 0.95;
         }
       }
 
-      // Cinematic Signature Star Journey from Wordmark's Final 'A' Apex toward Earth
-      if (currentScroll > 0.05 && currentScroll < 0.78 && !reducedMotion) {
-        const trajectoryProgress = Math.min(Math.max((currentScroll - 0.05) / 0.70, 0), 1);
+      // Phase D — Cinematic Large Star Journey: Seamlessly continues from particle convergence point at t=0.35 towards Earth
+      if (currentScroll > 0.35 && currentScroll < 0.80 && !reducedMotion) {
+        const trajectoryProgress = Math.min(Math.max((currentScroll - 0.35) / 0.43, 0), 1);
 
         // Dynamically compute Bézier curve starting at the wordmark's final 'A' apex
         const pStart = getSignatureStarOrigin();
@@ -891,6 +913,7 @@ export const EarthCanvas: React.FC<EarthCanvasProps> = ({
       cloudMaterial.dispose();
       atmosphereMaterial.dispose();
       meteorMaterial.dispose();
+      meteorPool.forEach((m) => m.material.dispose());
       starTrailMaterial.dispose();
       starSparkMaterial.dispose();
       starMaterial.dispose();

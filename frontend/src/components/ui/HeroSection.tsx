@@ -39,13 +39,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   const settledOpacity = Math.min(Math.max((t - 0.58) / 0.38, 0), 1);
   const settledTranslateY = (1.0 - settledOpacity) * 24;
 
-  // Detach signature star from wordmark as scroll begins (Phase B: t: 0.05 -> 0.16)
-  const signatureStarOpacity = Math.max(1.0 - Math.max(t - 0.05, 0) / 0.11, 0);
+  // Initial signature star on final A fades cleanly as all 5 letters transform into stars (Phase B: t: 0.05 -> 0.14)
+  const signatureStarOpacity = Math.max(1.0 - Math.max(t - 0.05, 0) / 0.09, 0);
 
-  // Solid vector wordmark cross-fades into the particle dissolution field (Phase C: t: 0.14 -> 0.32)
+  // Solid vector wordmark transforms into small signature stars without ghosting (Phase B: t: 0.05 -> 0.16)
   const solidWordmarkOpacity = reducedMotion
     ? 1.0
-    : (starsFormed ? 1.0 : 0.75) * Math.max(1.0 - Math.max(t - 0.14, 0) / 0.18, 0);
+    : (starsFormed ? 1.0 : 0.75) * Math.max(1.0 - Math.max(t - 0.05, 0) / 0.11, 0);
 
   return (
     <div
