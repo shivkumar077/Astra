@@ -15,6 +15,7 @@ import {
   getSubsystemsHealth,
   getEvents,
 } from '../../api/missionControlApi';
+import { FailureLabTimeline } from './FailureLabTimeline';
 import {
   ShieldAlert,
   CheckCircle2,
@@ -89,7 +90,7 @@ export const FailureLabSuite: React.FC<FailureLabSuiteProps> = ({
       setEvents(evts);
 
       if (scens.length > 0 && !selectedScenarioCode) {
-        setSelectedScenarioCode(scens[0].code);
+        setSelectedScenarioCode(scens[0].scenarioCode || scens[0].code || '');
       }
       if (aFaults.length > 0 && !selectedFault) {
         setSelectedFault(aFaults[0]);
@@ -112,12 +113,12 @@ export const FailureLabSuite: React.FC<FailureLabSuiteProps> = ({
     setIsInjecting(true);
     setFeedback(null);
     try {
-      const sc = scenarios.find((s) => s.code === selectedScenarioCode);
+      const sc = scenarios.find((s) => (s.scenarioCode || s.code) === selectedScenarioCode);
       const res = await injectFault({
         spacecraftId: selectedCraft.id,
         scenarioCode: selectedScenarioCode,
         severity: faultSeverity,
-        description: sc ? `Simulated ${sc.name} via Failure Lab Suite` : 'Injected fault',
+        description: sc ? `Simulated ${sc.title || sc.name} via Failure Lab Suite` : 'Injected fault',
         parameters: { paramValue: scenarioParamValue },
       });
 
@@ -527,21 +528,11 @@ export const FailureLabSuite: React.FC<FailureLabSuiteProps> = ({
           </div>
 
           {/* Right Chamber: Incident Chronological Event Timeline */}
-          <div className="astra-mc-failure-events-col">
-            <h4 className="astra-mc-col-heading">EVENT SEQUENCE PRECEDING ANOMALY</h4>
-            <div className="astra-mc-diag-events-feed">
-              {events.map((evt) => (
-                <div key={evt.eventId} className="astra-mc-diag-event-row">
-                  <div className="astra-mc-diag-event-top">
-                    <span className="astra-mc-diag-event-type">{evt.type}</span>
-                    <span className="astra-mc-diag-event-time">
-                      {new Date(evt.simulationEpoch).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <span className="astra-mc-diag-event-summary">{evt.summary}</span>
-                </div>
-              ))}
-            </div>
+          <div className="astra-mc-failure-events-col" style={{ display: 'flex', flexDirection: 'column' }}>
+            <FailureLabTimeline
+              events={events}
+              targetSpacecraftId={selectedCraft?.id}
+            />
           </div>
         </div>
       )}
@@ -559,14 +550,28 @@ export const FailureLabSuite: React.FC<FailureLabSuiteProps> = ({
               <label>SCENARIO CATALOGUE</label>
               <select
                 value={selectedScenarioCode}
-                onChange={(e) => setSelectedScenarioCode(e.target.value)}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  setSelectedScenarioCode(code);
+                  const found = scenarios.find((s) => (s.scenarioCode || s.code) === code);
+                  if (found?.defaultSeverity) {
+                    setFaultSeverity(found.defaultSeverity);
+                  }
+                }}
                 className="astra-mc-select"
+                data-testid="suite-scenario-select"
               >
-                {scenarios.map((sc) => (
-                  <option key={sc.code} value={sc.code}>
-                    [{sc.domain}] {sc.name}
-                  </option>
-                ))}
+                {scenarios.map((sc) => {
+                  const code = sc.scenarioCode || sc.code;
+                  const title = sc.title || sc.name || code;
+                  const sub = sc.subsystem || sc.domain || 'SYSTEM';
+                  const sev = sc.defaultSeverity || 'CRITICAL';
+                  return (
+                    <option key={code} value={code}>
+                      [{sub}] {title} — {sev}
+                    </option>
+                  );
+                })}
               </select>
             </div>
 

@@ -214,7 +214,26 @@ export async function getCommandHistory(
 // --- Failure Lab Anomaly Simulation ---
 
 export async function listFaultScenarios(): Promise<FaultScenarioMetadata[]> {
-  return request<FaultScenarioMetadata[]>('/faults/scenarios');
+  const rawList = await request<Record<string, unknown>[]>('/faults/scenarios');
+  return (rawList || []).map((raw) => {
+    const code = String(raw.scenarioCode || raw.code || '');
+    const title = String(raw.title || raw.name || code);
+    const subsystem = String(raw.subsystem || raw.domain || 'SYSTEM');
+    const recovery = String(raw.expectedRecoveryAction || raw.recoveryActionRequired || '');
+    return {
+      scenarioCode: code,
+      code,
+      title,
+      name: title,
+      subsystem,
+      domain: subsystem,
+      defaultSeverity: (raw.defaultSeverity as any) || 'CRITICAL',
+      description: String(raw.description || ''),
+      expectedRecoveryAction: recovery,
+      recoveryActionRequired: recovery,
+      supportedParameters: (raw.supportedParameters as any) || {},
+    };
+  });
 }
 
 export async function listFaults(

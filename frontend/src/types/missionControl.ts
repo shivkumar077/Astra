@@ -196,13 +196,17 @@ export interface SubmitCommandPayload {
 }
 
 export interface FaultScenarioMetadata {
-  code: string;
-  name: string;
-  domain: SubsystemDomain;
+  scenarioCode?: string;
+  code?: string;
+  title?: string;
+  name?: string;
+  subsystem?: SubsystemDomain | string;
+  domain?: SubsystemDomain | string;
   defaultSeverity: FaultSeverity;
   description: string;
-  recoveryActionRequired: string;
-  supportedParameters: string[];
+  expectedRecoveryAction?: string;
+  recoveryActionRequired?: string;
+  supportedParameters?: Record<string, unknown> | string[];
 }
 
 export interface FaultRecord {

@@ -13,6 +13,7 @@ export const FailureLabDrawer: React.FC<FailureLabDrawerProps> = ({
   onFaultsChanged,
 }) => {
   const [scenarios, setScenarios] = useState<FaultScenarioMetadata[]>([]);
+  const [isLoadingScenarios, setIsLoadingScenarios] = useState<boolean>(false);
   const [activeFaults, setActiveFaults] = useState<FaultRecord[]>([]);
   const [selectedScenarioCode, setSelectedScenarioCode] = useState<string>('');
   const [faultSeverity, setFaultSeverity] = useState<string>('CRITICAL');
@@ -20,6 +21,7 @@ export const FailureLabDrawer: React.FC<FailureLabDrawerProps> = ({
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
 
   const loadData = async () => {
+    setIsLoadingScenarios(true);
     try {
       const [scens, fList] = await Promise.all([
         listFaultScenarios(),
@@ -27,17 +29,30 @@ export const FailureLabDrawer: React.FC<FailureLabDrawerProps> = ({
       ]);
       setScenarios(scens);
       setActiveFaults(fList);
-      if (scens.length > 0 && !selectedScenarioCode) {
-        setSelectedScenarioCode(scens[0].code);
+      if (scens.length > 0) {
+        setSelectedScenarioCode((prev) => {
+          if (prev && scens.some((s) => (s.scenarioCode || s.code) === prev)) return prev;
+          const firstCode = scens[0].scenarioCode || scens[0].code || '';
+          if (scens[0].defaultSeverity) {
+            setFaultSeverity(scens[0].defaultSeverity);
+          }
+          return firstCode;
+        });
       }
     } catch (e) {
       console.warn('Failed loading Failure Lab catalog', e);
+    } finally {
+      setIsLoadingScenarios(false);
     }
   };
 
   useEffect(() => {
     loadData();
   }, [selectedSpacecraft?.id]);
+
+  const selectedScenario = scenarios.find(
+    (s) => (s.scenarioCode || s.code) === selectedScenarioCode
+  ) || null;
 
   const handleInject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,12 +61,14 @@ export const FailureLabDrawer: React.FC<FailureLabDrawerProps> = ({
     setIsInjecting(true);
     setActionFeedback(null);
     try {
-      const sc = scenarios.find((s) => s.code === selectedScenarioCode);
+      const sc = selectedScenario;
       const res = await injectFault({
         spacecraftId: selectedSpacecraft.id,
         scenarioCode: selectedScenarioCode,
         severity: faultSeverity,
-        description: sc ? `Simulated ${sc.name} via Mission Control` : 'Injected anomaly',
+        description: sc
+          ? `Simulated ${sc.title || sc.name} via Mission Control`
+          : 'Injected anomaly',
       });
       setActionFeedback(`Anomaly Injected: [${res.faultId}] ${res.scenarioCode} is now ACTIVE.`);
       await loadData();
@@ -159,21 +176,87 @@ export const FailureLabDrawer: React.FC<FailureLabDrawerProps> = ({
         </div>
 
         <div className="astra-mc-form-group">
-          <label htmlFor="scenario-code-select" className="astra-mc-form-label">SELECT ANOMALY SCENARIO</label>
+          <label htmlFor="scenario-code-select" className="astra-mc-form-label">
+            SELECT ANOMALY SCENARIO
+          </label>
           <select
             id="scenario-code-select"
             value={selectedScenarioCode}
-            onChange={(e) => setSelectedScenarioCode(e.target.value)}
+            onChange={(e) => {
+              const code = e.target.value;
+              setSelectedScenarioCode(code);
+              const found = scenarios.find((s) => (s.scenarioCode || s.code) === code);
+              if (found?.defaultSeverity) {
+                setFaultSeverity(found.defaultSeverity);
+              }
+            }}
             className="astra-mc-select"
-            disabled={isInjecting}
+            disabled={isInjecting || isLoadingScenarios || scenarios.length === 0}
             data-testid="scenario-code-select"
           >
-            {scenarios.map((sc) => (
-              <option key={sc.code} value={sc.code}>
-                [{sc.domain}] {sc.name}
+            {isLoadingScenarios && (
+              <option value="" disabled>
+                SCANNING SUBSYSTEM ANOMALY CATALOGUE...
               </option>
-            ))}
+            )}
+            {!isLoadingScenarios && scenarios.length === 0 && (
+              <option value="" disabled>
+                NO ANOMALY SCENARIOS AVAILABLE
+              </option>
+            )}
+            {scenarios.map((sc) => {
+              const code = sc.scenarioCode || sc.code;
+              const title = sc.title || sc.name || code;
+              const sub = sc.subsystem || sc.domain || 'SYSTEM';
+              const sev = sc.defaultSeverity || 'CRITICAL';
+              return (
+                <option key={code} value={code}>
+                  [{sub}] {title} — {sev}
+                </option>
+              );
+            })}
           </select>
+
+          {selectedScenario && (
+            <div
+              style={{
+                marginTop: '8px',
+                padding: '8px 10px',
+                background: 'rgba(5, 10, 20, 0.65)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: 'var(--radius-xs)',
+                fontFamily: 'var(--font-mono)',
+              }}
+              data-testid="scenario-metadata-preview"
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  fontSize: '10px',
+                  marginBottom: '4px',
+                }}
+              >
+                <span style={{ color: 'var(--color-earth-cyan)' }}>
+                  SUBSYSTEM: {selectedScenario.subsystem || selectedScenario.domain}
+                </span>
+                <span style={{ color: 'var(--color-advisory)' }}>
+                  RECOVERY: {selectedScenario.expectedRecoveryAction || selectedScenario.recoveryActionRequired || 'MANUAL INTERVENTION'}
+                </span>
+              </div>
+              <p
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--color-text-dim)',
+                  margin: 0,
+                  lineHeight: '1.4',
+                }}
+              >
+                {selectedScenario.description}
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="astra-mc-form-group">

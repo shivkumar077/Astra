@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { SimulationStatus, StompConnectionStatus, MissionResponse } from '../../types/missionControl';
 import { advanceSimulation, pauseSimulation, resumeSimulation } from '../../api/missionControlApi';
 import { ArrowLeft, Play, Pause, FastForward, Layers, Compass, ShieldAlert } from 'lucide-react';
+import { formatStationClockIST } from '../../utils/timeFormatters';
 
 export type OperationalModeView = 'cockpit' | 'universe' | 'diagnostics';
 
@@ -26,25 +27,18 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
   activeMission = null,
   onAdvanceSimulation,
 }) => {
-  const [wallClockUtc, setWallClockUtc] = useState<string>('');
+  const [stationClockIst, setStationClockIst] = useState<string>('');
   const [isUpdatingSim, setIsUpdatingSim] = useState<boolean>(false);
   const [isAdvancingSim, setIsAdvancingSim] = useState<boolean>(false);
   const [showTimeJumpToast, setShowTimeJumpToast] = useState<boolean>(false);
   const toastTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const updateUtc = () => {
-      const now = new Date();
-      const yr = now.getUTCFullYear();
-      const mo = String(now.getUTCMonth() + 1).padStart(2, '0');
-      const da = String(now.getUTCDate()).padStart(2, '0');
-      const hr = String(now.getUTCHours()).padStart(2, '0');
-      const mi = String(now.getUTCMinutes()).padStart(2, '0');
-      const sc = String(now.getUTCSeconds()).padStart(2, '0');
-      setWallClockUtc(`${yr}.${mo}.${da} — ${hr}:${mi}:${sc} UTC`);
+    const updateTime = () => {
+      setStationClockIst(formatStationClockIST(new Date()));
     };
-    updateUtc();
-    const timer = setInterval(updateUtc, 1000);
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
 
@@ -151,21 +145,82 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
         </nav>
 
         {activeMission && (
-          <div className="astra-mc-header-active-mission" data-testid="header-active-mission-badge">
+          <div
+            className="astra-mc-header-active-mission"
+            data-testid="header-active-mission-badge"
+            title={`Active Mission: ${activeMission.title} (${activeMission.id} // ${activeMission.destinationGroup})`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '3px 8px',
+              background: 'rgba(0, 229, 255, 0.08)',
+              border: '1px solid rgba(0, 229, 255, 0.25)',
+              borderRadius: '2px',
+              maxWidth: '300px',
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+            }}
+          >
             <span className="astra-mc-active-mission-dot" />
-            <span className="astra-mc-active-mission-label">SCENARIO:</span>
-            <span className="astra-mc-active-mission-title">{activeMission.title}</span>
-            <span className="astra-mc-active-mission-dest">// {activeMission.destinationGroup.toUpperCase()}</span>
+            <span
+              className="astra-mc-active-mission-label"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '9px',
+                fontWeight: 700,
+                color: 'var(--color-earth-cyan)',
+                flexShrink: 0,
+              }}
+            >
+              SCENARIO:
+            </span>
+            <span
+              className="astra-mc-active-mission-title"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--color-text-display)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {activeMission.title}
+            </span>
+            <span
+              className="astra-mc-active-mission-dest"
+              style={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '9px',
+                color: 'var(--color-text-ghost)',
+                flexShrink: 0,
+              }}
+            >
+              // {activeMission.destinationGroup.toUpperCase()}
+            </span>
           </div>
         )}
       </div>
 
-      {/* 2. Right Group: Station Wall Clock, Sim Controls, +60s Jump, and Stream Status */}
+      {/* 2. Right Group: Station Master Clock (IST), Sim Controls, +60s Jump, and Stream Status */}
       <div className="astra-mc-header-right">
-        {/* Station Wall Clock */}
-        <div className="astra-mc-clock-item astra-mc-station-clock" title="Station Master Time">
+        {/* Station Wall Clock in Indian Standard Time (Asia/Kolkata, DD/MM/YYYY) */}
+        <div
+          className="astra-mc-clock-item astra-mc-station-clock"
+          title="Station Master Clock (IST — Asia/Kolkata, UTC+05:30)"
+          data-testid="station-clock-wrapper"
+        >
           <span className="astra-mc-clock-label">STATION CLOCK</span>
-          <span className="astra-mc-clock-val" data-telemetry="utc-wallclock">{wallClockUtc}</span>
+          <span
+            className="astra-mc-clock-val"
+            data-telemetry="utc-wallclock"
+            data-testid="station-clock"
+            style={{ fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}
+          >
+            {stationClockIst}
+          </span>
         </div>
 
         {/* Authoritative Simulation Controls */}

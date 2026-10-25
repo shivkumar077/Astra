@@ -20,14 +20,96 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
   const [destFilter, setDestFilter] = useState<DestinationFilter>('ALL');
 
   const getCraftCategory = (craft: SpacecraftDetail): 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR' => {
-    const id = craft.id.toUpperCase();
+    const id = (craft.id || '').toUpperCase();
     const role = (craft.modelType || '').toLowerCase();
-    if (id.startsWith('ARES') || id.startsWith('MARS') || id.startsWith('PHOBOS') || id.startsWith('DEIMOS') || id.startsWith('AERO') || role.includes('mars')) return 'MARS';
-    if (id.startsWith('CHANDRA') || id.startsWith('LUNAR') || id.startsWith('SELENA') || id.startsWith('ARTEMIS') || id.startsWith('MOON') || role.includes('lunar')) return 'LUNAR';
-    if (id.startsWith('JOVIAN') || id.startsWith('EUROPA') || id.startsWith('CALLISTO') || id.startsWith('CHRONOS') || id.startsWith('TITAN') || role.includes('jupiter') || role.includes('saturn')) return 'OUTER';
-    if (id.startsWith('HELIOS') || id.startsWith('SOLAR') || id.startsWith('ASTEROID') || id.startsWith('DEEP') || id.startsWith('VOYAGER') || role.includes('solar') || role.includes('deep-space') || role.includes('asteroid')) return 'SOLAR';
+    const name = (craft.name || '').toLowerCase();
+
+    // Mars Exploration Fleet
+    if (
+      id.startsWith('ARES') ||
+      id.startsWith('MARS') ||
+      id.startsWith('PHOBOS') ||
+      id.startsWith('DEIMOS') ||
+      id.startsWith('AERO') ||
+      id.startsWith('OLYMPUS') ||
+      role.includes('mars') ||
+      role.includes('areo') ||
+      name.includes('mars')
+    ) {
+      return 'MARS';
+    }
+
+    // Lunar Exploration Fleet
+    if (
+      id.startsWith('CHANDRA') ||
+      id.startsWith('LUNAR') ||
+      id.startsWith('SELENA') ||
+      id.startsWith('ARTEMIS') ||
+      id.startsWith('CRATER') ||
+      id.startsWith('MOON') ||
+      role.includes('lunar') ||
+      role.includes('seleno') ||
+      name.includes('lunar')
+    ) {
+      return 'LUNAR';
+    }
+
+    // Outer Planets Fleet (Jupiter, Saturn, Titan, Callisto, Europa)
+    if (
+      id.startsWith('JOVIAN') ||
+      id.startsWith('EUROPA') ||
+      id.startsWith('CALLISTO') ||
+      id.startsWith('CHRONOS') ||
+      id.startsWith('TITAN') ||
+      role.includes('jupiter') ||
+      role.includes('saturn') ||
+      role.includes('jovian') ||
+      role.includes('galilean') ||
+      role.includes('outer planet') ||
+      name.includes('jupiter') ||
+      name.includes('saturn')
+    ) {
+      return 'OUTER';
+    }
+
+    // Solar & Deep Space Fleet
+    if (
+      id.startsWith('HELIOS') ||
+      id.startsWith('SOLAR') ||
+      id.startsWith('ASTEROID') ||
+      id.startsWith('DEEP') ||
+      id.startsWith('VOYAGER') ||
+      role.includes('solar corona') ||
+      role.includes('deep-space') ||
+      role.includes('asteroid') ||
+      role.includes('heliopause') ||
+      role.includes('space weather') ||
+      name.includes('solar') ||
+      name.includes('voyager') ||
+      name.includes('asteroid')
+    ) {
+      return 'SOLAR';
+    }
+
+    // Earth Orbit (Default)
     return 'EARTH';
   };
+
+  const counts = React.useMemo(() => {
+    const res: Record<DestinationFilter, number> = {
+      ALL: spacecraftList.length,
+      EARTH: 0,
+      LUNAR: 0,
+      MARS: 0,
+      OUTER: 0,
+      SOLAR: 0,
+    };
+    for (const craft of spacecraftList) {
+      const cat = getCraftCategory(craft);
+      res[cat] = (res[cat] || 0) + 1;
+    }
+    return res;
+  }, [spacecraftList]);
 
   const filteredCrafts = spacecraftList.filter((craft) => {
     if (destFilter === 'ALL') return true;
@@ -91,7 +173,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
             }}
             data-testid={`fleet-filter-${filter.toLowerCase()}`}
           >
-            {filter}
+            {filter} ({counts[filter]})
           </button>
         ))}
       </div>

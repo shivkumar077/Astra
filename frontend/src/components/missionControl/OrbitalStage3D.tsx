@@ -917,17 +917,32 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       {/* Top HUD: Target Telemetry Badge & Control Toolbar */}
       <div className="astra-mc-viewport-hud">
         <div className="astra-mc-hud-target-card" data-testid="hud-target-card">
-          <span className="astra-mc-hud-target-tag">
-            {activeMission ? (
-              `[ ACTIVE SCENARIO // ${activeMission.id} [${(activeMission.destinationGroup || 'EARTH').toUpperCase()}] ]`
-            ) : (
-              `[ ACTIVE TARGET // ${selectedCraft ? selectedCraft.id : 'AURA-1'} ]`
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span className="astra-mc-hud-target-tag">
+              [ ACTIVE TARGET // {selectedCraft ? selectedCraft.callSign : 'AURA-1'} ]
+            </span>
+            {activeMission && (
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '9px',
+                  color: 'var(--color-earth-cyan)',
+                  background: 'rgba(0, 229, 255, 0.1)',
+                  padding: '1px 5px',
+                  borderRadius: '2px',
+                  maxWidth: '180px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={`Active Scenario: ${activeMission.title} (${activeMission.id})`}
+              >
+                MISSION: {activeMission.id}
+              </span>
             )}
-          </span>
+          </div>
           <span className="astra-mc-hud-target-title">
-            {activeMission
-              ? `${activeMission.title} [${selectedCraft ? selectedCraft.id : activeMission.spacecraftId}]`
-              : (selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform')}
+            {selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform'}
           </span>
           <span className="astra-mc-hud-target-regime" data-testid="hud-scientific-regime">
             TARGET: {activeMission ? activeMission.destination.toUpperCase() : (

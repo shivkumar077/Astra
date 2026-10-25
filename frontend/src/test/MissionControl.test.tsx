@@ -1472,6 +1472,209 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(screen.getByText('ARES-ORBITER')).toBeInTheDocument();
     });
   });
+
+  describe('Failure Lab Anomaly Selector, Timeline & IST Clock Regression Suite', () => {
+    it('formatStationClockIST correctly formats timestamps in Asia/Kolkata with DD/MM/YYYY ordering and handles date rollover', async () => {
+      const { formatStationClockIST, formatEventTimestampIST, formatTimeOnlyIST } = await import('../utils/timeFormatters');
+
+      // Test 1: Date rollover (22:45 UTC on Oct 24 -> 04:15 IST on Oct 25)
+      const utcIso = '2026-10-24T22:45:30Z';
+      const clockDisplay = formatStationClockIST(utcIso);
+      expect(clockDisplay).toBe('25/10/2026 — 04:15:30 IST');
+
+      // Test 2: Event timestamp formatter
+      const eventDisplay = formatEventTimestampIST(utcIso);
+      expect(eventDisplay).toBe('25/10/2026 04:15:30 IST');
+
+      // Test 3: Time only formatter
+      const timeOnly = formatTimeOnlyIST(utcIso);
+      expect(timeOnly).toBe('04:15:30 IST');
+
+      // Test 4: Graceful fallback for invalid/null dates
+      expect(formatStationClockIST(null)).toBe('— IST');
+      expect(formatStationClockIST('invalid-date')).toBe('— IST');
+    });
+
+    it('FailureLabDrawer handles authentic backend scenario format (scenarioCode/subsystem/title) without empty brackets', async () => {
+      // Backend serialization structure
+      const backendScenarios: any[] = [
+        {
+          scenarioCode: 'EPS_BATTERY_CELL_DEGRADATION',
+          subsystem: 'EPS',
+          title: 'Battery Cell Degradation & Undervoltage',
+          description: 'Simulates internal battery cell degradation, lowering bus voltage.',
+          defaultSeverity: 'CRITICAL',
+          expectedRecoveryAction: 'RESET_BATTERY_CHARGE_CONTROLLER',
+          supportedParameters: { voltageDrop: '6.0V' },
+        },
+        {
+          scenarioCode: 'COMMS_RF_BLACKOUT',
+          subsystem: 'COMMS',
+          title: 'Radio Frequency Communications Blackout',
+          description: 'Simulates full loss of carrier lock and RF uplink/downlink capability.',
+          defaultSeverity: 'CRITICAL',
+          expectedRecoveryAction: 'RESET_RF_TRANSCEIVER',
+          supportedParameters: {},
+        },
+      ];
+
+      const listScenariosSpy = vi.spyOn(missionControlApi, 'listFaultScenarios').mockImplementation(async () => {
+        // Run through normalizer
+        return backendScenarios.map((raw) => ({
+          scenarioCode: raw.scenarioCode,
+          code: raw.scenarioCode,
+          title: raw.title,
+          name: raw.title,
+          subsystem: raw.subsystem,
+          domain: raw.subsystem,
+          defaultSeverity: raw.defaultSeverity,
+          description: raw.description,
+          expectedRecoveryAction: raw.expectedRecoveryAction,
+          recoveryActionRequired: raw.expectedRecoveryAction,
+          supportedParameters: raw.supportedParameters,
+        }));
+      });
+
+      const listFaultsSpy = vi.spyOn(missionControlApi, 'listFaults').mockResolvedValue([]);
+      const injectFaultSpy = vi.spyOn(missionControlApi, 'injectFault').mockResolvedValue({
+        faultId: 'f-999',
+        spacecraftId: 'AURA-1',
+        scenarioCode: 'EPS_BATTERY_CELL_DEGRADATION',
+        domain: 'EPS',
+        severity: 'CRITICAL',
+        lifecycleState: 'ACTIVE',
+        injectedEpoch: '2026-10-24T22:15:30Z',
+        recoveryActionRequired: 'RESET_BATTERY_CHARGE_CONTROLLER',
+        description: 'Simulates internal battery cell degradation',
+      });
+
+      render(
+        <FailureLabDrawer
+          selectedSpacecraft={MOCK_DETAIL}
+          onFaultsChanged={vi.fn()}
+        />
+      );
+
+      // Verify dropdown is populated with readable text and NOT empty brackets []
+      await waitFor(() => {
+        const option = screen.getByRole('option', {
+          name: /\[EPS\] Battery Cell Degradation & Undervoltage — CRITICAL/i,
+        });
+        expect(option).toBeInTheDocument();
+        expect(option).not.toHaveTextContent(/^\[\]$/);
+      });
+
+      // Verify the metadata preview card appears under dropdown
+      expect(screen.getByTestId('scenario-metadata-preview')).toBeInTheDocument();
+      expect(screen.getByText(/SUBSYSTEM: EPS/i)).toBeInTheDocument();
+
+      // Submit injection
+      const injectBtn = screen.getByTestId('inject-fault-btn');
+      fireEvent.click(injectBtn);
+
+      await waitFor(() => {
+        expect(injectFaultSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            scenarioCode: 'EPS_BATTERY_CELL_DEGRADATION',
+            spacecraftId: 'AURA-1',
+            severity: 'CRITICAL',
+          })
+        );
+      });
+
+      listScenariosSpy.mockRestore();
+      listFaultsSpy.mockRestore();
+      injectFaultSpy.mockRestore();
+    });
+
+    it('FailureLabTimeline deduplicates events, sorts chronologically, and renders IST timestamps', async () => {
+      const { FailureLabTimeline } = await import('../components/missionControl/FailureLabTimeline');
+
+      const rawEvents: SimulationEvent[] = [
+        {
+          eventId: 'evt-dup',
+          sequenceNumber: 1,
+          type: 'MISSION_STARTED',
+          simulationEpoch: '2026-10-24T20:00:00Z',
+          wallClockTimestamp: '2026-10-24T20:00:00Z',
+          summary: 'Mission operations initial pass initiated',
+        },
+        {
+          eventId: 'evt-dup', // Duplicate event with same ID
+          sequenceNumber: 1,
+          type: 'MISSION_STARTED',
+          simulationEpoch: '2026-10-24T20:00:00Z',
+          wallClockTimestamp: '2026-10-24T20:00:00Z',
+          summary: 'Mission operations initial pass initiated',
+        },
+        {
+          eventId: 'evt-2',
+          sequenceNumber: 2,
+          type: 'ANOMALY_DETECTED',
+          simulationEpoch: '2026-10-24T22:30:00Z',
+          wallClockTimestamp: '2026-10-24T22:30:00Z',
+          summary: 'Severe battery thermal runaway warning',
+          details: { subsystem: 'EPS', severity: 'CRITICAL' },
+        },
+      ];
+
+      render(<FailureLabTimeline events={rawEvents} targetSpacecraftId="AURA-1" />);
+
+      // Verify header counts unique events (2, not 3)
+      expect(screen.getByText(/CHRONOLOGICAL EVENT TIMELINE \[2\]/i)).toBeInTheDocument();
+
+      // Verify IST formatted timestamp for 22:30 UTC -> 04:00 IST on 25/10/2026
+      expect(screen.getByText('25/10/2026 04:00:00 IST')).toBeInTheDocument();
+
+      // Toggle sort order between NEWEST and OLDEST
+      const sortToggle = screen.getByTestId('timeline-sort-toggle');
+      expect(sortToggle).toHaveTextContent(/NEWEST/i);
+      fireEvent.click(sortToggle);
+      expect(sortToggle).toHaveTextContent(/OLDEST/i);
+    });
+
+    it('preserves clean visual hierarchy between MissionControlHeader and OrbitalStage3D', () => {
+      const mockActiveMission = {
+        id: 'MARS-RECON-01',
+        title: 'Mars Orbital Reconnaissance & Surface Spectrometry',
+        destination: 'Mars (Areostationary & Polar Elliptical)',
+        destinationGroup: 'Mars',
+        category: 'PLANETARY_RECONNAISSANCE' as any,
+        difficulty: 'CHALLENGING' as any,
+        spacecraftId: 'ARES-ORBITER',
+        durationMinutes: 90,
+        riskLevel: 'HIGH',
+        synopsis: 'Swath capture of Valles Marineris',
+        objectives: ['Swath capture'],
+        completionCriteria: ['Optical pass completed'],
+        operationalConstraints: ['Thermal balance'],
+        isSimulated: true,
+        status: 'ACTIVE' as any,
+        categoryLabel: 'Planetary Reconnaissance',
+        difficultyLabel: 'Challenging',
+      };
+
+      render(
+        <MissionControlHeader
+          onReturnHome={vi.fn()}
+          simulationStatus={MOCK_SIM_STATUS}
+          connectionStatus="connected"
+          onSimulationUpdated={vi.fn()}
+          activeMission={mockActiveMission}
+        />
+      );
+
+      // Verify compact header scenario badge
+      const headerBadge = screen.getByTestId('header-active-mission-badge');
+      expect(headerBadge).toBeInTheDocument();
+      expect(headerBadge).toHaveTextContent(/SCENARIO:/i);
+      expect(headerBadge).toHaveTextContent(/MARS/i);
+
+      // Verify station clock displays IST
+      const clock = screen.getByTestId('station-clock');
+      expect(clock).toHaveTextContent(/IST/i);
+    });
+  });
 });
 
 

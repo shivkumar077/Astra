@@ -640,6 +640,60 @@ public class MissionService {
                 ),
                 true
         ));
+
+        registerMission(new MissionDefinition(
+                "OUTER-TITAN-02",
+                "Titan Hydrocarbon Seas & Atmospheric Radar Ingress",
+                "Saturn (Titan Polar Orbit, 950 km)",
+                "Outer Planets",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CRITICAL,
+                "TITAN-RELAY",
+                105,
+                "SEVERE",
+                "Perform synthetic aperture radar mapping of Kraken Mare and Ligeia Mare during low-altitude Titan orbital skim. Analyze methane evaporation cycles and relay atmospheric sounding profiles.",
+                List.of(
+                        "Align Nadir SAR antenna with Kraken Mare coastline coordinates",
+                        "Compensate for thick nitrogen atmosphere attenuation (1.5 bar surface pressure)",
+                        "Measure microwave dielectric constant across liquid hydrocarbon lakes",
+                        "Downlink dual-polarization radar images via X-band high-gain relay"
+                ),
+                List.of(
+                        "Radar swath coverage exceeds 85% of designated polar lake region",
+                        "RTG thermal and electrical bus levels remain strictly nominal"
+                ),
+                List.of(
+                        "Cryogenic ambient temperature (-179°C) requires active internal bay heating"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "DEEP-VOYAGER-02",
+                "Voyager Heliopause Transition & Cosmic Ray Diagnostics",
+                "Deep Space (Interstellar Heliopause, 120 AU)",
+                "Solar",
+                MissionCategory.DEEP_SPACE_SURVIVAL,
+                MissionDifficulty.CRITICAL,
+                "VOYAGER-EXP",
+                120,
+                "SEVERE",
+                "Monitor interstellar magnetic field boundary crossing and anomalous cosmic ray flux variations beyond the Solar termination shock. Execute autonomous low-power survival protocols.",
+                List.of(
+                        "Detect sudden drop in solar wind particle density below heliopause threshold",
+                        "Measure galactic cosmic ray energetic proton flux surge",
+                        "Configure spacecraft bus into ultra-conservative power preservation mode",
+                        "Execute autonomous periodic radio beacon transmission back toward Earth"
+                ),
+                List.of(
+                        "Zero uncommanded computer resets during interstellar plasma boundary transit",
+                        "Scientific telemetry packet safely transmitted and logged"
+                ),
+                List.of(
+                        "Round-trip light time exceeds 33 hours; zero real-time intervention possible"
+                ),
+                true
+        ));
     }
 
     private void registerMission(MissionDefinition mission) {
