@@ -8,7 +8,14 @@ import {
   EARTH_RADIUS_UNITS,
   EARTH_RADIUS_KM,
 } from '../../utils/orbitalCamera';
-import { Crosshair, Compass } from 'lucide-react';
+import { Crosshair, Compass, FastForward } from 'lucide-react';
+
+export interface TimeAdvanceNotice {
+  id: number;
+  type: 'SUCCESS' | 'ERROR';
+  seconds: number;
+  message?: string;
+}
 
 interface OrbitalStage3DProps {
   spacecraftList: SpacecraftDetail[];
@@ -16,6 +23,7 @@ interface OrbitalStage3DProps {
   onSelectSpacecraft: (id: string) => void;
   reducedMotion?: boolean;
   activeMission?: MissionResponse | null;
+  timeAdvanceNotice?: TimeAdvanceNotice | null;
 }
 
 // Authoritative orbital elements fallback if elements have not arrived via REST yet
@@ -47,11 +55,12 @@ const DEFAULT_ELEMENTS: Record<string, KeplerianElements> = {
 };
 
 export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
-  spacecraftList,
+  spacecraftList = [],
   selectedSpacecraftId,
   onSelectSpacecraft,
   reducedMotion = false,
   activeMission = null,
+  timeAdvanceNotice = null,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -95,8 +104,9 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const updateOrbitsRef = useRef<() => void>(() => {});
   const updateCelestialBodyRef = useRef<() => void>(() => {});
 
+  const craftList = spacecraftList || [];
   const selectedCraft =
-    spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
+    craftList.find((s) => s.id === selectedSpacecraftId) || craftList[0] || null;
 
   // Auto-switch reference frame when active mission destination changes
   useEffect(() => {
@@ -204,12 +214,14 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     const starField = new THREE.Points(starGeometry, starMaterial);
     scene.add(starField);
 
-    // 4. 3D Earth Globe with NASA Textures & Cloud Shading
-    const earthGroup = new THREE.Group();
-    scene.add(earthGroup);
+    // 4. Multi-Body Celestial Stage System (Earth, Mars, Moon, Jupiter)
+    const celestialHost = new THREE.Group();
+    scene.add(celestialHost);
 
-    // Realistic Axial Tilt (-23.4 degrees)
+    // --- 4A. Earth System ---
+    const earthGroup = new THREE.Group();
     earthGroup.rotation.z = THREE.MathUtils.degToRad(-23.4);
+    celestialHost.add(earthGroup);
 
     const textureLoader = new THREE.TextureLoader();
     const earthTexture = textureLoader.load('/assets/earth/earth_2048.jpg', () => {
@@ -236,8 +248,6 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       emissive: new THREE.Color(0xffe29a),
       emissiveIntensity: 0.5,
     });
-
-    // Night city light modulation based on sun angle
     earthMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.uSunDir = { value: sunDirection };
       shader.fragmentShader = `
@@ -254,11 +264,9 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
         `
       );
     };
-
     const earthMesh = new THREE.Mesh(earthGeometry, earthMaterial);
     earthGroup.add(earthMesh);
 
-    // Cloud Layer
     const cloudGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.015, 64, 64);
     const cloudMaterial = new THREE.MeshStandardMaterial({
       map: cloudsTexture,
@@ -271,18 +279,16 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     const cloudMesh = new THREE.Mesh(cloudGeometry, cloudMaterial);
     earthGroup.add(cloudMesh);
 
-    // Aerospace Tactical Wireframe Grid
-    const gridGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.002, 36, 18);
-    const gridMaterial = new THREE.MeshBasicMaterial({
+    const earthGridGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.002, 36, 18);
+    const earthGridMaterial = new THREE.MeshBasicMaterial({
       color: 0x38bdf8,
       wireframe: true,
       transparent: true,
       opacity: 0.1,
     });
-    const gridMesh = new THREE.Mesh(gridGeometry, gridMaterial);
-    earthGroup.add(gridMesh);
+    const earthGridMesh = new THREE.Mesh(earthGridGeometry, earthGridMaterial);
+    earthGroup.add(earthGridMesh);
 
-    // Atmospheric Blue Silhouette Halo (Natural Rayleigh Scattering, FrontSide)
     const atmosphereGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS + 0.02, 64, 64);
     const atmosphereMaterial = new THREE.ShaderMaterial({
       vertexShader: `
@@ -308,9 +314,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
           gl_FragColor = vec4(atmosColor, intensity * dayMask * 0.7);
         }
       `,
-      uniforms: {
-        uSunDir: { value: sunDirection },
-      },
+      uniforms: { uSunDir: { value: sunDirection } },
       blending: THREE.AdditiveBlending,
       side: THREE.FrontSide,
       transparent: true,
@@ -319,7 +323,138 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     earthGroup.add(atmosphereMesh);
 
-    // Dynamic Celestial Body Handler
+    // --- 4B. Mars System ---
+    const marsGroup = new THREE.Group();
+    marsGroup.rotation.z = THREE.MathUtils.degToRad(-25.19);
+    celestialHost.add(marsGroup);
+
+    const marsTexture = getProceduralPlanetTexture('mars');
+    if (marsTexture) marsTexture.colorSpace = THREE.SRGBColorSpace;
+    const marsGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS, 64, 64);
+    const marsMaterial = new THREE.MeshStandardMaterial({
+      map: marsTexture,
+      roughness: 0.88,
+      metalness: 0.04,
+    });
+    const marsMesh = new THREE.Mesh(marsGeometry, marsMaterial);
+    marsGroup.add(marsMesh);
+
+    const marsAtmosMaterial = new THREE.ShaderMaterial({
+      vertexShader: atmosphereMaterial.vertexShader,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform vec3 uSunDir;
+        void main() {
+          vec3 viewDir = normalize(-vPosition);
+          float fresnel = 1.0 - max(dot(vNormal, viewDir), 0.0);
+          float intensity = pow(fresnel, 4.0);
+          float sunCos = dot(vNormal, uSunDir);
+          float dayMask = smoothstep(-0.15, 0.2, sunCos);
+          vec3 atmosColor = mix(vec3(0.65, 0.32, 0.18), vec3(0.85, 0.52, 0.3), fresnel);
+          gl_FragColor = vec4(atmosColor, intensity * dayMask * 0.55);
+        }
+      `,
+      uniforms: { uSunDir: { value: sunDirection } },
+      blending: THREE.AdditiveBlending,
+      side: THREE.FrontSide,
+      transparent: true,
+      depthWrite: false,
+    });
+    const marsAtmosMesh = new THREE.Mesh(atmosphereGeometry, marsAtmosMaterial);
+    marsGroup.add(marsAtmosMesh);
+
+    const marsGridMaterial = new THREE.MeshBasicMaterial({
+      color: 0xf97316,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.14,
+    });
+    const marsGridMesh = new THREE.Mesh(earthGridGeometry, marsGridMaterial);
+    marsGroup.add(marsGridMesh);
+
+    // --- 4C. Lunar System ---
+    const lunarGroup = new THREE.Group();
+    lunarGroup.rotation.z = THREE.MathUtils.degToRad(-1.54);
+    celestialHost.add(lunarGroup);
+
+    const lunarTexture = getProceduralPlanetTexture('mercury');
+    if (lunarTexture) lunarTexture.colorSpace = THREE.SRGBColorSpace;
+    const lunarGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS, 64, 64);
+    const lunarMaterial = new THREE.MeshStandardMaterial({
+      map: lunarTexture,
+      roughness: 0.95,
+      metalness: 0.02,
+    });
+    const lunarMesh = new THREE.Mesh(lunarGeometry, lunarMaterial);
+    lunarGroup.add(lunarMesh);
+
+    const lunarGridMaterial = new THREE.MeshBasicMaterial({
+      color: 0x94a3b8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.12,
+    });
+    const lunarGridMesh = new THREE.Mesh(earthGridGeometry, lunarGridMaterial);
+    lunarGroup.add(lunarGridMesh);
+
+    // --- 4D. Outer Planets / Jupiter System ---
+    const jupiterGroup = new THREE.Group();
+    jupiterGroup.rotation.z = THREE.MathUtils.degToRad(-3.13);
+    celestialHost.add(jupiterGroup);
+
+    const jupiterTexture = getProceduralPlanetTexture('jupiter');
+    if (jupiterTexture) jupiterTexture.colorSpace = THREE.SRGBColorSpace;
+    const jupiterGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.05, 64, 64);
+    const jupiterMaterial = new THREE.MeshStandardMaterial({
+      map: jupiterTexture,
+      roughness: 0.72,
+      metalness: 0.03,
+    });
+    const jupiterMesh = new THREE.Mesh(jupiterGeometry, jupiterMaterial);
+    jupiterGroup.add(jupiterMesh);
+
+    const jupiterAtmosMaterial = new THREE.ShaderMaterial({
+      vertexShader: atmosphereMaterial.vertexShader,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform vec3 uSunDir;
+        void main() {
+          vec3 viewDir = normalize(-vPosition);
+          float fresnel = 1.0 - max(dot(vNormal, viewDir), 0.0);
+          float intensity = pow(fresnel, 3.8);
+          float sunCos = dot(vNormal, uSunDir);
+          float dayMask = smoothstep(-0.1, 0.2, sunCos);
+          vec3 atmosColor = mix(vec3(0.72, 0.52, 0.18), vec3(0.92, 0.75, 0.32), fresnel);
+          gl_FragColor = vec4(atmosColor, intensity * dayMask * 0.65);
+        }
+      `,
+      uniforms: { uSunDir: { value: sunDirection } },
+      blending: THREE.AdditiveBlending,
+      side: THREE.FrontSide,
+      transparent: true,
+      depthWrite: false,
+    });
+    const jupiterAtmosMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.05 + 0.02, 64, 64),
+      jupiterAtmosMaterial
+    );
+    jupiterGroup.add(jupiterAtmosMesh);
+
+    const jupiterGridMaterial = new THREE.MeshBasicMaterial({
+      color: 0xeab308,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.12,
+    });
+    const jupiterGridMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.052, 36, 18),
+      jupiterGridMaterial
+    );
+    jupiterGroup.add(jupiterGridMesh);
+
+    // Dynamic Celestial Body Target Synchronizer
     const updateCelestialBody = () => {
       const mission = activeMissionRef.current;
       const grp = (mission?.destinationGroup || '').toLowerCase();
@@ -328,63 +463,11 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       const isLunarDest = grp.includes('lunar') || grp.includes('deep space') || dst.includes('moon');
       const isOuterDest = grp.includes('outer') || dst.includes('jupiter') || dst.includes('saturn') || dst.includes('titan');
 
-      if (isMarsDest) {
-        const marsTex = getProceduralPlanetTexture('mars');
-        if (marsTex) {
-          marsTex.colorSpace = THREE.SRGBColorSpace;
-          earthMesh.material.map = marsTex;
-        }
-        earthMesh.material.emissiveMap = null;
-        earthMesh.material.emissiveIntensity = 0.0;
-        earthMesh.material.roughness = 0.85;
-        earthMesh.material.needsUpdate = true;
-        earthGroup.rotation.z = THREE.MathUtils.degToRad(-25.19);
-        cloudMesh.visible = false;
-        atmosphereMesh.visible = true;
-        gridMaterial.color.setHex(0xf97316);
-        gridMaterial.opacity = 0.14;
-      } else if (isLunarDest) {
-        const lunarTex = getProceduralPlanetTexture('mercury');
-        if (lunarTex) {
-          lunarTex.colorSpace = THREE.SRGBColorSpace;
-          earthMesh.material.map = lunarTex;
-        }
-        earthMesh.material.emissiveMap = null;
-        earthMesh.material.emissiveIntensity = 0.0;
-        earthMesh.material.roughness = 0.95;
-        earthMesh.material.needsUpdate = true;
-        earthGroup.rotation.z = THREE.MathUtils.degToRad(-1.54);
-        cloudMesh.visible = false;
-        atmosphereMesh.visible = false;
-        gridMaterial.color.setHex(0x94a3b8);
-        gridMaterial.opacity = 0.12;
-      } else if (isOuterDest) {
-        const jupiterTex = getProceduralPlanetTexture('jupiter');
-        if (jupiterTex) {
-          jupiterTex.colorSpace = THREE.SRGBColorSpace;
-          earthMesh.material.map = jupiterTex;
-        }
-        earthMesh.material.emissiveMap = null;
-        earthMesh.material.emissiveIntensity = 0.0;
-        earthMesh.material.roughness = 0.7;
-        earthMesh.material.needsUpdate = true;
-        earthGroup.rotation.z = THREE.MathUtils.degToRad(-3.13);
-        cloudMesh.visible = false;
-        atmosphereMesh.visible = true;
-        gridMaterial.color.setHex(0xeab308);
-        gridMaterial.opacity = 0.12;
-      } else {
-        earthMesh.material.map = earthTexture;
-        earthMesh.material.emissiveMap = lightsTexture;
-        earthMesh.material.emissiveIntensity = 0.5;
-        earthMesh.material.roughness = 0.68;
-        earthMesh.material.needsUpdate = true;
-        earthGroup.rotation.z = THREE.MathUtils.degToRad(-23.4);
-        cloudMesh.visible = true;
-        atmosphereMesh.visible = true;
-        gridMaterial.color.setHex(0x38bdf8);
-        gridMaterial.opacity = 0.1;
-      }
+      earthGroup.visible = !isMarsDest && !isLunarDest && !isOuterDest;
+      marsGroup.visible = isMarsDest;
+      lunarGroup.visible = isLunarDest;
+      jupiterGroup.visible = isOuterDest;
+
       if (!isDisposed) renderer.render(scene, camera);
     };
 
@@ -521,7 +604,8 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
         // Slow continuous Earth rotation
         earthMesh.rotation.y += delta * 0.02;
         cloudMesh.rotation.y += delta * 0.026;
-        gridMesh.rotation.y += delta * 0.02;
+        earthGridMesh.rotation.y += delta * 0.02;
+        marsMesh.rotation.y += delta * 0.019;
       }
 
       // Smooth Target Camera Tracking
@@ -591,14 +675,16 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       window.removeEventListener('pointerup', onPointerUp);
       container.removeEventListener('wheel', onWheel);
 
-      earthGeometry.dispose();
-      earthMaterial.dispose();
-      cloudGeometry.dispose();
-      cloudMaterial.dispose();
-      gridGeometry.dispose();
-      gridMaterial.dispose();
-      atmosphereGeometry.dispose();
-      atmosphereMaterial.dispose();
+      celestialHost.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry?.dispose();
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else if (child.material) {
+            child.material.dispose();
+          }
+        }
+      });
       starGeometry.dispose();
       starMaterial.dispose();
 
@@ -689,6 +775,31 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
           )}
         </div>
       </div>
+
+      {/* Time Advance Feedback Overlay (Anchored to Central Orbital Viewport) */}
+      {timeAdvanceNotice && (
+        <div
+          className={`astra-mc-viewport-time-notice ${(timeAdvanceNotice.type || 'success').toLowerCase()} ${timeAdvanceNotice.type === 'ERROR' ? 'notice-error' : ''}`}
+          role="status"
+          aria-live="polite"
+          data-testid="viewport-time-notice"
+        >
+          <div className="astra-mc-time-notice-header">
+            <FastForward size={14} className="astra-mc-time-notice-icon" aria-hidden="true" />
+            <span className="astra-mc-time-notice-label">
+              {timeAdvanceNotice.type === 'SUCCESS' ? 'SIMULATION ADVANCED' : 'SIMULATION ADVANCE FAILED'}
+            </span>
+          </div>
+          <div className="astra-mc-time-notice-readout">
+            {timeAdvanceNotice.type === 'SUCCESS' ? `+${timeAdvanceNotice.seconds} SECONDS` : 'REQUEST REJECTED'}
+          </div>
+          <div className="astra-mc-time-notice-sub">
+            {timeAdvanceNotice.type === 'SUCCESS'
+              ? 'AUTHORITATIVE TIME STEP APPLIED'
+              : (timeAdvanceNotice.message || 'Simulation time advancement was rejected by the engine.')}
+          </div>
+        </div>
+      )}
 
       {/* Bottom HUD: Live Orbital Telemetry Ribbon */}
       <div className="astra-mc-viewport-bottom-hud">

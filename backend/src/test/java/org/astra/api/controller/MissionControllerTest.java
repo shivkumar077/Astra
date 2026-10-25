@@ -214,5 +214,63 @@ class MissionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.runId == '" + runId + "')].destinationGroup", contains("Lunar & Deep Space")));
     }
+
+    @Test
+    @DisplayName("Enforce single active mission policy: attempting concurrent start returns 409 Conflict, /switch or abortActive=true transitions seamlessly")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testSingleActiveMissionPolicyAndSwitch() throws Exception {
+        // 1. Start Mission A (EARTH-COMMS-SOLIS) with abortActive=true to clear any previous runs
+        String resA = mockMvc.perform(post("/api/v1/missions/EARTH-COMMS-SOLIS/start?abortActive=true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.missionId", is("EARTH-COMMS-SOLIS")))
+                .andExpect(jsonPath("$.status", is("ACTIVE")))
+                .andReturn().getResponse().getContentAsString();
+
+        String runIdA = new com.fasterxml.jackson.databind.ObjectMapper().readTree(resA).get("runId").asText();
+
+        // 2. Active mission endpoint returns EARTH-COMMS-SOLIS
+        mockMvc.perform(get("/api/v1/missions/active"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is("EARTH-COMMS-SOLIS")))
+                .andExpect(jsonPath("$.status", is("ACTIVE")));
+
+        // 3. Attempting to start Mission B (MARS-ROVER-RELAY) without abortActive returns 409 Conflict
+        mockMvc.perform(post("/api/v1/missions/MARS-ROVER-RELAY/start")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict());
+
+        // 4. Seamlessly switch to Mission B using /switch
+        mockMvc.perform(post("/api/v1/missions/MARS-ROVER-RELAY/switch")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Flight Director switch to Mars surface relay operations\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.missionId", is("MARS-ROVER-RELAY")))
+                .andExpect(jsonPath("$.status", is("ACTIVE")));
+
+        // 5. Verify Mission A was aborted and archived in history
+        mockMvc.perform(get("/api/v1/missions/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.runId == '" + runIdA + "')].status", contains("ABORTED")));
+
+        // 6. Clean up: complete Mission B
+        mockMvc.perform(post("/api/v1/missions/runs/" + runIdA + "/abort")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Catalogue includes at least 18 curated mission scenarios across Solar System destinations")
+    void testExpandedCatalogueSize() throws Exception {
+        mockMvc.perform(get("/api/v1/missions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(18))))
+                .andExpect(jsonPath("$[?(@.id == 'MARS-ROVER-RELAY')].destinationGroup", contains("Mars")))
+                .andExpect(jsonPath("$[?(@.id == 'MARS-POLAR-MAPPING')].destinationGroup", contains("Mars")))
+                .andExpect(jsonPath("$[?(@.id == 'LUNAR-RELAY-FARSIDE')].destinationGroup", contains("Lunar & Deep Space")))
+                .andExpect(jsonPath("$[?(@.id == 'LUNAR-RESOURCE-PROSPECT')].destinationGroup", contains("Lunar & Deep Space")))
+                .andExpect(jsonPath("$[?(@.id == 'JUPITER-RADIATION-02')].destinationGroup", contains("Outer Planets")))
+                .andExpect(jsonPath("$[?(@.id == 'SOLAR-STORM-CORONA')].destinationGroup", contains("Solar")));
+    }
 }
 

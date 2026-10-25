@@ -78,14 +78,49 @@ public class MissionController {
     }
 
     /**
+     * Retrieves the currently active mission and its active run state across the simulator session.
+     */
+    @GetMapping("/active")
+    public ResponseEntity<MissionResponse> getActiveMission() {
+        return missionService.getActiveMission()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
+
+    /**
      * Starts an interactive mission simulation run on the server-authoritative engine.
+     * Enforces single active run policy. If another run is in progress and abortActive is false, returns 409 Conflict.
      */
     @PostMapping("/{id}/start")
-    public ResponseEntity<MissionRun> startMission(@PathVariable String id) {
+    public ResponseEntity<MissionRun> startMission(
+            @PathVariable String id,
+            @RequestParam(defaultValue = "false") boolean abortActive
+    ) {
         String operator = SecurityUtils.getCurrentUsername().orElse("operator");
         try {
-            MissionRun run = missionService.startMission(id, operator);
+            MissionRun run = missionService.startMission(id, operator, abortActive);
             return ResponseEntity.status(HttpStatus.CREATED).body(run);
+        } catch (NoSuchElementException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, e.getMessage());
+        }
+    }
+
+    /**
+     * Seamlessly transitions from the currently active mission to a new target scenario.
+     * Aborts and archives the current active run, then starts the new scenario.
+     */
+    @PostMapping("/{id}/switch")
+    public ResponseEntity<MissionRun> switchMission(
+            @PathVariable String id,
+            @RequestBody(required = false) Map<String, String> body
+    ) {
+        String operator = SecurityUtils.getCurrentUsername().orElse("operator");
+        String reason = body != null ? body.get("reason") : "Switched active mission via Mission Control.";
+        try {
+            MissionRun run = missionService.switchMission(id, operator, reason);
+            return ResponseEntity.status(HttpStatus.OK).body(run);
         } catch (NoSuchElementException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

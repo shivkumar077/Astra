@@ -319,16 +319,44 @@ export async function getMissionBriefing(id: string): Promise<MissionResponse> {
   return request<MissionResponse>(`/missions/${encodeURIComponent(id)}`);
 }
 
+export async function getActiveMission(): Promise<MissionResponse | null> {
+  try {
+    return await request<MissionResponse>('/missions/active');
+  } catch (e) {
+    if (e instanceof MissionControlApiError && (e.status === 204 || e.status === 404)) {
+      return null;
+    }
+    throw e;
+  }
+}
+
 export async function startMission(
   id: string,
+  abortActive: boolean = false,
   creds: OperatorCredentials = DEFAULT_OPERATOR_CREDENTIALS
 ): Promise<MissionRun> {
-  return request<MissionRun>(`/missions/${encodeURIComponent(id)}/start`, {
+  const query = abortActive ? '?abortActive=true' : '';
+  return request<MissionRun>(`/missions/${encodeURIComponent(id)}/start${query}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       ...getAuthHeader(creds),
     },
+  });
+}
+
+export async function switchMission(
+  id: string,
+  reason: string = 'Switched active mission via Mission Control',
+  creds: OperatorCredentials = DEFAULT_OPERATOR_CREDENTIALS
+): Promise<MissionRun> {
+  return request<MissionRun>(`/missions/${encodeURIComponent(id)}/switch`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(creds),
+    },
+    body: JSON.stringify({ reason }),
   });
 }
 

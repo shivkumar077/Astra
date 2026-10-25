@@ -3822,3 +3822,665 @@
   }
 }
 
+/* ==============================================================================
+   REFINED MISSION CONTROL: VIEWPORT TIME ADVANCE, HISTORY CARDS & SWITCH MODAL
+   ============================================================================== */
+
+/* 1. Time Advance Central Viewport Overlay */
+.astra-mc-viewport-time-notice {
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: rgba(4, 13, 26, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 24px rgba(56, 189, 248, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  pointer-events: none;
+  animation: timeNoticePop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.astra-mc-viewport-time-notice.notice-error {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65), 0 0 24px rgba(239, 68, 68, 0.25);
+}
+
+.astra-mc-time-notice-pulse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.notice-error .astra-mc-time-notice-pulse {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.astra-mc-time-notice-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.astra-mc-time-notice-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-earth-cyan);
+  text-transform: uppercase;
+}
+
+.notice-error .astra-mc-time-notice-eyebrow {
+  color: var(--color-critical);
+}
+
+.astra-mc-time-notice-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.astra-mc-time-delta-readout {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f0f6fc;
+}
+
+.astra-mc-time-epoch-readout {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #94a3b8;
+  letter-spacing: 0.04em;
+}
+
+.astra-mc-time-dir-indicators {
+  display: flex;
+  gap: 1px;
+  margin-left: 4px;
+}
+
+.astra-mc-time-dir-arrow {
+  color: var(--color-earth-cyan);
+  font-size: 11px;
+  opacity: 0.4;
+  animation: dirArrowPulse 0.9s infinite alternate;
+}
+
+.astra-mc-time-dir-arrow:nth-child(2) {
+  opacity: 0.7;
+  animation-delay: 0.2s;
+}
+
+.astra-mc-time-dir-arrow:nth-child(3) {
+  opacity: 1;
+  animation-delay: 0.4s;
+}
+
+@keyframes timeNoticePop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+
+@keyframes dirArrowPulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astra-mc-viewport-time-notice {
+    animation: none;
+    transform: translateX(-50%);
+  }
+  .astra-mc-time-dir-arrow {
+    animation: none;
+    opacity: 0.8;
+  }
+}
+
+/* 2. Redesigned Mission History Section */
+.astra-mc-history-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.astra-mc-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 16px;
+}
+
+.astra-mc-history-heading {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f0f6fc;
+  margin: 4px 0 2px 0;
+}
+
+.astra-mc-history-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.astra-mc-history-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.astra-mc-history-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-earth-cyan);
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.astra-mc-history-refresh-btn:hover:not(:disabled) {
+  background: rgba(56, 189, 248, 0.16);
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #fff;
+}
+
+/* History Toolbar */
+.astra-mc-history-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(6, 16, 28, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.astra-mc-history-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 260px;
+}
+
+.astra-mc-history-search-input {
+  width: 100%;
+  padding: 7px 30px 7px 30px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #f0f6fc;
+  background: rgba(3, 10, 20, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.astra-mc-history-search-input:focus {
+  border-color: var(--color-earth-cyan);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+}
+
+.astra-mc-history-status-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.astra-mc-history-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  background: rgba(12, 26, 44, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.astra-mc-history-filter-pill:hover {
+  background: rgba(16, 36, 62, 0.8);
+  color: #e2e8f0;
+}
+
+.astra-mc-history-filter-pill.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: rgba(56, 189, 248, 0.4);
+  color: var(--color-earth-cyan);
+}
+
+.astra-mc-history-filter-pill .pill-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+}
+
+/* History Cards List */
+.astra-mc-history-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.astra-mc-history-record-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px;
+  background: rgba(5, 14, 26, 0.78);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.astra-mc-history-record-card:hover {
+  border-color: rgba(56, 189, 248, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.astra-mc-history-record-card.status-active {
+  border-color: rgba(56, 189, 248, 0.45);
+  background: rgba(6, 20, 36, 0.85);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.12);
+}
+
+.astra-mc-history-record-card.status-completed {
+  border-left: 3px solid var(--color-nominal);
+}
+
+.astra-mc-history-record-card.status-failed {
+  border-left: 3px solid var(--color-critical);
+}
+
+.astra-mc-history-record-card.status-aborted {
+  border-left: 3px solid var(--color-advisory);
+}
+
+.astra-mc-history-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.astra-mc-history-dest-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.astra-mc-history-run-id {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.astra-mc-history-mission-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.astra-mc-history-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.astra-mc-history-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.astra-mc-history-card-title {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f0f6fc;
+  margin: 0;
+}
+
+.astra-mc-history-craft-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.astra-mc-history-outcome-callout {
+  padding: 8px 12px;
+  background: rgba(3, 10, 20, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+
+.astra-mc-history-outcome-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.astra-mc-history-outcome-text {
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Timing Grid */
+.astra-mc-history-card-timing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(12, 26, 44, 0.4);
+  border-radius: 4px;
+}
+
+.astra-mc-history-time-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.astra-mc-history-time-item .astra-mc-hud-metric-k {
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.astra-mc-history-time-item .astra-mc-hud-metric-v {
+  font-size: 11px;
+  color: #e2e8f0;
+}
+
+/* Expandable Verification Gates */
+.astra-mc-history-gates-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astra-mc-history-gates-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-earth-cyan);
+  cursor: pointer;
+  width: fit-content;
+  border-radius: 3px;
+  transition: background 0.15s ease;
+}
+
+.astra-mc-history-gates-toggle:hover {
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.astra-mc-history-gates-expanded-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(3, 10, 20, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+}
+
+.astra-mc-history-gate-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.astra-mc-history-gate-item .gate-passed {
+  color: #cbd5e1;
+}
+
+.astra-mc-history-gate-item .gate-failed {
+  color: var(--color-critical);
+}
+
+.astra-mc-history-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* 3. Switch Mission Confirmation Modal */
+.astra-mc-switch-modal {
+  max-width: 600px;
+}
+
+.astra-mc-switch-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 20px;
+}
+
+.astra-mc-switch-warning {
+  font-size: 13px;
+  color: #e2e8f0;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.astra-mc-switch-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.astra-mc-switch-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 6px;
+  background: rgba(4, 12, 22, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.astra-mc-switch-col.current {
+  border-color: rgba(239, 68, 68, 0.35);
+}
+
+.astra-mc-switch-col.incoming {
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.astra-mc-switch-col-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.astra-mc-switch-col h4 {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #f0f6fc;
+  margin: 0;
+}
+
+.astra-mc-switch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.astra-mc-switch-fate-tag {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-critical);
+  padding: 3px 6px;
+  background: rgba(239, 68, 68, 0.12);
+  border-radius: 3px;
+}
+
+.astra-mc-switch-incoming-tag {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-earth-cyan);
+  padding: 3px 6px;
+  background: rgba(56, 189, 248, 0.12);
+  border-radius: 3px;
+}
+
+.astra-mc-switch-note {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+  font-style: italic;
+}
+
+.astra-mc-btn-danger-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: #dc2626;
+  border: 1px solid #ef4444;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.astra-mc-btn-danger-switch:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: #f87171;
+}
+
+/* Mobile & Tablet Responsiveness for Refined Controls */
+@media (max-width: 768px) {
+  .astra-mc-viewport-time-notice {
+    bottom: 64px;
+    padding: 8px 12px;
+    width: calc(100% - 32px);
+    max-width: 380px;
+    justify-content: center;
+  }
+
+  .astra-mc-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .astra-mc-history-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .astra-mc-history-search-wrap {
+    min-width: 100%;
+  }
+
+  .astra-mc-history-status-pills {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .astra-mc-switch-comparison {
+    grid-template-columns: 1fr;
+  }
+
+  .astra-mc-history-card-timing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .astra-mc-history-card-actions {
+    flex-direction: column;
+  }
+}
+

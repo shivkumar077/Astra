@@ -77,8 +77,35 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [activeTab, setActiveTab] = useState<'catalogue' | 'briefing' | 'history'>('catalogue');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isActionRunning, setIsActionRunning] = useState<boolean>(false);
-  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
   const [expandedGatesMissionId, setExpandedGatesMissionId] = useState<string | null>(null);
+  const [showSwitchConfirmModal, setShowSwitchConfirmModal] = useState<MissionResponse | null>(null);
+  const [historyStatusFilter, setHistoryStatusFilter] = useState<string>('ALL');
+  const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
+  const [expandedHistoryRunId, setExpandedHistoryRunId] = useState<string | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  const formatDuration = (startEpoch: string, endEpoch?: string | null): string => {
+    const start = new Date(startEpoch).getTime();
+    const end = endEpoch ? new Date(endEpoch).getTime() : Date.now();
+    const diffSec = Math.max(0, Math.floor((end - start) / 1000));
+    const mins = Math.floor(diffSec / 60);
+    const secs = diffSec % 60;
+    if (mins < 60) {
+      return `${mins}m ${secs}s`;
+    }
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return `${hrs}h ${remMins}m ${secs}s`;
+  };
+
+  const getDestinationBadgeClass = (destGroup?: string) => {
+    const grp = (destGroup || '').toLowerCase();
+    if (grp.includes('mars')) return 'dest-mars';
+    if (grp.includes('lunar') || grp.includes('deep space')) return 'dest-lunar';
+    if (grp.includes('outer') || grp.includes('jupiter')) return 'dest-outer';
+    if (grp.includes('solar') || grp.includes('sun')) return 'dest-solar';
+    return 'dest-earth';
+  };
 
   // New Mission Modal State
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
@@ -170,11 +197,27 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
     loadMissionsData();
   }, []);
 
+  const availableCount = missions.filter((m) => m.status === 'AVAILABLE').length;
+  const activeCount = missions.filter((m) => m.status === 'ACTIVE').length;
+
   const handleStartMission = async (missionId: string) => {
+    // Check if there is already an active mission run
+    const currentActive = missions.find((m) => m.status === 'ACTIVE') || activeMission;
+    if (currentActive && currentActive.id !== missionId) {
+      const targetMission = missions.find((m) => m.id === missionId);
+      if (targetMission) {
+        setShowSwitchConfirmModal(targetMission);
+        return;
+      }
+    }
+    await executeStartMission(missionId, false);
+  };
+
+  const executeStartMission = async (missionId: string, abortActive: boolean = false) => {
     setIsActionRunning(true);
     setActionFeedback(null);
     try {
-      const run = await startMission(missionId);
+      const run = await startMission(missionId, abortActive);
       setActionFeedback(`Mission run ${run.runId} started successfully on spacecraft ${run.spacecraftId}.`);
       await loadMissionsData();
       
@@ -190,6 +233,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
         onSelectSpacecraft(run.spacecraftId);
       }
       onMissionStatusChanged?.();
+      setShowSwitchConfirmModal(null);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setActionFeedback(`Start Failed: ${msg}`);
@@ -393,20 +437,53 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
             <span>NEW MISSION</span>
           </button>
 
-          <div className="astra-mc-universe-nav-tabs">
+          <div className="astra-mc-universe-nav-tabs" role="tablist" aria-label="Mission universe views">
             <button
-              onClick={() => setActiveTab('catalogue')}
-              className={`astra-mc-universe-tab-btn ${activeTab === 'catalogue' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('catalogue');
+                setSelectedStatus('ALL');
+              }}
+              className={`astra-mc-universe-tab-btn ${activeTab === 'catalogue' && selectedStatus === 'ALL' ? 'active' : ''}`}
               data-testid="tab-universe-catalogue"
+              role="tab"
+              aria-selected={activeTab === 'catalogue' && selectedStatus === 'ALL'}
             >
               <Layers size={13} />
-              <span>CATALOGUE ({filteredMissions.length})</span>
+              <span>CATALOGUE ({missions.length})</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('catalogue');
+                setSelectedStatus('AVAILABLE');
+              }}
+              className={`astra-mc-universe-tab-btn ${activeTab === 'catalogue' && selectedStatus === 'AVAILABLE' ? 'active' : ''}`}
+              data-testid="tab-universe-available"
+              role="tab"
+              aria-selected={activeTab === 'catalogue' && selectedStatus === 'AVAILABLE'}
+            >
+              <CheckCircle size={13} />
+              <span>AVAILABLE ({availableCount})</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('catalogue');
+                setSelectedStatus('ACTIVE');
+              }}
+              className={`astra-mc-universe-tab-btn ${activeTab === 'catalogue' && selectedStatus === 'ACTIVE' ? 'active' : ''}`}
+              data-testid="tab-universe-active"
+              role="tab"
+              aria-selected={activeTab === 'catalogue' && selectedStatus === 'ACTIVE'}
+            >
+              <Activity size={13} />
+              <span>ACTIVE ({activeCount})</span>
             </button>
             {selectedMission && (
               <button
                 onClick={() => setActiveTab('briefing')}
                 className={`astra-mc-universe-tab-btn ${activeTab === 'briefing' ? 'active' : ''}`}
                 data-testid="tab-universe-briefing"
+                role="tab"
+                aria-selected={activeTab === 'briefing'}
               >
                 <Terminal size={13} />
                 <span>BRIEFING: {selectedMission.id}</span>
@@ -416,6 +493,8 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
               onClick={() => setActiveTab('history')}
               className={`astra-mc-universe-tab-btn ${activeTab === 'history' ? 'active' : ''}`}
               data-testid="tab-universe-history"
+              role="tab"
+              aria-selected={activeTab === 'history'}
             >
               <History size={13} />
               <span>MISSION HISTORY ({history.length})</span>
@@ -905,39 +984,280 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       {activeTab === 'history' && (
         <div className="astra-mc-history-view" data-testid="mission-history-view">
           <div className="astra-mc-history-header">
-            <h3>SIMULATION AUDIT LOG & FLIGHT OUTCOMES</h3>
-            <span className="astra-mc-hud-metric-k">{history.length} RECORDED RUNS</span>
-          </div>
-          {history.length === 0 ? (
-            <div className="astra-mc-empty-state">
-              <History size={24} color="var(--color-text-ghost)" />
-              <p>No historical simulation runs recorded yet. Launch a mission from the catalogue.</p>
+            <div>
+              <span className="astra-mc-hud-target-tag">[ MISSION ARCHIVE // FLIGHT AUDIT LOG ]</span>
+              <h3 className="astra-mc-history-heading">Simulation Runs & Flight Verification Log</h3>
+              <p className="astra-mc-history-sub">
+                Authoritative chronological record of all executed simulation runs, objective verifications, and mission outcomes.
+              </p>
             </div>
-          ) : (
-            <div className="astra-mc-history-table">
-              {history.map((run) => (
-                <div key={run.runId} className="astra-mc-history-row" data-testid={`history-row-${run.runId}`}>
-                  <div className="astra-mc-history-col-main">
-                    <div className="astra-mc-history-title-line">
-                      <span className="astra-mc-history-id">RUN // {run.runId}</span>
-                      {run.destinationGroup && (
-                        <span className="astra-mc-history-dest-badge">{run.destinationGroup}</span>
-                      )}
-                    </div>
-                    <span className="astra-mc-history-mission">{run.missionId}</span>
-                    <span className="astra-mc-history-summary">{run.outcomeSummary}</span>
-                  </div>
-                  <div className="astra-mc-history-col-meta">
-                    <span className="astra-mc-history-craft">CRAFT: {run.spacecraftId}</span>
-                    <span className="astra-mc-history-op">OP: {run.operatorUsername || 'operator'}</span>
-                    {getStatusBadge(run.status)}
-                    <span className="astra-mc-history-time">
-                      {new Date(run.startedEpoch).toLocaleString()}
+            <div className="astra-mc-history-header-stats">
+              <span className="astra-mc-hud-metric-k">{history.length} TOTAL ARCHIVED RUNS</span>
+              <button
+                type="button"
+                onClick={loadMissionsData}
+                disabled={isLoading}
+                className="astra-mc-history-refresh-btn"
+                title="Refresh history from authoritative backend"
+              >
+                <RefreshCw size={12} className={isLoading ? 'spin' : ''} />
+                <span>SYNC LOG</span>
+              </button>
+            </div>
+          </div>
+
+          {/* History Search & Status Filter Toolbar */}
+          <div className="astra-mc-history-toolbar">
+            <div className="astra-mc-history-search-wrap">
+              <Search size={13} className="astra-mc-search-icon" aria-hidden="true" />
+              <input
+                type="text"
+                value={historySearchQuery}
+                onChange={(e) => setHistorySearchQuery(e.target.value)}
+                placeholder="Search history by run ID, mission title, spacecraft, or outcome..."
+                className="astra-mc-history-search-input"
+                data-testid="history-search-input"
+                aria-label="Search mission history"
+              />
+              {historySearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setHistorySearchQuery('')}
+                  className="astra-mc-search-clear-btn"
+                  aria-label="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+
+            <div className="astra-mc-history-status-pills" role="radiogroup" aria-label="Filter history by status">
+              {['ALL', 'COMPLETED', 'ACTIVE', 'FAILED', 'ABORTED'].map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setHistoryStatusFilter(st)}
+                  className={`astra-mc-history-filter-pill ${historyStatusFilter === st ? 'active' : ''}`}
+                  data-testid={`history-filter-${st.toLowerCase()}`}
+                  role="radio"
+                  aria-checked={historyStatusFilter === st}
+                >
+                  {st === 'ALL' ? 'ALL STATUSES' : st}
+                  {st !== 'ALL' && (
+                    <span className="pill-count">
+                      {history.filter((r) => r.status === st).length}
                     </span>
-                  </div>
-                </div>
+                  )}
+                </button>
               ))}
             </div>
+          </div>
+
+          {history.length === 0 ? (
+            <div className="astra-mc-empty-state" data-testid="history-empty-state">
+              <div className="astra-mc-empty-icon-wrap">
+                <History size={26} />
+              </div>
+              <h3 className="astra-mc-empty-heading">NO HISTORICAL SIMULATION RUNS</h3>
+              <p className="astra-mc-empty-desc">
+                No missions have been executed yet in this simulation database. Launch an operational scenario from the catalogue to record telemetry logs and objective audits.
+              </p>
+              <div className="astra-mc-empty-actions">
+                <button
+                  onClick={() => setActiveTab('catalogue')}
+                  className="astra-mc-btn-primary"
+                >
+                  <Layers size={12} />
+                  <span>BROWSE CATALOGUE</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            (() => {
+              const filteredHistory = history.filter((run) => {
+                if (historyStatusFilter !== 'ALL' && run.status !== historyStatusFilter) {
+                  return false;
+                }
+                if (historySearchQuery.trim().length > 0) {
+                  const q = historySearchQuery.toLowerCase();
+                  const targetMission = missions.find((m) => m.id === run.missionId);
+                  const title = targetMission ? targetMission.title.toLowerCase() : '';
+                  const match =
+                    run.runId.toLowerCase().includes(q) ||
+                    run.missionId.toLowerCase().includes(q) ||
+                    run.spacecraftId.toLowerCase().includes(q) ||
+                    (run.outcomeSummary || '').toLowerCase().includes(q) ||
+                    title.includes(q);
+                  if (!match) return false;
+                }
+                return true;
+              });
+
+              if (filteredHistory.length === 0) {
+                return (
+                  <div className="astra-mc-empty-state" data-testid="history-no-matches-state">
+                    <div className="astra-mc-empty-icon-wrap">
+                      <Filter size={26} />
+                    </div>
+                    <h3 className="astra-mc-empty-heading">NO RUNS MATCH ACTIVE FILTERS</h3>
+                    <p className="astra-mc-empty-desc">
+                      No simulation runs match status "{historyStatusFilter}" and query "{historySearchQuery}".
+                    </p>
+                    <div className="astra-mc-empty-actions">
+                      <button
+                        onClick={() => {
+                          setHistoryStatusFilter('ALL');
+                          setHistorySearchQuery('');
+                        }}
+                        className="astra-mc-btn-reset-filters"
+                      >
+                        <RefreshCw size={12} />
+                        <span>CLEAR FILTERS</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="astra-mc-history-cards-container" data-testid="mission-history-list">
+                  {filteredHistory.map((run) => {
+                    const targetMission = missions.find((m) => m.id === run.missionId);
+                    const missionTitle = targetMission ? targetMission.title : run.missionId;
+                    const isGatesExpanded = expandedHistoryRunId === run.runId;
+                    const objectiveEntries = run.objectiveResults ? Object.entries(run.objectiveResults) : [];
+
+                    return (
+                      <div
+                        key={run.runId}
+                        className={`astra-mc-history-record-card astra-mc-history-row status-${run.status.toLowerCase()}`}
+                        data-testid={`history-row-${run.runId}`}
+                      >
+                        <div className="astra-mc-history-card-top">
+                          <div className="astra-mc-history-dest-group">
+                            <span className={`astra-mc-card-dest-badge ${getDestinationBadgeClass(run.destinationGroup || targetMission?.destinationGroup)}`}>
+                              {run.destinationGroup || targetMission?.destinationGroup || 'ORBITAL'}
+                            </span>
+                            <span className="astra-mc-history-id">RUN // {run.runId}</span>
+                            <span className="astra-mc-history-mission-tag">MISSION // {run.missionId}</span>
+                          </div>
+                          <div className="astra-mc-history-status-wrap">
+                            {getStatusBadge(run.status)}
+                          </div>
+                        </div>
+
+                        <div className="astra-mc-history-card-main">
+                          <div className="astra-mc-history-title-row">
+                            <h4 className="astra-mc-history-card-title">{missionTitle}</h4>
+                            <div className="astra-mc-history-craft-meta">
+                              <span className="astra-mc-history-craft">
+                                <Terminal size={11} aria-hidden="true" />
+                                {run.spacecraftId}
+                              </span>
+                              <span className="astra-mc-history-op">
+                                OP: {run.operatorUsername || 'operator'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {run.outcomeSummary && (
+                            <div className="astra-mc-history-outcome-callout">
+                              <span className="astra-mc-history-outcome-label">FLIGHT OUTCOME EVALUATION</span>
+                              <p className="astra-mc-history-outcome-text astra-mc-history-summary">
+                                {run.outcomeSummary}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Timing Grid */}
+                        <div className="astra-mc-history-card-timing-grid">
+                          <div className="astra-mc-history-time-item">
+                            <span className="astra-mc-hud-metric-k">START TIME</span>
+                            <span className="astra-mc-hud-metric-v">
+                              {new Date(run.startedEpoch).toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="astra-mc-history-time-item">
+                            <span className="astra-mc-hud-metric-k">CONCLUDED</span>
+                            <span className="astra-mc-hud-metric-v">
+                              {run.completedEpoch ? new Date(run.completedEpoch).toLocaleString() : 'RUNNING (ACTIVE)'}
+                            </span>
+                          </div>
+                          <div className="astra-mc-history-time-item">
+                            <span className="astra-mc-hud-metric-k">TOTAL DURATION</span>
+                            <span className="astra-mc-hud-metric-v">
+                              {formatDuration(run.startedEpoch, run.completedEpoch)}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Expandable Operational Objectives & Verification Gates */}
+                        {objectiveEntries.length > 0 && (
+                          <div className="astra-mc-history-gates-section">
+                            <button
+                              type="button"
+                              className={`astra-mc-history-gates-toggle ${isGatesExpanded ? 'expanded' : ''}`}
+                              onClick={() => setExpandedHistoryRunId((prev) => (prev === run.runId ? null : run.runId))}
+                              aria-expanded={isGatesExpanded}
+                              data-testid={`history-gates-toggle-${run.runId}`}
+                            >
+                              <Shield size={11} aria-hidden="true" />
+                              <span>Flight Objective Verification Audit ({objectiveEntries.length} Gates)</span>
+                              {isGatesExpanded ? (
+                                <ChevronUp size={12} aria-hidden="true" />
+                              ) : (
+                                <ChevronDown size={12} aria-hidden="true" />
+                              )}
+                            </button>
+                            {isGatesExpanded && (
+                              <div className="astra-mc-history-gates-expanded-list">
+                                {objectiveEntries.map(([gate, passed], idx) => (
+                                  <div key={idx} className="astra-mc-history-gate-item">
+                                    {passed ? (
+                                      <CheckCircle size={11} color="var(--color-nominal)" aria-hidden="true" />
+                                    ) : (
+                                      <XCircle size={11} color="var(--color-critical)" aria-hidden="true" />
+                                    )}
+                                    <span className={passed ? 'gate-passed' : 'gate-failed'}>{gate}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Active Run Controls */}
+                        {run.status === 'ACTIVE' && (
+                          <div className="astra-mc-history-card-actions">
+                            <button
+                              type="button"
+                              className="astra-mc-card-action-btn astra-mc-card-complete-btn"
+                              onClick={() => handleCompleteMission(run.runId)}
+                              disabled={isActionRunning}
+                              data-testid={`history-complete-btn-${run.runId}`}
+                            >
+                              <CheckCircle2 size={12} />
+                              <span>EVALUATE & COMPLETE</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="astra-mc-card-action-btn astra-mc-card-abort-btn"
+                              onClick={() => handleAbortMission(run.runId)}
+                              disabled={isActionRunning}
+                              data-testid={`history-abort-btn-${run.runId}`}
+                            >
+                              <XCircle size={12} />
+                              <span>ABORT RUN</span>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
           )}
         </div>
       )}
@@ -1269,6 +1589,105 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Switch Mission Confirmation Modal (Enforcing Single Active Mission Policy) */}
+      {showSwitchConfirmModal && (
+        <div
+          className="astra-mc-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="switch-mission-modal-title"
+          data-testid="switch-mission-modal"
+          onClick={() => !isActionRunning && setShowSwitchConfirmModal(null)}
+        >
+          <div
+            className="astra-mc-modal-dialog astra-mc-switch-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="astra-mc-modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={16} color="var(--color-advisory)" />
+                <h3 id="switch-mission-modal-title" className="astra-mc-modal-title">
+                  ACTIVE MISSION RUN IN PROGRESS // CONFIRM SWITCH
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isActionRunning && setShowSwitchConfirmModal(null)}
+                className="astra-mc-modal-close-btn"
+                aria-label="Close dialog"
+                disabled={isActionRunning}
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="astra-mc-switch-modal-body">
+              <p className="astra-mc-switch-warning">
+                Simulator session policy enforces <strong>one active mission run at a time</strong>. Starting this mission will transition the active cockpit and telemetry stream.
+              </p>
+
+              <div className="astra-mc-switch-comparison">
+                <div className="astra-mc-switch-col current">
+                  <span className="astra-mc-switch-col-label">CURRENT ACTIVE RUN</span>
+                  <h4>
+                    {missions.find((m) => m.status === 'ACTIVE')?.title ||
+                      activeMission?.title ||
+                      'Active Scenario'}
+                  </h4>
+                  <div className="astra-mc-switch-meta">
+                    <span>
+                      Craft: {missions.find((m) => m.status === 'ACTIVE')?.spacecraftId || activeMission?.spacecraftId}
+                    </span>
+                    <span>Status: ACTIVE RUN</span>
+                  </div>
+                  <div className="astra-mc-switch-fate-tag">
+                    Action: Will be ABORTED and archived to Mission History
+                  </div>
+                </div>
+
+                <div className="astra-mc-switch-col incoming">
+                  <span className="astra-mc-switch-col-label">TARGET SCENARIO</span>
+                  <h4>{showSwitchConfirmModal.title}</h4>
+                  <div className="astra-mc-switch-meta">
+                    <span>Target: {showSwitchConfirmModal.destination}</span>
+                    <span>Craft: {showSwitchConfirmModal.spacecraftId}</span>
+                  </div>
+                  <div className="astra-mc-switch-incoming-tag">
+                    Action: Will be LAUNCHED as new active mission
+                  </div>
+                </div>
+              </div>
+
+              <p className="astra-mc-switch-note">
+                Telemetry streams, orbital visualizer target, and cockpit flight instrumentation will transition immediately to {showSwitchConfirmModal.spacecraftId}.
+              </p>
+            </div>
+
+            <div className="astra-mc-modal-footer">
+              <button
+                type="button"
+                className="astra-mc-modal-cancel-btn"
+                onClick={() => setShowSwitchConfirmModal(null)}
+                disabled={isActionRunning}
+                data-testid="cancel-switch-mission-btn"
+              >
+                KEEP CURRENT MISSION
+              </button>
+              <button
+                type="button"
+                className="astra-mc-btn-danger-switch"
+                onClick={() => executeStartMission(showSwitchConfirmModal.id, true)}
+                disabled={isActionRunning}
+                data-testid="confirm-switch-mission-btn"
+              >
+                {isActionRunning ? <RefreshCw size={13} className="spin" /> : <Play size={13} />}
+                <span>ABORT CURRENT & START {showSwitchConfirmModal.id}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1150,6 +1150,222 @@ describe('ASTRA Mission Control Operations Console', () => {
     historySpy.mockRestore();
     startSpy.mockRestore();
   });
+
+  it('renders redesigned Mission History with timing grid, outcome report, search, and status filters', async () => {
+    const mockMissions: MissionResponse[] = [
+      {
+        id: 'LUNAR-PROSPECT-01',
+        title: 'Lunar Polar Resource Prospecting',
+        destination: 'Moon (South Pole Aitken Basin)',
+        destinationGroup: 'Lunar & Deep Space',
+        category: 'PLANETARY_RECONNAISSANCE',
+        categoryLabel: 'Resource Prospecting',
+        difficulty: 'CHALLENGING',
+        difficultyLabel: 'Challenging',
+        spacecraftId: 'CHANDRA-ORB',
+        durationMinutes: 60,
+        riskLevel: 'HIGH',
+        synopsis: 'Volatile element detection over permanently shadowed craters.',
+        objectives: ['Neutron spectrometer sweep', 'Laser altimetry verification'],
+        completionCriteria: ['Data map generated', 'Zero critical anomalies'],
+        operationalConstraints: ['Thermal limits in shadow'],
+        isSimulated: true,
+        status: 'COMPLETED',
+      },
+    ];
+
+    const mockHistory: MissionRun[] = [
+      {
+        runId: 'run-lunar-01',
+        missionId: 'LUNAR-PROSPECT-01',
+        spacecraftId: 'CHANDRA-ORB',
+        operatorUsername: 'operator-alpha',
+        startedEpoch: '2026-10-25T10:00:00Z',
+        completedEpoch: '2026-10-25T11:00:00Z',
+        status: 'COMPLETED',
+        outcomeSummary: 'Lunar polar neutron spectrometry campaign completed with 99.4% data integrity.',
+        destinationGroup: 'Lunar & Deep Space',
+        telemetrySnapshotsCaptured: 14,
+        commandsDispatched: 3,
+        objectiveResults: {
+          'Neutron spectrometer sweep': true,
+          'Laser altimetry verification': true,
+        },
+      },
+      {
+        runId: 'run-mars-fail',
+        missionId: 'MARS-ATMOSPHERE-01',
+        spacecraftId: 'TERRA-OBS',
+        operatorUsername: 'operator-beta',
+        startedEpoch: '2026-10-25T08:00:00Z',
+        completedEpoch: '2026-10-25T08:25:00Z',
+        status: 'FAILED',
+        outcomeSummary: 'Attitude deviation exceeded safety envelope during atmospheric dipping pass.',
+        destinationGroup: 'Mars',
+        telemetrySnapshotsCaptured: 6,
+        commandsDispatched: 1,
+        objectiveResults: {
+          'Atmospheric entry trajectory': false,
+        },
+      },
+    ];
+
+    const listSpy = vi.spyOn(missionControlApi, 'listMissions').mockResolvedValue(mockMissions);
+    const historySpy = vi.spyOn(missionControlApi, 'getMissionHistory').mockResolvedValue(mockHistory);
+
+    render(<MissionUniverseHub />);
+
+    // Switch to history tab
+    await waitFor(() => {
+      expect(screen.getByTestId('tab-universe-history')).toHaveTextContent(/MISSION HISTORY \(2\)/i);
+    });
+    fireEvent.click(screen.getByTestId('tab-universe-history'));
+
+    // Verify record cards rendering
+    expect(screen.getByTestId('history-row-run-lunar-01')).toBeInTheDocument();
+    expect(screen.getByTestId('history-row-run-mars-fail')).toBeInTheDocument();
+    expect(screen.getByText(/Lunar polar neutron spectrometry campaign/i)).toBeInTheDocument();
+
+    // Verify status filter pill filtering
+    const failedFilter = screen.getByTestId('history-filter-failed');
+    fireEvent.click(failedFilter);
+    expect(screen.queryByTestId('history-row-run-lunar-01')).not.toBeInTheDocument();
+    expect(screen.getByTestId('history-row-run-mars-fail')).toBeInTheDocument();
+
+    // Verify search input filtering
+    const allFilter = screen.getByTestId('history-filter-all');
+    fireEvent.click(allFilter);
+    const searchInput = screen.getByTestId('history-search-input');
+    fireEvent.change(searchInput, { target: { value: 'CHANDRA-ORB' } });
+    expect(screen.getByTestId('history-row-run-lunar-01')).toBeInTheDocument();
+    expect(screen.queryByTestId('history-row-run-mars-fail')).not.toBeInTheDocument();
+
+    // Expand objective verification gates
+    fireEvent.change(searchInput, { target: { value: '' } });
+    const gatesToggle = screen.getByTestId('history-gates-toggle-run-lunar-01');
+    fireEvent.click(gatesToggle);
+    expect(screen.getByText('Neutron spectrometer sweep')).toBeInTheDocument();
+
+    listSpy.mockRestore();
+    historySpy.mockRestore();
+  });
+
+  it('enforces single active mission policy and prompts switch confirmation modal when another mission is active', async () => {
+    const mockMissions: MissionResponse[] = [
+      {
+        id: 'EARTH-OBS-01',
+        title: 'Earth Multispectral Observation',
+        destination: 'Earth (Low Earth SSO)',
+        destinationGroup: 'Earth',
+        category: 'EARTH_OBSERVATION',
+        categoryLabel: 'Earth Observation',
+        difficulty: 'STANDARD',
+        difficultyLabel: 'Standard',
+        spacecraftId: 'AURA-1',
+        durationMinutes: 45,
+        riskLevel: 'MODERATE',
+        synopsis: 'Active earth multispectral observation.',
+        objectives: ['Sync orbit'],
+        completionCriteria: ['Nominal telemetry'],
+        operationalConstraints: ['Battery > 50%'],
+        isSimulated: true,
+        status: 'ACTIVE',
+        activeRun: {
+          runId: 'run-active-001',
+          missionId: 'EARTH-OBS-01',
+          spacecraftId: 'AURA-1',
+          startedEpoch: '2026-10-25T12:00:00Z',
+          status: 'ACTIVE',
+          destinationGroup: 'Earth',
+          telemetrySnapshotsCaptured: 5,
+          commandsDispatched: 1,
+          outcomeSummary: 'Active flight in progress',
+        },
+      },
+      {
+        id: 'MARS-RECON-01',
+        title: 'Mars Orbital Reconnaissance',
+        destination: 'Mars (Areostationary)',
+        destinationGroup: 'Mars',
+        category: 'PLANETARY_RECONNAISSANCE',
+        categoryLabel: 'Planetary Reconnaissance',
+        difficulty: 'CHALLENGING',
+        difficultyLabel: 'Challenging',
+        spacecraftId: 'TERRA-OBS',
+        durationMinutes: 90,
+        riskLevel: 'HIGH',
+        synopsis: 'Mars reconnaissance scenario.',
+        objectives: ['Areostationary insertion'],
+        completionCriteria: ['High resolution radar lock'],
+        operationalConstraints: ['Sun angle limitations'],
+        isSimulated: true,
+        status: 'AVAILABLE',
+      },
+    ];
+
+    const listSpy = vi.spyOn(missionControlApi, 'listMissions').mockResolvedValue(mockMissions);
+    const historySpy = vi.spyOn(missionControlApi, 'getMissionHistory').mockResolvedValue([]);
+    const startSpy = vi.spyOn(missionControlApi, 'startMission').mockResolvedValue({
+      runId: 'run-mars-002',
+      missionId: 'MARS-RECON-01',
+      spacecraftId: 'TERRA-OBS',
+      startedEpoch: '2026-10-25T13:00:00Z',
+      status: 'ACTIVE',
+      destinationGroup: 'Mars',
+      telemetrySnapshotsCaptured: 0,
+      commandsDispatched: 0,
+      outcomeSummary: 'Scenario initialized',
+    });
+
+    render(<MissionUniverseHub activeMission={mockMissions[0]} />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('card-start-btn-MARS-RECON-01')).toBeInTheDocument();
+    });
+
+    // Clicking Start on MARS-RECON-01 while EARTH-OBS-01 is active triggers switch confirmation modal!
+    fireEvent.click(screen.getByTestId('card-start-btn-MARS-RECON-01'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('switch-mission-modal')).toBeInTheDocument();
+      expect(screen.getByText(/ACTIVE MISSION RUN IN PROGRESS \/\/ CONFIRM SWITCH/i)).toBeInTheDocument();
+      expect(screen.getByText(/Will be ABORTED and archived to Mission History/i)).toBeInTheDocument();
+      expect(screen.getByTestId('confirm-switch-mission-btn')).toBeInTheDocument();
+    });
+
+    // Confirm the switch: must call startMission with abortActive = true
+    fireEvent.click(screen.getByTestId('confirm-switch-mission-btn'));
+
+    await waitFor(() => {
+      expect(startSpy).toHaveBeenCalledWith('MARS-RECON-01', true);
+    });
+
+    listSpy.mockRestore();
+    historySpy.mockRestore();
+    startSpy.mockRestore();
+  });
+
+  it('displays time-advance viewport notification inside central 3D viewport', () => {
+    const timeNotice = {
+      id: 12345,
+      type: 'SUCCESS' as const,
+      seconds: 60,
+    };
+
+    render(
+      <OrbitalStage3D
+        spacecraftList={[MOCK_DETAIL]}
+        selectedSpacecraftId="AURA-1"
+        onSelectSpacecraft={vi.fn()}
+        timeAdvanceNotice={timeNotice}
+      />
+    );
+
+    const overlay = screen.getByTestId('viewport-time-notice');
+    expect(overlay).toBeInTheDocument();
+    expect(overlay).toHaveTextContent(/SIMULATION ADVANCED/i);
+    expect(overlay).toHaveTextContent(/\+60 SECONDS/i);
+  });
 });
 
 

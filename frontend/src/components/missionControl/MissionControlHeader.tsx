@@ -13,6 +13,7 @@ interface MissionControlHeaderProps {
   activeModeView?: OperationalModeView;
   onSelectModeView?: (mode: OperationalModeView) => void;
   activeMission?: MissionResponse | null;
+  onAdvanceSimulation?: (seconds: number) => Promise<boolean | void>;
 }
 
 export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
@@ -23,6 +24,7 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
   activeModeView = 'cockpit',
   onSelectModeView,
   activeMission = null,
+  onAdvanceSimulation,
 }) => {
   const [wallClockUtc, setWallClockUtc] = useState<string>('');
   const [isUpdatingSim, setIsUpdatingSim] = useState<boolean>(false);
@@ -75,8 +77,12 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
     if (isAdvancingSim || !simulationStatus) return;
     setIsAdvancingSim(true);
     try {
-      await advanceSimulation(seconds);
-      onSimulationUpdated();
+      if (onAdvanceSimulation) {
+        await onAdvanceSimulation(seconds);
+      } else {
+        await advanceSimulation(seconds);
+        onSimulationUpdated();
+      }
       // Show polished floating animation only after confirmed authoritative acceptance
       setShowTimeJumpToast(true);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);

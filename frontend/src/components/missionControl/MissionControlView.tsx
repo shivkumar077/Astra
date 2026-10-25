@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   SpacecraftDetail,
   SimulationStatus,
@@ -18,11 +18,13 @@ import {
   getEvents,
   getSubsystemsHealth,
   listMissions,
+  getActiveMission,
+  advanceSimulation,
 } from '../../api/missionControlApi';
 import { getMissionControlStompClient } from '../../api/stompClient';
 import { MissionControlHeader, OperationalModeView } from './MissionControlHeader';
 import { FleetSelectorBar } from './FleetSelectorBar';
-import { OrbitalStage3D } from './OrbitalStage3D';
+import { OrbitalStage3D, TimeAdvanceNotice } from './OrbitalStage3D';
 import { TelemetryWorkspace } from './TelemetryWorkspace';
 import { CommandConsole } from './CommandConsole';
 import { FailureLabDrawer } from './FailureLabDrawer';
@@ -54,20 +56,54 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [activeMission, setActiveMission] = useState<MissionResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<StompConnectionStatus>('connecting');
+  const [timeAdvanceNotice, setTimeAdvanceNotice] = useState<TimeAdvanceNotice | null>(null);
+  const timeAdvanceTimeoutRef = useRef<number | null>(null);
 
   const selectedCraft =
     spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
+
+  // Handle +60s advance with viewport-anchored notification
+  const handleAdvanceSimulation = async (seconds: number): Promise<boolean> => {
+    try {
+      await advanceSimulation(seconds);
+      loadInitialData();
+      setTimeAdvanceNotice({
+        id: Date.now(),
+        type: 'SUCCESS',
+        seconds,
+      });
+      if (timeAdvanceTimeoutRef.current) window.clearTimeout(timeAdvanceTimeoutRef.current);
+      timeAdvanceTimeoutRef.current = window.setTimeout(() => {
+        setTimeAdvanceNotice(null);
+      }, 2200);
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Simulation clock advance rejected by engine';
+      setTimeAdvanceNotice({
+        id: Date.now(),
+        type: 'ERROR',
+        seconds,
+        message: msg,
+      });
+      if (timeAdvanceTimeoutRef.current) window.clearTimeout(timeAdvanceTimeoutRef.current);
+      timeAdvanceTimeoutRef.current = window.setTimeout(() => {
+        setTimeAdvanceNotice(null);
+      }, 3000);
+      return false;
+    }
+  };
 
   // 1. Initial Authoritative REST Bootstrapping
   const loadInitialData = useCallback(async () => {
     setLoading(true);
     try {
-      const [crafts, simStatus, history, evts, missions] = await Promise.all([
+      const [crafts, simStatus, history, evts, missions, activeMsn] = await Promise.all([
         listSpacecraft(),
         getSimulationStatus().catch(() => null),
         getCommandHistory().catch(() => []),
         getEvents().catch(() => []),
         listMissions().catch(() => []),
+        getActiveMission().catch(() => null),
       ]);
 
       if (crafts && crafts.length > 0) {
@@ -79,15 +115,15 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         setSelectedSpacecraftId((prev) => (prev && detailedCrafts.some((c) => c.id === prev) ? prev : detailedCrafts[0].id));
       }
 
-      // Check for active mission run from authoritative catalogue
-      if (missions && missions.length > 0) {
-        const runningMission = missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null);
-        if (runningMission) {
-          setActiveMission(runningMission);
-          if (runningMission.activeRun?.spacecraftId) {
-            setSelectedSpacecraftId(runningMission.activeRun.spacecraftId);
-          }
+      // Check for active mission run from authoritative active endpoint or catalogue
+      const currentActive = activeMsn || (missions ? missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null) : null);
+      if (currentActive) {
+        setActiveMission(currentActive);
+        if (currentActive.activeRun?.spacecraftId) {
+          setSelectedSpacecraftId(currentActive.activeRun.spacecraftId);
         }
+      } else {
+        setActiveMission(null);
       }
 
       if (simStatus) {
@@ -218,6 +254,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         activeModeView={activeModeView}
         onSelectModeView={setActiveModeView}
         activeMission={activeMission}
+        onAdvanceSimulation={handleAdvanceSimulation}
       />
 
       {/* 2. Operational Views */}
@@ -240,6 +277,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
             reducedMotion={reducedMotion}
             activeMission={activeMission}
+            timeAdvanceNotice={timeAdvanceNotice}
           />
 
           {/* Right: Operations & Subsystems Console */}

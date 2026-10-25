@@ -424,6 +424,168 @@ public class MissionService {
                 ),
                 true
         ));
+
+        registerMission(new MissionDefinition(
+                "MARS-ROVER-RELAY",
+                "Mars Jezero Rover Telemetry & High-Rate Science Downlink Relay",
+                "Mars (Areocentric Sun-Synchronous Orbit, 400 km)",
+                "Mars",
+                MissionCategory.COMMUNICATIONS_RECOVERY,
+                MissionDifficulty.CHALLENGING,
+                "TERRA-OBS",
+                40,
+                "MODERATE",
+                "Align steerable X-band antenna with Jezero Crater surface rover coordinates during overhead pass. Establish bidirectional UHF/X-band relay, buffer multispectral science caches, and downlink to Earth.",
+                List.of(
+                        "Align steerable parabolic antenna Nadir to Jezero landing ellipse",
+                        "Establish bidirectional proximity UHF/X-band communication link",
+                        "Buffer high-cadence multispectral sample cache data without packet drop",
+                        "Confirm bit error rate <= 1e-7 during 8-minute surface line-of-sight pass"
+                ),
+                List.of(
+                        "Downlink session completes with 100% telemetry verification",
+                        "Spacecraft bus maintains thermal limits during off-nadir slew"
+                ),
+                List.of(
+                        "Communication window restricted to 8.4 minutes per Martian sol pass"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "MARS-POLAR-MAPPING",
+                "Mars Planum Boreum Polar Water-Ice Cap Stratigraphy Radar",
+                "Mars (Low Polar Orbit, 290 km)",
+                "Mars",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.STANDARD,
+                "AURA-1",
+                60,
+                "MODERATE",
+                "Ground-penetrating synthetic aperture radar survey over Mars Planum Boreum. Measure dielectric permittivity of seasonal CO2 ice blankets and map sub-surface water-ice basal topography.",
+                List.of(
+                        "Deploy VHF radar sounding dipole antenna in low polar orbit",
+                        "Measure dielectric permittivity of seasonal CO2 sublimation layer",
+                        "Compensate for Martian ionospheric total electron content pulse dispersion",
+                        "Store calibrated raw radar echo profiles to solid-state flight recorder"
+                ),
+                List.of(
+                        "Radar mapping pass yields high SNR basal reflector echoes",
+                        "Attitude pointing error remains <= 0.04° throughout sweep"
+                ),
+                List.of(
+                        "High orbit inclination creates rapid thermal transitions across polar terminator"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "LUNAR-RELAY-FARSIDE",
+                "Lunar Far-Side South Pole-Aitken Relay & Halo Station-Keeping",
+                "Moon (Earth-Moon L2 Halo Orbit, 65,000 km)",
+                "Lunar & Deep Space",
+                MissionCategory.COMMUNICATIONS_RECOVERY,
+                MissionDifficulty.CHALLENGING,
+                "SOLIS-RELAY",
+                90,
+                "HIGH",
+                "Operate far-side lunar communications bridge in a southern Earth-Moon L2 quasi-halo orbit. Perform precision delta-v station-keeping maneuvers to counteract solar radiation pressure perturbations.",
+                List.of(
+                        "Execute precision halo orbit station-keeping delta-V burn (Δv: 2.4 m/s)",
+                        "Bridge unbroken telemetry link between Earth DSN and far-side lunar lander",
+                        "Monitor solar flare proton flux during unshielded cislunar cruise",
+                        "Maintain high-gain antenna tracking with pointing offset <= 0.08°"
+                ),
+                List.of(
+                        "Relay latency remains bounded within 1.4 seconds bidirectional",
+                        "Propellant consumption for station-keeping does not exceed budget"
+                ),
+                List.of(
+                        "Complete loss of Earth direct line-of-sight if halo orbit exceeds stability margin"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "LUNAR-RESOURCE-PROSPECT",
+                "Lunar South Pole Shackleton Regolith Volatile & Hydrogen Prospecting",
+                "Moon (Low Lunar Polar Orbit, 100 km)",
+                "Lunar & Deep Space",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.STANDARD,
+                "TERRA-OBS",
+                55,
+                "MODERATE",
+                "Simulated lunar prospector run: calibrate epithermal neutron spectrometer over permanently shadowed craters to map volatile hydrogen concentrations and potential cryogenic deposits.",
+                List.of(
+                        "Calibrate neutron spectrometer background noise over reference lunar highlands",
+                        "Detect epithermal neutron flux depressions indicative of regolith hydrogen",
+                        "Manage battery depth-of-discharge during 48-minute lunar shadow sector",
+                        "Downlink orbital cryo-reservoir concentration maps to lunar ground network"
+                ),
+                List.of(
+                        "Complete two consecutive polar mapping revolutions",
+                        "Battery SOC remains above 45% upon emerging from lunar night"
+                ),
+                List.of(
+                        "Severe lunar gravitational mascon disturbances require autonomous attitude trim"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "JUPITER-RADIATION-02",
+                "Jupiter Magnetospheric Radiation Belt Survey & Magnetometer Calibration",
+                "Jupiter (Jovian Centric Elliptical Orbit, 420,000 km)",
+                "Outer Planets",
+                MissionCategory.DEEP_SPACE_SURVIVAL,
+                MissionDifficulty.CRITICAL,
+                "SOLIS-RELAY",
+                110,
+                "SEVERE",
+                "Transit the inner Jovian radiation torus while measuring relativistic electron flux. Execute boom-mounted fluxgate magnetometer roll calibration and evaluate radiation-hardened OBC EDAC counters.",
+                List.of(
+                        "Transit Io plasma torus boundary while logging MeV electron radiation dosage",
+                        "Execute 3-axis magnetometer roll-calibration maneuver",
+                        "Verify radiation-hardened OBC error detection and correction (EDAC) scrubbing",
+                        "Shed non-essential payload thermal heating loads during peak radiation passage"
+                ),
+                List.of(
+                        "Zero uncorrectable bit errors in onboard flight control memory",
+                        "Magnetosphere vector measurement dataset successfully packaged for transmission"
+                ),
+                List.of(
+                        "Extreme ionizing radiation dose rate (> 50 krad/day equivalent in inner belt)"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "SOLAR-STORM-CORONA",
+                "Solar Coronal Mass Ejection Monitoring & Space Weather Alert",
+                "Sun (Sun-Earth L1 Halo Orbit, 1,500,000 km)",
+                "Solar",
+                MissionCategory.EARTH_OBSERVATION,
+                MissionDifficulty.CHALLENGING,
+                "AURA-1",
+                50,
+                "HIGH",
+                "Positioned at Sun-Earth Lagrange L1: detect energetic solar flare particle arrival, measure interplanetary magnetic field Bz southward deflection, and synthesize geomagnetic storm early warnings.",
+                List.of(
+                        "Detect high-velocity coronal mass ejection shock arrival via proton spectrometer",
+                        "Measure interplanetary magnetic field Bz component southward turning",
+                        "Synthesize and broadcast automated space weather warning packet to Earth",
+                        "Execute reaction wheel momentum dump to counter solar radiation pressure torque"
+                ),
+                List.of(
+                        "Geomagnetic warning packet dispatched within 60 seconds of shock detection",
+                        "ADCS maintains Nadir Sun-pointing precision <= 0.02°"
+                ),
+                List.of(
+                        "High solar energetic particle (SEP) flux induces sensor noise"
+                ),
+                true
+        ));
     }
 
     private void registerMission(MissionDefinition mission) {
@@ -528,18 +690,56 @@ public class MissionService {
     }
 
     /**
+     * Returns the currently active mission run, if any exists across the simulator.
+     */
+    public synchronized Optional<MissionRun> getActiveRun() {
+        return activeRunsByMissionId.values().stream()
+                .filter(r -> r.status() == MissionStatus.ACTIVE)
+                .findFirst();
+    }
+
+    /**
+     * Returns the currently active mission definition and run state, if any exists.
+     */
+    public synchronized Optional<MissionResponse> getActiveMission() {
+        Optional<MissionRun> activeRunOpt = getActiveRun();
+        if (activeRunOpt.isEmpty()) {
+            return Optional.empty();
+        }
+        return getMission(activeRunOpt.get().missionId());
+    }
+
+    /**
      * Starts an interactive mission simulation run bound to authoritative simulation engine.
+     * Enforces single active mission run policy by default unless abortActive is true.
      */
     public synchronized MissionRun startMission(String missionId, String operatorUsername) {
+        return startMission(missionId, operatorUsername, false);
+    }
+
+    public synchronized MissionRun startMission(String missionId, String operatorUsername, boolean abortActive) {
         MissionDefinition def = catalog.get(missionId);
         if (def == null) {
             throw new NoSuchElementException("Mission not found in catalogue: " + missionId);
         }
 
-        // Cancel previous active run if exists
-        MissionRun existing = activeRunsByMissionId.get(missionId);
-        if (existing != null && existing.status() == MissionStatus.ACTIVE) {
-            abortMission(existing.runId(), "Aborted to launch new simulation run.");
+        // Single active mission enforcement across the simulator session
+        Optional<MissionRun> activeRunOpt = getActiveRun();
+        if (activeRunOpt.isPresent()) {
+            MissionRun existing = activeRunOpt.get();
+            if (existing.missionId().equals(missionId)) {
+                // Already running this exact mission - return authoritative active run
+                log.info("Mission {} already active (runId: {}). Returning existing run.", missionId, existing.runId());
+                return existing;
+            }
+            if (!abortActive) {
+                throw new IllegalStateException(String.format(
+                        "Cannot start mission '%s': Active mission run '%s' for '%s' is already in progress on spacecraft %s. Abort or switch to begin.",
+                        def.title(), existing.runId(), existing.missionId(), existing.spacecraftId()
+                ));
+            }
+            // Explicitly abort active mission before starting the new one
+            abortMission(existing.runId(), String.format("Aborted by operator to switch active mission to %s ('%s').", missionId, def.title()));
         }
 
         String runId = "run-" + UUID.randomUUID().toString().substring(0, 8);
@@ -584,6 +784,14 @@ public class MissionService {
         }
 
         return run;
+    }
+
+    /**
+     * Seamlessly transitions the active simulator mission to a new scenario,
+     * cleanly aborting and archiving the previous run before activating the new one.
+     */
+    public synchronized MissionRun switchMission(String newMissionId, String operatorUsername, String reason) {
+        return startMission(newMissionId, operatorUsername, true);
     }
 
     /**
