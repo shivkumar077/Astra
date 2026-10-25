@@ -247,6 +247,26 @@ export function resolveDestinationBody(
     const role = (craft.modelType || '').toLowerCase();
     const name = (craft.name || '').toLowerCase();
 
+    // Deep space crafts (Check ODYSSEY-NAV before general ODYSSEY)
+    if (
+      id === 'ODYSSEY-NAV' ||
+      id.startsWith('ASTEROID') ||
+      id.startsWith('DEEP-NAV') ||
+      id.startsWith('VOYAGER') ||
+      id.startsWith('PIONEER') ||
+      id.startsWith('NEW-HORIZONS') ||
+      id === 'KEPLER-DRIFT' ||
+      id === 'FARPOINT-PROBE' ||
+      role.includes('asteroid') ||
+      role.includes('deep-space') ||
+      role.includes('deep space') ||
+      role.includes('heliopause') ||
+      role.includes('interstellar') ||
+      role.includes('calibration drift')
+    ) {
+      return 'deep_space';
+    }
+
     // Earth fleet crafts
     if (
       id.startsWith('AURA') ||
@@ -259,11 +279,17 @@ export function resolveDestinationBody(
       id.startsWith('DEBRIS-GUARD') ||
       id.startsWith('NAV-SAT') ||
       id.startsWith('ORBIT-RELAY') ||
+      id === 'HELIOS-OBS' ||
+      id === 'MERIDIAN-RELAY' ||
+      id === 'VIGIL-TRACK' ||
+      id === 'STRATUS-MET' ||
       role.includes('earth observation') ||
       role.includes('leo reconnaissance') ||
       role.includes('geostationary relay') ||
       role.includes('meo navigation') ||
+      role.includes('meo comms') ||
       role.includes('orbital debris tracking') ||
+      role.includes('weather monitor') ||
       name.includes('earth observation')
     ) {
       return 'earth';
@@ -279,7 +305,11 @@ export function resolveDestinationBody(
       id.startsWith('HOPE') ||
       id.startsWith('MAVEN') ||
       id.startsWith('TIANWEN') ||
-      id.startsWith('ODYSSEY') ||
+      (id.startsWith('ODYSSEY') && id !== 'ODYSSEY-NAV') ||
+      id === 'AREION-RECON' ||
+      id === 'AETHER-MET' ||
+      id === 'DEIMOS-RELAY' ||
+      id === 'BOREALIS-MAP' ||
       role.includes('mars') ||
       role.includes('areo')
     ) {
@@ -295,6 +325,9 @@ export function resolveDestinationBody(
       id.startsWith('ARTEMIS') ||
       id.startsWith('MOON') ||
       id.startsWith('CHANG-E') ||
+      id === 'POLARIS-LR' ||
+      id === 'LUNA-LINK' ||
+      id === 'ARGUS-LNAV' ||
       role.includes('lunar') ||
       role.includes('seleno')
     ) {
@@ -306,8 +339,10 @@ export function resolveDestinationBody(
       id.startsWith('CHRONOS') ||
       id.startsWith('TITAN') ||
       id.startsWith('CASSINI') ||
+      id === 'RHEA-SURVEY' ||
       role.includes('saturn') ||
-      role.includes('ring dynamics')
+      role.includes('ring dynamics') ||
+      role.includes('titan')
     ) {
       return 'saturn';
     }
@@ -318,36 +353,29 @@ export function resolveDestinationBody(
       id.startsWith('EUROPA') ||
       id.startsWith('CALLISTO') ||
       id.startsWith('JUICE') ||
+      id === 'JOVE-SCOPE' ||
+      id === 'ION-GUARD' ||
       role.includes('jupiter') ||
-      role.includes('galilean')
+      role.includes('galilean') ||
+      role.includes('jovian')
     ) {
       return 'jupiter';
     }
 
     // Solar fleet crafts (heliocentric coronal missions)
     if (
-      (id.startsWith('HELIOS') ||
+      ((id.startsWith('HELIOS') && id !== 'HELIOS-OBS') ||
         id.startsWith('PARKER') ||
         id.startsWith('ADITYA') ||
         id === 'SOLAR-STORM-01' ||
+        id === 'HELIO-WATCH' ||
+        id === 'CORONA-TRACE' ||
+        id === 'STORM-SENTINEL' ||
+        id === 'FLARE-ALERT' ||
         id.startsWith('SOLAR-ORBITER')) &&
       !role.includes('earth')
     ) {
       return 'solar';
-    }
-
-    // Deep space crafts
-    if (
-      id.startsWith('ASTEROID') ||
-      id.startsWith('DEEP-NAV') ||
-      id.startsWith('VOYAGER') ||
-      id.startsWith('PIONEER') ||
-      id.startsWith('NEW-HORIZONS') ||
-      role.includes('asteroid') ||
-      role.includes('deep-space') ||
-      role.includes('heliopause')
-    ) {
-      return 'deep_space';
     }
   }
 

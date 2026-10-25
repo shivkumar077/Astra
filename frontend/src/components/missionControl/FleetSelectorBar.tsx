@@ -12,7 +12,7 @@ export interface FleetSelectorBarProps {
   error?: string | null;
 }
 
-export type DestinationFilter = 'ALL' | 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR';
+export type DestinationFilter = 'ALL' | 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR' | 'DEEP_SPACE';
 
 export interface DestinationOption {
   id: DestinationFilter;
@@ -27,7 +27,8 @@ export const DESTINATION_OPTIONS: DestinationOption[] = [
   { id: 'LUNAR', label: 'LUNAR', shortLabel: 'LUNAR', description: 'Lunar mapping, landers, and polar survey' },
   { id: 'MARS', label: 'MARS', shortLabel: 'MARS', description: 'Areocentric orbiters and rover relays' },
   { id: 'OUTER', label: 'OUTER PLANETS', shortLabel: 'OUTER', description: 'Jovian, Saturnian ring, and ice giants' },
-  { id: 'SOLAR', label: 'SOLAR & DEEP SPACE', shortLabel: 'SOLAR', description: 'Coronal monitors and deep-space probes' },
+  { id: 'SOLAR', label: 'SOLAR', shortLabel: 'SOLAR', description: 'Coronal observatories and space-weather sentinels' },
+  { id: 'DEEP_SPACE', label: 'DEEP SPACE', shortLabel: 'DEEP SPACE', description: 'Interplanetary navigators and interstellar probes' },
 ];
 
 export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
@@ -49,7 +50,8 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
       if (g.includes('LUNAR') || g.includes('MOON')) return 'LUNAR';
       if (g.includes('MARS')) return 'MARS';
       if (g.includes('OUTER') || g.includes('JUPITER') || g.includes('SATURN') || g.includes('URANUS') || g.includes('NEPTUNE')) return 'OUTER';
-      if (g.includes('SOLAR') || g.includes('DEEP')) return 'SOLAR';
+      if (g.includes('DEEP') || g.includes('INTERSTELLAR') || g.includes('ASTEROID')) return 'DEEP_SPACE';
+      if (g.includes('SOLAR') || g.includes('SUN')) return 'SOLAR';
     }
     const dest = resolveDestinationBody(null, craft);
     switch (dest) {
@@ -62,8 +64,9 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
       case 'ice_giant':
         return 'OUTER';
       case 'solar':
-      case 'deep_space':
         return 'SOLAR';
+      case 'deep_space':
+        return 'DEEP_SPACE';
       case 'earth':
       default:
         return 'EARTH';

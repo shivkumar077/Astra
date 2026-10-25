@@ -228,6 +228,11 @@ public class Spacecraft {
         String uId = (id != null) ? id.toUpperCase() : "";
         String mType = (modelType != null) ? modelType.toLowerCase() : "";
 
+        // Earth fleet (including new assets: HELIOS-OBS, MERIDIAN-RELAY, VIGIL-TRACK, STRATUS-MET)
+        if (uId.startsWith("HELIOS-OBS")) return "Earth (Sun-Synchronous LEO, 690 km)";
+        if (uId.startsWith("MERIDIAN-RELAY")) return "Earth (Medium Earth Orbit, 20,200 km)";
+        if (uId.startsWith("VIGIL-TRACK")) return "Earth (Polar LEO Lidar Tracking, 750 km)";
+        if (uId.startsWith("STRATUS-MET")) return "Earth (Atmospheric Weather LEO, 550 km)";
         if (uId.startsWith("AURA")) return "Earth (Sun-Synchronous LEO, 702 km)";
         if (uId.startsWith("TERRA")) return "Earth (Low Earth Orbit, 502 km)";
         if (uId.startsWith("SOLIS")) return "Earth (Highly Elliptical Orbit, 36,000 km)";
@@ -235,6 +240,11 @@ public class Spacecraft {
         if (uId.startsWith("NAV-STAR")) return "Earth (Medium Earth Orbit, 20,200 km)";
         if (uId.startsWith("DEBRIS-TRAC")) return "Earth (Polar LEO Lidar, 770 km)";
 
+        // Lunar fleet (including new assets: SELENE-MAP, POLARIS-LR, LUNA-LINK, ARGUS-LNAV)
+        if (uId.startsWith("SELENE-MAP")) return "Low Lunar Orbit (60 km Circular)";
+        if (uId.startsWith("POLARIS-LR")) return "Lunar South Pole Orbit (100 km)";
+        if (uId.startsWith("LUNA-LINK")) return "Earth-Moon L1 Halo Orbit (58,000 km)";
+        if (uId.startsWith("ARGUS-LNAV")) return "Lunar Equatorial Frozen Orbit (120 km)";
         if (uId.startsWith("CHANDRA")) return "Lunar Polar Insertion (100 km orbit)";
         if (uId.startsWith("LUNAR-HALO")) return "Earth-Moon L2 Halo Orbit";
         if (uId.startsWith("SELENA")) return "Low Lunar Orbit (50 km Circular)";
@@ -242,6 +252,11 @@ public class Spacecraft {
         if (uId.startsWith("LUNAR-RECON")) return "Lunar Equatorial Frozen Orbit";
         if (uId.startsWith("MOON-NAV")) return "Cislunar Resonant Orbit (12-hour)";
 
+        // Mars fleet (including new assets: AREION-RECON, AETHER-MET, DEIMOS-RELAY, BOREALIS-MAP)
+        if (uId.startsWith("AREION-RECON")) return "Mars Sun-Synchronous Polar Orbit (320 km)";
+        if (uId.startsWith("AETHER-MET")) return "Low Mars Aeronomy Orbit (280 km)";
+        if (uId.startsWith("DEIMOS-RELAY")) return "Areostationary Relay Orbit (17,032 km)";
+        if (uId.startsWith("BOREALIS-MAP")) return "Mars Polar Water-Ice Orbit (450 km)";
         if (uId.startsWith("ARES")) return "Mars (Areostationary & Polar Elliptical)";
         if (uId.startsWith("MARS-RELAY")) return "Areostationary Equatorial Orbit";
         if (uId.startsWith("PHOBOS")) return "Phobos Co-orbital Insertion (200 km)";
@@ -249,14 +264,30 @@ public class Spacecraft {
         if (uId.startsWith("MARS-ATMOS")) return "Mars Polar Aeronomy Orbit";
         if (uId.startsWith("AERO-MAP")) return "Mars Sun-Synchronous Polar LMO";
 
+        // Outer Planets fleet (including new assets: JOVE-SCOPE, ION-GUARD, TITAN-ORBIT, RHEA-SURVEY)
+        if (uId.startsWith("JOVE-SCOPE")) return "Jupiter Eccentric System Orbit (500,000 km)";
+        if (uId.startsWith("ION-GUARD")) return "Inner Jovian Radiation Belt (350,000 km)";
+        if (uId.startsWith("TITAN-ORBIT")) return "Titan Circular Polar Orbit (800 km)";
+        if (uId.startsWith("RHEA-SURVEY")) return "Saturnian Equatorial Moon Orbit (527,000 km)";
         if (uId.startsWith("JOVIAN")) return "Jupiter (Radiation Belt Orbit)";
         if (uId.startsWith("EUROPA")) return "Europa Surface Reconnaissance (100 km orbit)";
         if (uId.startsWith("CALLISTO")) return "Callisto Polar Orbit";
         if (uId.startsWith("CHRONOS")) return "Saturn (Equatorial Ring Plane)";
         if (uId.startsWith("TITAN")) return "Titan Polar Circular Orbit";
 
+        // Solar fleet (including new assets: HELIO-WATCH, CORONA-TRACE, STORM-SENTINEL, FLARE-ALERT)
+        if (uId.startsWith("HELIO-WATCH")) return "Heliocentric Corona Monitor (0.4 AU)";
+        if (uId.startsWith("CORONA-TRACE")) return "Solar Perihelion Skim Orbit (0.08 AU)";
+        if (uId.startsWith("STORM-SENTINEL")) return "Sun-Earth L1 Halo Warning Orbit (1,500,000 km)";
+        if (uId.startsWith("FLARE-ALERT")) return "Heliocentric Drift Flare Watch (0.7 AU)";
         if (uId.startsWith("HELIOS")) return "Heliospheric Orbit (0.3 AU perihelion)";
         if (uId.startsWith("SOLAR-STORM")) return "Sun-Earth L1 Lagrange Orbit";
+
+        // Deep Space fleet (including new assets: ODYSSEY-NAV, VOYAGER-RELAY, KEPLER-DRIFT, FARPOINT-PROBE)
+        if (uId.startsWith("ODYSSEY-NAV")) return "Interplanetary Cruise Trajectory (2.5 AU)";
+        if (uId.startsWith("VOYAGER-RELAY")) return "Interplanetary Deep-Space Comms Bridge (4.2 AU)";
+        if (uId.startsWith("KEPLER-DRIFT")) return "Heliocentric Navigation Calibration Drift (1.4 AU)";
+        if (uId.startsWith("FARPOINT-PROBE")) return "Deep-Space Heliopause Cruise (85 AU)";
         if (uId.startsWith("ASTEROID")) return "Main Asteroid Belt (2.7 AU)";
         if (uId.startsWith("DEEP-NAV")) return "Interplanetary Transfer Trajectory";
         if (uId.startsWith("VOYAGER")) return "Interstellar Heliopause Boundary";
@@ -264,7 +295,8 @@ public class Spacecraft {
         if (mType.contains("mars") || mType.contains("areo")) return "Mars Orbit";
         if (mType.contains("lunar") || mType.contains("moon") || mType.contains("seleno")) return "Lunar Orbit";
         if (mType.contains("jupiter") || mType.contains("saturn")) return "Outer Solar System";
-        if (mType.contains("solar") || mType.contains("corona") || mType.contains("deep-space")) return "Heliocentric Orbit";
+        if (mType.contains("deep-space") || mType.contains("interplanetary") || mType.contains("interstellar") || mType.contains("asteroid")) return "Deep Space";
+        if (mType.contains("solar") || mType.contains("corona")) return "Heliocentric Orbit";
 
         return "Earth Orbit (Standard)";
     }
@@ -272,10 +304,11 @@ public class Spacecraft {
     private static String inferDestinationGroup(String destination) {
         if (destination == null) return "Earth";
         String d = destination.toLowerCase();
+        if (d.contains("deep space") || d.contains("interplanetary") || d.contains("interstellar") || d.contains("heliopause") || d.contains("asteroid") || d.contains("kuiper")) return "Deep Space";
+        if (d.contains("lunar") || d.contains("moon") || d.contains("selena") || d.contains("selene") || d.contains("cislunar") || d.contains("artemis")) return "Lunar";
         if (d.contains("mars") || d.contains("phobos") || d.contains("deimos") || d.contains("areo")) return "Mars";
-        if (d.contains("lunar") || d.contains("moon") || d.contains("selena") || d.contains("cislunar")) return "Lunar & Deep Space";
-        if (d.contains("jupiter") || d.contains("europa") || d.contains("callisto") || d.contains("saturn") || d.contains("titan")) return "Outer Planets";
-        if (d.contains("helios") || d.contains("corona") || d.contains("asteroid") || d.contains("deep-space") || d.contains("interstellar") || d.contains("sun-earth l1")) return "Solar";
+        if (d.contains("jupiter") || d.contains("europa") || d.contains("callisto") || d.contains("saturn") || d.contains("titan") || d.contains("rhea") || d.contains("outer")) return "Outer Planets";
+        if (d.contains("helios") || d.contains("corona") || d.contains("flare") || d.contains("sun-earth l1") || (d.contains("solar") && !d.contains("earth"))) return "Solar";
         return "Earth";
     }
 }

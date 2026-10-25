@@ -38,7 +38,7 @@ class SimulationEngineTest {
         assertEquals(0.0, engine.getElapsedSeconds());
 
         List<Spacecraft> fleet = engine.getAllSpacecraft();
-        assertEquals(28, fleet.size(), "Default fleet must contain exactly 28 operational spacecraft");
+        assertEquals(52, fleet.size(), "Default fleet must contain exactly 52 operational spacecraft");
 
         assertTrue(engine.getSpacecraft("AURA-1").isPresent());
         assertTrue(engine.getSpacecraft("TERRA-OBS").isPresent());

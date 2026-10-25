@@ -55,10 +55,11 @@ interface MissionUniverseHubProps {
 const DESTINATION_TABS = [
   { id: 'ALL', label: 'All Destinations' },
   { id: 'Earth', label: 'Earth Orbit' },
+  { id: 'Lunar', label: 'Lunar' },
   { id: 'Mars', label: 'Mars' },
-  { id: 'Lunar & Deep Space', label: 'Lunar & Deep Space' },
   { id: 'Outer Planets', label: 'Outer Planets' },
   { id: 'Solar', label: 'Solar' },
+  { id: 'Deep Space', label: 'Deep Space' },
 ];
 
 export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
@@ -156,8 +157,9 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       case 'mars':
         return 'Mars';
       case 'lunar':
+        return 'Lunar';
       case 'deep_space':
-        return 'Lunar & Deep Space';
+        return 'Deep Space';
       case 'jupiter':
       case 'saturn':
       case 'ice_giant':
@@ -378,9 +380,26 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
     }
   };
 
+  const matchesDestination = (destGroup: string, selected: string): boolean => {
+    if (selected === 'ALL') return true;
+    const g = (destGroup || '').trim().toLowerCase();
+    const s = selected.trim().toLowerCase();
+    if (g === s) return true;
+    if (s === 'lunar' && (g === 'lunar' || g.includes('lunar') || g.includes('moon'))) return true;
+    if (s === 'deep space' && (g === 'deep space' || g.includes('deep') || g.includes('interstellar') || g.includes('asteroid'))) return true;
+    if (s === 'earth' && (g === 'earth' || g.includes('earth'))) return true;
+    if (s === 'mars' && (g === 'mars' || g.includes('mars'))) return true;
+    if (s === 'outer planets' && (g === 'outer planets' || g.includes('outer') || g.includes('jupiter') || g.includes('saturn'))) return true;
+    if (s === 'solar' && (g === 'solar' || g.includes('solar') || g.includes('sun'))) return true;
+    if (s.includes('&') && (s.includes('lunar') || s.includes('deep'))) {
+      return g.includes('lunar') || g.includes('deep') || g.includes('asteroid');
+    }
+    return false;
+  };
+
   // Filter missions
   const filteredMissions = missions.filter((m) => {
-    if (selectedDestination !== 'ALL' && m.destinationGroup !== selectedDestination) {
+    if (selectedDestination !== 'ALL' && !matchesDestination(m.destinationGroup, selectedDestination)) {
       return false;
     }
     if (selectedCategory !== 'ALL' && m.category !== selectedCategory) {

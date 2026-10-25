@@ -344,7 +344,7 @@ public class MissionService {
                 "DEEP-SPACE-SURVIVAL",
                 "Interplanetary Deep-Space Probe Long-Duration Survival",
                 "Deep Space (Heliocentric Transfer Orbit, 1.8 AU)",
-                "Lunar & Deep Space",
+                "Deep Space",
                 MissionCategory.DEEP_SPACE_SURVIVAL,
                 MissionDifficulty.CRITICAL,
                 "DEEP-NAV-ALPHA",
@@ -618,7 +618,7 @@ public class MissionService {
                 "ASTEROID-INTERCEPT-01",
                 "Near-Earth Asteroid High-Speed Flyby & Mass Spectrometry",
                 "Deep Space (Heliocentric Asteroid Belt, 2.3 AU)",
-                "Lunar & Deep Space",
+                "Deep Space",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.CHALLENGING,
                 "ASTEROID-SCOUT",
@@ -672,7 +672,7 @@ public class MissionService {
                 "DEEP-VOYAGER-02",
                 "Voyager Heliopause Transition & Cosmic Ray Diagnostics",
                 "Deep Space (Interstellar Heliopause, 120 AU)",
-                "Solar",
+                "Deep Space",
                 MissionCategory.DEEP_SPACE_SURVIVAL,
                 MissionDifficulty.CRITICAL,
                 "VOYAGER-EXP",
@@ -693,6 +693,665 @@ public class MissionService {
                         "Round-trip light time exceeds 33 hours; zero real-time intervention possible"
                 ),
                 true
+        ));
+
+        // =========================================================================
+        // 5. EXPANDED MISSION CATALOGUE: 24 NEW MISSIONS ACROSS ALL 6 GROUPS
+        // =========================================================================
+
+        // --- EARTH ORBIT (4 new missions) ---
+        registerMission(new MissionDefinition(
+                "EARTH-SURVEY-MULTI",
+                "High-Resolution Multispectral Earth Survey & Terminator Scan",
+                "Earth (Sun-Synchronous LEO, 690 km)",
+                "Earth",
+                MissionCategory.EARTH_OBSERVATION,
+                MissionDifficulty.STANDARD,
+                "HELIOS-OBS",
+                50,
+                "MODERATE",
+                "Deploy high-resolution optical imager across day-night terminator. Verify multispectral band calibrations and Nadir sensor precision during rapid thermal transitions.",
+                List.of(
+                        "Maintain pointing error <= 0.04° along polar orbit track",
+                        "Verify battery SOC remains >= 78% through eclipse",
+                        "Capture and downlink 16 calibrated spectral frames"
+                ),
+                List.of(
+                        "Terminator optical sweep completed with zero dropped frames",
+                        "Spacecraft status remains NOMINAL"
+                ),
+                List.of(
+                        "Radiator temperature <= +38.0°C",
+                        "Max eclipse duration: 34 minutes"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "EARTH-DEBRIS-VIGIL",
+                "Orbital Debris Tracking & Conjunction Avoidance Alert",
+                "Earth (Polar LEO Lidar Tracking, 750 km)",
+                "Earth",
+                MissionCategory.ORBITAL_SAFETY,
+                MissionDifficulty.CHALLENGING,
+                "VIGIL-TRACK",
+                40,
+                "HIGH",
+                "Track non-cooperative derelict rocket upper stage entering close proximity sphere. Calculate collision probability and verify emergency cold-gas avoidance readiness.",
+                List.of(
+                        "Track secondary object laser rangefinder return for 15 minutes",
+                        "Confirm miss distance clearance >= 2.0 km",
+                        "Maintain spacecraft telemetry lock with ground stations"
+                ),
+                List.of(
+                        "Zero debris impact alerts unresolved",
+                        "Propellant mass reserve intact >= 180 kg"
+                ),
+                List.of(
+                        "High orbital inclination debris corridor",
+                        "No thruster firing while payload sensors active"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "EARTH-RELAY-RESILIENCE",
+                "MEO Communications Relay Resilience & Crosslink Trial",
+                "Earth (Medium Earth Orbit, 20,200 km)",
+                "Earth",
+                MissionCategory.COMMUNICATIONS_RECOVERY,
+                MissionDifficulty.STANDARD,
+                "MERIDIAN-RELAY",
+                60,
+                "MODERATE",
+                "Conduct sustained high-throughput crosslink data transfer trial across multiple LEO user constellations. Test automated carrier recovery under simulated radiation belt noise.",
+                List.of(
+                        "Establish dual-frequency Ka-band crosslink with simulated LEO platforms",
+                        "Sustain 1.2 Gbps data throughput for 45 minutes",
+                        "Recover carrier synchronization within 3 seconds of RF glitch"
+                ),
+                List.of(
+                        "Packet corruption rate <= 0.001%",
+                        "Comms subsystem health reports NOMINAL"
+                ),
+                List.of(
+                        "Van Allen radiation belt inner edge flux",
+                        "Maximum amplifier temperature <= +55°C"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "EARTH-STORM-IMPACT",
+                "Geomagnetic Storm Atmospheric Drag & Weather Profiling",
+                "Earth (Atmospheric Weather LEO, 550 km)",
+                "Earth",
+                MissionCategory.TELEMETRY_MONITORING,
+                MissionDifficulty.CHALLENGING,
+                "STRATUS-MET",
+                45,
+                "HIGH",
+                "Assess upper-thermosphere density expansion induced by a coronal mass ejection impact. Monitor ADCS reaction wheel loads countering sudden atmospheric drag surges.",
+                List.of(
+                        "Monitor atmospheric drag torque on 3-axis reaction wheels",
+                        "Perform momentum desaturation maneuver before wheel speeds reach 3000 RPM",
+                        "Log thermospheric density fluctuations across orbital passes"
+                ),
+                List.of(
+                        "Attitude control maintained through peak aerodynamic surge",
+                        "Battery bus voltage stable at 28.0V ± 1.0V"
+                ),
+                List.of(
+                        "Orbital decay rate must not exceed 120 meters/day",
+                        "Do not desaturate reaction wheels during ground pass"
+                ),
+                true
+        ));
+
+        // --- LUNAR OPERATIONS (4 new missions) ---
+        registerMission(new MissionDefinition(
+                "LUNAR-ILLUM-SURVEY",
+                "Lunar South Pole Continuous Illumination Rim Survey",
+                "Moon (Low Lunar Orbit, 60 km Circular)",
+                "Lunar",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.STANDARD,
+                "SELENE-MAP",
+                60,
+                "MODERATE",
+                "High-resolution topography mapping over Malapert Mountain and Shackleton Rim to identify peaks of eternal light and continuous solar power siting for future outposts.",
+                List.of(
+                        "Perform 6 consecutive high-resolution optical passes over Malapert Rim",
+                        "Calculate solar elevation angle and shadow progression over terrain",
+                        "Preserve high-precision Nadir camera boresight pointing <= 0.02°"
+                ),
+                List.of(
+                        "Optical elevation model generated with 0.5m vertical accuracy",
+                        "Payload data buffer downlinked to lunar ground network"
+                ),
+                List.of(
+                        "Severe lunar mascon gravity anomalies",
+                        "Thermal cycling between shadow and sunlit rim"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "LUNAR-VOLATILE-POLARIS",
+                "Polar Volatile & Subsurface Cryo-Core Prospecting",
+                "Moon (Lunar South Pole Orbit, 100 km)",
+                "Lunar",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CHALLENGING,
+                "POLARIS-LR",
+                80,
+                "HIGH",
+                "Deploy orbital neutron spectrometer and bistatic radar to measure dielectric signatures and hydrogen concentrations in permanently shadowed regions of Cabeus crater.",
+                List.of(
+                        "Map hydrogen epithermal neutron flux depressions across Cabeus floor",
+                        "Conduct bistatic radar reflection with ground relay",
+                        "Maintain battery heater efficiency during deep cryo-pass (-230°C)"
+                ),
+                List.of(
+                        "Volatile concentration map successfully rendered",
+                        "Spacecraft emerges from shadow sector with battery SOC >= 60%"
+                ),
+                List.of(
+                        "No solar generation during 52-minute crater shadow",
+                        "Mascon orbital decay requires autonomous eccentricity corrections"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "LUNAR-RELAY-AVAIL",
+                "Lunar Relay Network Continuous Availability & Latency Trial",
+                "Moon (Earth-Moon L1 Halo Orbit, 58,000 km)",
+                "Lunar",
+                MissionCategory.COMMUNICATIONS_RECOVERY,
+                MissionDifficulty.STANDARD,
+                "LUNA-LINK",
+                90,
+                "MODERATE",
+                "Maintain uninterrupted high-availability relay bridge between Earth Mission Control, orbital lunar mappers, and surface south-pole stations under varying geometry.",
+                List.of(
+                        "Verify simultaneous multi-target beamforming for 3 lunar nodes",
+                        "Ensure round-trip relay latency remains <= 2.8 seconds",
+                        "Conduct autonomous halo orbit station-keeping trim burn"
+                ),
+                List.of(
+                        "Zero packet loss across 90-minute operational window",
+                        "Propellant mass reserve remains strictly above budget margin"
+                ),
+                List.of(
+                        "Earth-Moon L1 unstable libration manifold requires station-keeping",
+                        "Solar flare proton background noise"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "LUNAR-ORBIT-NAV-CAL",
+                "Autonomous Lunar Orbital Navigation & Landmark Calibration",
+                "Moon (Lunar Equatorial Frozen Orbit, 120 km)",
+                "Lunar",
+                MissionCategory.PAYLOAD_CALIBRATION,
+                MissionDifficulty.STANDARD,
+                "ARGUS-LNAV",
+                55,
+                "LOW",
+                "Calibrate optical crater-pattern recognition and autonomous landmark tracking software. Compute real-time state vectors without Earth ground-station radiometric tracking.",
+                List.of(
+                        "Track 24 reference lunar crater landmarks via optical navigation",
+                        "Calculate real-time autonomous ephemeris solution within ±15 meters",
+                        "Cross-verify optical navigation state with Doppler beacon telemetry"
+                ),
+                List.of(
+                        "Autonomous ephemeris convergence achieved within 2 orbital revolutions",
+                        "Navigation covariance matrix remains bounded"
+                ),
+                List.of(
+                        "Crater shadow variation across solar phase angles",
+                        "Do not slew spacecraft during optical integration cycle"
+                ),
+                false
+        ));
+
+        // --- MARS OPERATIONS (4 new missions) ---
+        registerMission(new MissionDefinition(
+                "MARS-DUST-STORM",
+                "Mars Global Atmospheric Dust-Storm Optical Penetration",
+                "Mars (Mars Sun-Synchronous Polar Orbit, 320 km)",
+                "Mars",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CHALLENGING,
+                "AREION-RECON",
+                75,
+                "HIGH",
+                "Track planet-encircling dust storm development over Hellas Basin. Measure optical depth changes and infrared emission variations while managing degraded solar array output.",
+                List.of(
+                        "Capture thermal infrared scans of dust storm progression",
+                        "Compensate for 28% solar flux reduction due to atmospheric dust opacity",
+                        "Maintain power bus priority to thermal heaters and primary payload"
+                ),
+                List.of(
+                        "Atmospheric dust optical depth profile downlinked to Earth",
+                        "Spacecraft battery SOC preserved above 70%"
+                ),
+                List.of(
+                        "Reduced photovoltaic generation during global dust storm",
+                        "Round-trip comms latency: 14 minutes"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "MARS-POLAR-ICE-CAP",
+                "Martian South Polar Residual CO2 and Water-Ice Stratigraphy",
+                "Mars (Mars Polar Water-Ice Orbit, 450 km)",
+                "Mars",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.STANDARD,
+                "BOREALIS-MAP",
+                65,
+                "MODERATE",
+                "Sub-surface sounding radar sweeps over Planum Australe. Measure thickness of carbon dioxide slab dry-ice deposits and detect underlying basal water ice interfaces.",
+                List.of(
+                        "Deploy 20-meter radar antenna in circular polar orbit",
+                        "Map sub-surface radar echoes up to 1.5 km depth beneath polar cap",
+                        "Verify thermal stabilization during rapid solar terminator crossings"
+                ),
+                List.of(
+                        "Polar basal stratigraphy profiles successfully acquired",
+                        "Zero anomalous reaction wheel friction telemetry"
+                ),
+                List.of(
+                        "Polar cryogenic temperature extremes (-125°C)",
+                        "Ionospheric total electron content corrections required"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "MARS-TRACE-GAS-MET",
+                "Atmospheric Methane and Trace Gas Column Density Survey",
+                "Mars (Low Mars Aeronomy Orbit, 280 km)",
+                "Mars",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.STANDARD,
+                "AETHER-MET",
+                70,
+                "MODERATE",
+                "Solar occultation spectrometry measuring trace parts-per-billion atmospheric methane and water vapor isotopes across seasonal sublimations in Gale Crater and Jezero.",
+                List.of(
+                        "Perform high-resolution infrared limb occultation during sunset and sunrise",
+                        "Measure methane absorption spectra at 3.3 micrometer wavelength",
+                        "Quantify deuterium-to-hydrogen ratio in upper Martian atmosphere"
+                ),
+                List.of(
+                        "Trace gas column density dataset completed with high SNR",
+                        "Spacecraft orbit semi-major axis maintained within bounds"
+                ),
+                List.of(
+                        "Requires precise solar limb pointing tracking",
+                        "Atmospheric drag requires periodic momentum management"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "MARS-ROVER-RECOVERY",
+                "Surface Rover-to-Orbiter Emergency UHF Communications Recovery",
+                "Mars (Areostationary Relay Orbit, 17,032 km)",
+                "Mars",
+                MissionCategory.COMMUNICATIONS_RECOVERY,
+                MissionDifficulty.CRITICAL,
+                "DEIMOS-RELAY",
+                85,
+                "SEVERE",
+                "A simulated surface exploration rover fails to check in during scheduled direct-to-Earth pass. Reposition areostationary relay dish, perform wide-angle beacon sweep, and re-establish link.",
+                List.of(
+                        "Slew high-gain parabolic reflector toward emergency rover coordinates",
+                        "Perform multi-channel UHF beacon acquisition sweep",
+                        "Recover corrupted rover telemetry frames and stage emergency uplink telecommand",
+                        "Verify rover battery recovery status and confirm bidirectional link"
+                ),
+                List.of(
+                        "Rover emergency telemetry stream successfully locked and verified",
+                        "Comms subsystem reports NOMINAL carrier tracking"
+                ),
+                List.of(
+                        "Tight link budget margin at areostationary altitude",
+                        "One-way light time: 16.2 minutes"
+                ),
+                false
+        ));
+
+        // --- OUTER PLANETS (4 new missions) ---
+        registerMission(new MissionDefinition(
+                "JUPITER-BELT-SURVEY",
+                "Jupiter High-Energy Relativistic Electron Belt Penetration",
+                "Jupiter (Inner Jovian Radiation Belt, 350,000 km)",
+                "Outer Planets",
+                MissionCategory.DEEP_SPACE_SURVIVAL,
+                MissionDifficulty.CRITICAL,
+                "ION-GUARD",
+                110,
+                "SEVERE",
+                "Dive into Jupiter's intense inner radiation torus between Io and Europa. Measure multi-MeV electron flux and test radiation-hardened OBC memory scrub routines.",
+                List.of(
+                        "Monitor accumulated ionizing radiation dosage on shielded solid-state recorder",
+                        "Verify memory EDAC error correction scrubbing during 100 krad/hour dose peak",
+                        "Maintain 3-axis attitude lock using gyroscopic reference while star trackers blinded by radiation noise"
+                ),
+                List.of(
+                        "Zero fatal flight software reboots during radiation belt transit",
+                        "Radiation dosimeter dataset securely stored to non-volatile flash"
+                ),
+                List.of(
+                        "Extreme ionizing radiation environment",
+                        "Solar power unavailable; RTG bus voltage must remain >= 28.0V"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "JOVIAN-MOON-CAMPAIGN",
+                "Jovian Galilean Moons Multi-Body Gravitational Flyby Campaign",
+                "Jupiter (Jupiter Eccentric System Orbit, 500,000 km)",
+                "Outer Planets",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CRITICAL,
+                "JOVE-SCOPE",
+                120,
+                "SEVERE",
+                "Execute multi-body gravity-assist flyby sequencing across Ganymede and Callisto. Calibrate trajectory deviation and collect multispectral surface plume data.",
+                List.of(
+                        "Execute precision Ganymede gravity-assist orbital trimming burn (Δv: 18.2 m/s)",
+                        "Capture high-resolution optical imagery of Callisto impact basins",
+                        "Measure gravitational quadrupole moment variations during close approach"
+                ),
+                List.of(
+                        "Target trajectory insertion achieved within ±2.0 km tolerance",
+                        "Spacecraft systems survive intense gravitational tidal forces"
+                ),
+                List.of(
+                        "Complex multi-body 4-body gravitational dynamics",
+                        "One-way speed-of-light delay: 42 minutes"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "SATURN-RING-DYNAMICS",
+                "Saturn Dense B-Ring Optical Occultation & Gap Dynamics",
+                "Saturn (Titan Circular Polar Orbit, 800 km)",
+                "Outer Planets",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CHALLENGING,
+                "TITAN-ORBIT",
+                95,
+                "HIGH",
+                "Observe stellar occultations through Saturn's outer ring gaps and Cassini division. Measure optical depth of micro-particle clumps and shepherd moon gravitational perturbations.",
+                List.of(
+                        "Track UV stellar occultation profile through outer ring structure",
+                        "Analyze density wave dispersion and particle clump size distribution",
+                        "Maintain high-precision star sensor boresight tracking through ring glare"
+                ),
+                List.of(
+                        "Ring optical thickness profile downlinked with 10-meter spatial resolution",
+                        "Attitude control jitter remains <= 0.01°"
+                ),
+                List.of(
+                        "Ambient temperature -185°C requires active RTG waste-heat distribution",
+                        "Long communications turnaround time (84 minutes)"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "RHEA-ICY-RECON",
+                "Outer-Planet Icy Moon Rhea Surface Geodesy & Plasma Wake",
+                "Saturn (Saturnian Equatorial Moon Orbit, 527,000 km)",
+                "Outer Planets",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CHALLENGING,
+                "RHEA-SURVEY",
+                100,
+                "HIGH",
+                "Conduct close 150 km flyby past Saturn's second-largest icy moon Rhea. Measure surface dielectric properties and probe the interaction between Saturn's magnetosphere and Rhea's exosphere.",
+                List.of(
+                        "Map surface crater saturation and tectonic bright ice fractures",
+                        "Measure magnetic field perturbation across Rhea's plasma wake",
+                        "Downlink high-rate telemetry burst via 3.7-meter high-gain antenna"
+                ),
+                List.of(
+                        "Flyby science dataset validated with 100% telemetry integrity",
+                        "Spacecraft attitude returned to Earth-pointing high-gain link"
+                ),
+                List.of(
+                        "No solar generation; RTG electrical load balance critical",
+                        "High relative flyby velocity (7.8 km/s)"
+                ),
+                false
+        ));
+
+        // --- SOLAR OPERATIONS (4 new missions) ---
+        registerMission(new MissionDefinition(
+                "SOLAR-CORONA-CAMPAIGN",
+                "Heliocentric Low-Perihelion Corona Magnetic Field Observation",
+                "Sun (Heliocentric Corona Monitor, 0.4 AU)",
+                "Solar",
+                MissionCategory.THERMAL_MANAGEMENT,
+                MissionDifficulty.CRITICAL,
+                "HELIO-WATCH",
+                90,
+                "SEVERE",
+                "Measure magnetic switchback structures and coronal solar wind acceleration inside 0.4 AU. Validate active thermal radiator louvers under 6.2x Earth solar irradiance.",
+                List.of(
+                        "Orient heat-shield apex strictly along solar vector within 0.015°",
+                        "Measure magnetic field reversals in young solar wind plasma",
+                        "Monitor payload radiator heat dissipation and confirm bus temp <= +25°C"
+                ),
+                List.of(
+                        "Coronal magnetic field measurement stream logged with high resolution",
+                        "Zero heat-shield alignment violations"
+                ),
+                List.of(
+                        "Thermal flux > 8500 W/m²",
+                        "Solar flare proton saturation limits star-tracker reliability"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "SOLAR-FLARE-RESPONSE",
+                "High-Cadence Extreme-UV Solar Flare Blast Detection & Alert",
+                "Sun (Heliocentric Drift Flare Watch, 0.7 AU)",
+                "Solar",
+                MissionCategory.THERMAL_MANAGEMENT,
+                MissionDifficulty.STANDARD,
+                "FLARE-ALERT",
+                40,
+                "MODERATE",
+                "Detect X-class solar flare eruption via extreme-UV heliograph. Trigger automated payload shutter protection and synthesize emergency particle storm notification.",
+                List.of(
+                        "Detect solar flux increase exceeding X1.0 threshold within 5 seconds",
+                        "Command protective shutter closure over sensitive optical detectors",
+                        "Synthesize emergency space-weather broadcast to Earth relay network"
+                ),
+                List.of(
+                        "Automated flare detection and shutter telecommand executed < 10 seconds",
+                        "Optical detectors survive flare without sensor saturation damage"
+                ),
+                List.of(
+                        "Extreme UV flux induces high sensor thermal drift",
+                        "Autonomous reaction required due to 6-minute light time"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "SOLAR-SPACE-WEATHER",
+                "Coronal Shock Front & Space-Weather Interplanetary Warning",
+                "Sun (Sun-Earth L1 Halo Warning Orbit, 1,500,000 km)",
+                "Solar",
+                MissionCategory.TELEMETRY_MONITORING,
+                MissionDifficulty.CHALLENGING,
+                "STORM-SENTINEL",
+                60,
+                "HIGH",
+                "Continuous monitoring of coronal shock fronts and energetic proton storms at Sun-Earth L1. Validate real-time autonomous alarm synthesis for terrestrial power grid alerts.",
+                List.of(
+                        "Analyze real-time solar wind plasma density and speed jump conditions",
+                        "Detect interplanetary magnetic field southward Bz polarity turning",
+                        "Broadcast priority alert packet to global infrastructure operations"
+                ),
+                List.of(
+                        "Space-weather alert transmitted within 30 seconds of shock front arrival",
+                        "Spacecraft bus health reports NOMINAL"
+                ),
+                List.of(
+                        "Continuous uninterrupted telemetry feed required",
+                        "L1 halo orbit station-keeping balance"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "SOLAR-CORONA-TRACE",
+                "Solar Coronal Streamer Doppler Velocity Profiling",
+                "Sun (Solar Perihelion Skim Orbit, 0.08 AU)",
+                "Solar",
+                MissionCategory.THERMAL_MANAGEMENT,
+                MissionDifficulty.CRITICAL,
+                "CORONA-TRACE",
+                85,
+                "SEVERE",
+                "Ultra-close perihelion skim inside the Alfvén critical surface. Measure Doppler velocity shifts of coronal streamers to resolve the coronal heating paradox.",
+                List.of(
+                        "Measure coronal streamer ion acoustic Doppler velocity shifts",
+                        "Monitor carbon-composite thermal shield front-face temperature (+1200°C)",
+                        "Verify internal component bay temperatures remain stable <= +28°C"
+                ),
+                List.of(
+                        "Streamer Doppler profile recorded with 0.1 km/s accuracy",
+                        "No thermal sensor threshold breaches"
+                ),
+                List.of(
+                        "Solar radiative flux exceeds 210,000 W/m²",
+                        "Attitude error > 0.02° will destroy unprotected spacecraft elements"
+                ),
+                false
+        ));
+
+        // --- DEEP SPACE OPERATIONS (4 new missions) ---
+        registerMission(new MissionDefinition(
+                "DEEP-NAV-DRIFT",
+                "Autonomous Interplanetary Optical Navigation Drift Correction",
+                "Deep Space (Heliocentric Navigation Calibration Drift, 1.4 AU)",
+                "Deep Space",
+                MissionCategory.DEEP_SPACE_SURVIVAL,
+                MissionDifficulty.STANDARD,
+                "KEPLER-DRIFT",
+                120,
+                "MODERATE",
+                "Calibrate optical triangulation across main-belt asteroids and background guide stars. Calculate autonomous trajectory corrections without reliance on terrestrial DSN tracking.",
+                List.of(
+                        "Sight 12 main-belt asteroids against stellar reference frame",
+                        "Compute autonomous orbit determination state vector",
+                        "Execute micro-thruster drift correction burn (Δv: 0.85 m/s)"
+                ),
+                List.of(
+                        "State vector position uncertainty reduced to < 50 km",
+                        "Propellant consumption for drift correction <= 0.4 kg"
+                ),
+                List.of(
+                        "Low solar flux requires high battery efficiency",
+                        "Communication delay: 11.5 minutes"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "DEEP-COMMS-RESILIENCE",
+                "Extreme-Distance Ka-Band High-Gain Carrier Resilience Trial",
+                "Deep Space (Interplanetary Deep-Space Comms Bridge, 4.2 AU)",
+                "Deep Space",
+                MissionCategory.COMMUNICATIONS_RECOVERY,
+                MissionDifficulty.CHALLENGING,
+                "VOYAGER-RELAY",
+                105,
+                "HIGH",
+                "Operate interplanetary telecommunications link across 4.2 AU. Evaluate low-power traveling-wave tube amplifier stability and forward error correction across cosmic noise.",
+                List.of(
+                        "Establish 32 GHz Ka-band carrier lock with 70-meter Deep Space Network antenna",
+                        "Verify LDPC error-correction coding efficiency under 12 dB SNR loss",
+                        "Perform automated antenna pointing trim to counter spacecraft thermal deflection"
+                ),
+                List.of(
+                        "Zero frame sync loss during 90-minute downlink session",
+                        "Comms subsystem health reports NOMINAL"
+                ),
+                List.of(
+                        "Round-trip light time: 70 minutes",
+                        "Available bus power strictly limited to RTG generation"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "DEEP-PROBE-SURVIVAL",
+                "Interplanetary Cruise RTG Thermal & Bus Power Degradation",
+                "Deep Space (Deep-Space Heliopause Cruise, 85 AU)",
+                "Deep Space",
+                MissionCategory.DEEP_SPACE_SURVIVAL,
+                MissionDifficulty.CRITICAL,
+                "FARPOINT-PROBE",
+                130,
+                "SEVERE",
+                "Simulate extreme deep-space cruise survival at 85 AU from the Sun. Manage decaying radioisotope thermoelectric generator power, shed secondary loads, and maintain internal heaters.",
+                List.of(
+                        "Balance 180W total RTG electrical output across critical survival systems",
+                        "Cycle auxiliary heaters to keep propellant line temp >= -10°C",
+                        "Execute low-bitrate autonomous beacon pulse transmission"
+                ),
+                List.of(
+                        "Electrical bus voltage remains stable at 28.0V ± 0.8V",
+                        "Spacecraft survives 120-minute autonomous evaluation without battery depletion"
+                ),
+                List.of(
+                        "Solar power 0 W (infinite distance)",
+                        "Round-trip comms latency: 23.6 hours"
+                ),
+                false
+        ));
+
+        registerMission(new MissionDefinition(
+                "DEEP-ASTEROID-RENDEZVOUS",
+                "Outer Asteroid Belt Autonomous Rendezvous & Proximity Survey",
+                "Deep Space (Interplanetary Cruise Trajectory, 2.5 AU)",
+                "Deep Space",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CHALLENGING,
+                "ODYSSEY-NAV",
+                90,
+                "HIGH",
+                "Autonomous slow-speed proximity approach to carbonaceous asteroid 10 Hygiea. Map gravitational field, surface regolith distribution, and stage laser altimetry sweep.",
+                List.of(
+                        "Execute autonomous proximity braking burn to achieve relative velocity < 1.0 m/s",
+                        "Conduct continuous lidar surface elevation scan from 15 km orbital hold",
+                        "Model asteroid mass and center-of-gravity through optical tracking"
+                ),
+                List.of(
+                        "Proximity survey completed without trajectory overshoot",
+                        "Laser altimetry profile generated and verified"
+                ),
+                List.of(
+                        "Micro-gravity environment requires precise cold-gas impulse control",
+                        "Communication latency: 21 minutes"
+                ),
+                false
         ));
     }
 

@@ -198,7 +198,7 @@ class SecurityAuthorizationIntegrationTest {
         mockMvc.perform(post("/api/v1/simulation/initialize"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.lifecycle").value("RUNNING"))
-                .andExpect(jsonPath("$.spacecraftCount").value(28));
+                .andExpect(jsonPath("$.spacecraftCount").value(52));
     }
 
     @Test

@@ -503,6 +503,264 @@ public class SimulationEngine {
             );
             registerSpacecraft(voyagerExp, voyagerElements);
 
+            // =========================================================================
+            // GROUP 1 EXTENSION: EARTH ORBITAL PLATFORMS (4 vehicles)
+            // =========================================================================
+            // 29. HELIOS-OBS (Earth Observation and Multispectral Sweep, altitude ~690 km)
+            KeplerianElements heliosObsElements = new KeplerianElements(7068.0, 0.0011, 98.1, 55.0, 80.0, 15.0);
+            OrbitState heliosObsState = orbitalPropagator.elementsToState(heliosObsElements, baseEpoch);
+            Spacecraft heliosObs = new Spacecraft(
+                    "HELIOS-OBS", "HELIOS-OBS", "Helios Earth Multispectral Imager", "Earth Observation (SSO)",
+                    1380.0, 250.0, heliosObsState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    95.0, 1320.0, "Earth (Sun-Synchronous LEO, 690 km)", "Earth"
+            );
+            registerSpacecraft(heliosObs, heliosObsElements);
+
+            // 30. MERIDIAN-RELAY (MEO Crosslink Communications Relay, altitude ~20,200 km)
+            KeplerianElements meridianElements = new KeplerianElements(26560.0, 0.012, 55.0, 140.0, 120.0, 30.0);
+            OrbitState meridianState = orbitalPropagator.elementsToState(meridianElements, baseEpoch);
+            Spacecraft meridianRelay = new Spacecraft(
+                    "MERIDIAN-RELAY", "MERIDIAN", "Meridian High-Bandwidth Data Relay", "MEO Comms Relay",
+                    2200.0, 1400.0, meridianState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    98.0, 2100.0, "Earth (Medium Earth Orbit, 20,200 km)", "Earth"
+            );
+            registerSpacecraft(meridianRelay, meridianElements);
+
+            // 31. VIGIL-TRACK (Polar Orbital Debris Tracking & Collision Warning, altitude ~750 km)
+            KeplerianElements vigilElements = new KeplerianElements(7128.0, 0.0015, 82.5, 210.0, 30.0, 90.0);
+            OrbitState vigilState = orbitalPropagator.elementsToState(vigilElements, baseEpoch);
+            Spacecraft vigilTrack = new Spacecraft(
+                    "VIGIL-TRACK", "VIGIL-TRK", "Vigil Orbital Debris Tracking Sentry", "Space Situational Awareness",
+                    890.0, 190.0, vigilState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    92.5, 1050.0, "Earth (Polar LEO Lidar Tracking, 750 km)", "Earth"
+            );
+            registerSpacecraft(vigilTrack, vigilElements);
+
+            // 32. STRATUS-MET (Atmospheric and Weather Monitoring, altitude ~550 km)
+            KeplerianElements stratusElements = new KeplerianElements(6928.0, 0.0009, 65.0, 300.0, 15.0, 140.0);
+            OrbitState stratusState = orbitalPropagator.elementsToState(stratusElements, baseEpoch);
+            Spacecraft stratusMet = new Spacecraft(
+                    "STRATUS-MET", "STRATUS", "Stratus Atmospheric & Weather Profiler", "Atmospheric Weather LEO",
+                    1120.0, 210.0, stratusState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    91.0, 1180.0, "Earth (Atmospheric Weather LEO, 550 km)", "Earth"
+            );
+            registerSpacecraft(stratusMet, stratusElements);
+
+            // =========================================================================
+            // GROUP 2 EXTENSION: LUNAR EXPLORATION FLEET (4 vehicles)
+            // =========================================================================
+            // 33. SELENE-MAP (Lunar Surface and Polar Topography Mapping, altitude ~60 km)
+            KeplerianElements seleneMapElements = new KeplerianElements(62000.0, 0.03, 85.0, 40.0, 30.0, 50.0);
+            OrbitState seleneMapState = orbitalPropagator.elementsToState(seleneMapElements, baseEpoch);
+            Spacecraft seleneMap = new Spacecraft(
+                    "SELENE-MAP", "SELENE-MAP", "Selene Lunar Topography Scout", "Lunar Surface Geodesy",
+                    620.0, 310.0, seleneMapState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    90.0, 820.0, "Low Lunar Orbit (60 km Circular)", "Lunar"
+            );
+            registerSpacecraft(seleneMap, seleneMapElements);
+
+            // 34. POLARIS-LR (Lunar South Pole Cryo-Resource Prospector, altitude ~100 km)
+            KeplerianElements polarisElements = new KeplerianElements(67200.0, 0.02, 89.2, 15.0, 0.0, 85.0);
+            OrbitState polarisState = orbitalPropagator.elementsToState(polarisElements, baseEpoch);
+            Spacecraft polarisLr = new Spacecraft(
+                    "POLARIS-LR", "POLARIS", "Polaris Lunar Polar Prospector", "Lunar Cryo-Prospector",
+                    740.0, 460.0, polarisState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    93.5, 910.0, "Lunar South Pole Orbit (100 km)", "Lunar"
+            );
+            registerSpacecraft(polarisLr, polarisElements);
+
+            // 35. LUNA-LINK (Cislunar Gateway & Far-Side Communications Bridge)
+            KeplerianElements lunaLinkElements = new KeplerianElements(58000.0, 0.12, 18.0, 95.0, 60.0, 180.0);
+            OrbitState lunaLinkState = orbitalPropagator.elementsToState(lunaLinkElements, baseEpoch);
+            Spacecraft lunaLink = new Spacecraft(
+                    "LUNA-LINK", "LUNA-LINK", "Luna-Link Cislunar Gateway Relay", "Lunar L1 Communications Bridge",
+                    1400.0, 920.0, lunaLinkState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    97.0, 1950.0, "Earth-Moon L1 Halo Orbit (58,000 km)", "Lunar"
+            );
+            registerSpacecraft(lunaLink, lunaLinkElements);
+
+            // 36. ARGUS-LNAV (Autonomous Lunar Navigation and Geodetic Landmark Sentry)
+            KeplerianElements argusElements = new KeplerianElements(70400.0, 0.04, 45.0, 170.0, 90.0, 10.0);
+            OrbitState argusState = orbitalPropagator.elementsToState(argusElements, baseEpoch);
+            Spacecraft argusLnav = new Spacecraft(
+                    "ARGUS-LNAV", "ARGUS-NAV", "Argus Lunar Navigation Orbiter", "Cislunar Navigation & Survey",
+                    810.0, 390.0, argusState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    94.0, 1100.0, "Lunar Equatorial Frozen Orbit (120 km)", "Lunar"
+            );
+            registerSpacecraft(argusLnav, argusElements);
+
+            // =========================================================================
+            // GROUP 3 EXTENSION: MARS RECONNAISSANCE FLEET (4 vehicles)
+            // =========================================================================
+            // 37. AREION-RECON (Mars High-Resolution Reconnaissance, altitude ~320 km)
+            KeplerianElements areionElements = new KeplerianElements(21200.0, 0.04, 92.5, 65.0, 45.0, 120.0);
+            OrbitState areionState = orbitalPropagator.elementsToState(areionElements, baseEpoch);
+            Spacecraft areionRecon = new Spacecraft(
+                    "AREION-RECON", "AREION", "Areion High-Resolution Reconnaissance", "Mars Reconnaissance Orbiter",
+                    1050.0, 720.0, areionState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    91.5, 1450.0, "Mars Sun-Synchronous Polar Orbit (320 km)", "Mars"
+            );
+            registerSpacecraft(areionRecon, areionElements);
+
+            // 38. AETHER-MET (Mars Atmospheric Profiling and Trace Gas Sounder)
+            KeplerianElements aetherElements = new KeplerianElements(18900.0, 0.06, 74.0, 110.0, 15.0, 40.0);
+            OrbitState aetherState = orbitalPropagator.elementsToState(aetherElements, baseEpoch);
+            Spacecraft aetherMet = new Spacecraft(
+                    "AETHER-MET", "AETHER", "Aether Mars Atmospheric Sounder", "Mars Aeronomy Orbiter",
+                    780.0, 410.0, aetherState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    89.0, 980.0, "Low Mars Aeronomy Orbit (280 km)", "Mars"
+            );
+            registerSpacecraft(aetherMet, aetherElements);
+
+            // 39. DEIMOS-RELAY (Mars Surface Rover Dedicated Communications Relay)
+            KeplerianElements deimosRelayElements = new KeplerianElements(20424.0, 0.01, 1.5, 220.0, 0.0, 240.0);
+            OrbitState deimosRelayState = orbitalPropagator.elementsToState(deimosRelayElements, baseEpoch);
+            Spacecraft deimosRelay = new Spacecraft(
+                    "DEIMOS-RELAY", "DEIMOS-RLY", "Deimos Dedicated Surface Data Relay", "Mars Rover Communications Relay",
+                    1350.0, 890.0, deimosRelayState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    96.0, 1680.0, "Areostationary Relay Orbit (17,032 km)", "Mars"
+            );
+            registerSpacecraft(deimosRelay, deimosRelayElements);
+
+            // 40. BOREALIS-MAP (Martian North/South Polar Residual Ice Topographer)
+            KeplerianElements borealisElements = new KeplerianElements(19800.0, 0.05, 87.0, 340.0, 60.0, 75.0);
+            OrbitState borealisState = orbitalPropagator.elementsToState(borealisElements, baseEpoch);
+            Spacecraft borealisMap = new Spacecraft(
+                    "BOREALIS-MAP", "BOREALIS", "Borealis Polar Water-Ice Topographer", "Mars Polar Topographer",
+                    890.0, 480.0, borealisState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    92.0, 1120.0, "Mars Polar Water-Ice Orbit (450 km)", "Mars"
+            );
+            registerSpacecraft(borealisMap, borealisElements);
+
+            // =========================================================================
+            // GROUP 4 EXTENSION: OUTER PLANETS FLEET (4 vehicles)
+            // =========================================================================
+            // 41. JOVE-SCOPE (Jupiter Deep Atmospheric Observation & Magnetospheric Scout)
+            KeplerianElements joveScopeElements = new KeplerianElements(500000.0, 0.35, 22.0, 75.0, 110.0, 30.0);
+            OrbitState joveScopeState = orbitalPropagator.elementsToState(joveScopeElements, baseEpoch);
+            Spacecraft joveScope = new Spacecraft(
+                    "JOVE-SCOPE", "JOVE-SCP", "Jove-Scope Deep Atmospheric Explorer", "Jovian System Explorer",
+                    1550.0, 1100.0, joveScopeState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    94.0, 540.0, "Jupiter Eccentric System Orbit (500,000 km)", "Outer Planets"
+            );
+            registerSpacecraft(joveScope, joveScopeElements);
+
+            // 42. ION-GUARD (Inner Jovian Radiation Belt Diagnostic Monitor)
+            KeplerianElements ionGuardElements = new KeplerianElements(350000.0, 0.28, 8.0, 160.0, 40.0, 90.0);
+            OrbitState ionGuardState = orbitalPropagator.elementsToState(ionGuardElements, baseEpoch);
+            Spacecraft ionGuard = new Spacecraft(
+                    "ION-GUARD", "ION-GRD", "Ion-Guard Radiation Belt Monitor", "Magnetospheric Radiation Scout",
+                    980.0, 620.0, ionGuardState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    96.5, 490.0, "Inner Jovian Radiation Belt (350,000 km)", "Outer Planets"
+            );
+            registerSpacecraft(ionGuard, ionGuardElements);
+
+            // 43. TITAN-ORBIT (Saturnian Atmosphere & Hydrocarbon Lake Radar Scout)
+            KeplerianElements titanOrbitElements = new KeplerianElements(800000.0, 0.18, 14.0, 230.0, 15.0, 180.0);
+            OrbitState titanOrbitState = orbitalPropagator.elementsToState(titanOrbitElements, baseEpoch);
+            Spacecraft titanOrbit = new Spacecraft(
+                    "TITAN-ORBIT", "TITAN-ORB", "Titan Radar & Atmosphere Observer", "Saturnian Atmosphere Scout",
+                    1220.0, 850.0, titanOrbitState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    93.0, 520.0, "Titan Circular Polar Orbit (800 km)", "Outer Planets"
+            );
+            registerSpacecraft(titanOrbit, titanOrbitElements);
+
+            // 44. RHEA-SURVEY (Outer-Planet Icy Moon Rhea Observation Sentry)
+            KeplerianElements rheaElements = new KeplerianElements(527000.0, 0.09, 6.5, 190.0, 75.0, 60.0);
+            OrbitState rheaState = orbitalPropagator.elementsToState(rheaElements, baseEpoch);
+            Spacecraft rheaSurvey = new Spacecraft(
+                    "RHEA-SURVEY", "RHEA", "Rhea Icy Moon Surface Spectrometer", "Outer Moon Spectrometry",
+                    860.0, 510.0, rheaState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    95.0, 460.0, "Saturnian Equatorial Moon Orbit (527,000 km)", "Outer Planets"
+            );
+            registerSpacecraft(rheaSurvey, rheaElements);
+
+            // =========================================================================
+            // GROUP 5 EXTENSION: SOLAR OPERATIONS FLEET (4 vehicles)
+            // =========================================================================
+            // 45. HELIO-WATCH (Solar Observation & Inner Corona Radiometer)
+            KeplerianElements helioWatchElements = new KeplerianElements(60000000.0, 0.38, 4.5, 80.0, 20.0, 10.0);
+            OrbitState helioWatchState = orbitalPropagator.elementsToState(helioWatchElements, baseEpoch);
+            Spacecraft helioWatch = new Spacecraft(
+                    "HELIO-WATCH", "HELIO-WTCH", "Helio-Watch Inner Corona Radiometer", "Heliocentric Corona Monitor",
+                    720.0, 380.0, helioWatchState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    98.0, 2800.0, "Heliocentric Corona Monitor (0.4 AU)", "Solar"
+            );
+            registerSpacecraft(helioWatch, helioWatchElements);
+
+            // 46. CORONA-TRACE (Solar Corona Extreme-Temperature Monitoring)
+            KeplerianElements coronaTraceElements = new KeplerianElements(25000000.0, 0.65, 7.2, 125.0, 40.0, 0.0);
+            OrbitState coronaTraceState = orbitalPropagator.elementsToState(coronaTraceElements, baseEpoch);
+            Spacecraft coronaTrace = new Spacecraft(
+                    "CORONA-TRACE", "CORONA-TRC", "Corona-Trace Streamer Spectrometer", "Solar Perihelion Skim Probe",
+                    610.0, 290.0, coronaTraceState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    97.5, 3400.0, "Solar Perihelion Skim Orbit (0.08 AU)", "Solar"
+            );
+            registerSpacecraft(coronaTrace, coronaTraceElements);
+
+            // 47. STORM-SENTINEL (Solar Energetic Particle & Space-Weather Alert Station)
+            KeplerianElements stormSentinelElements = new KeplerianElements(148000000.0, 0.015, 1.8, 45.0, 90.0, 130.0);
+            OrbitState stormSentinelState = orbitalPropagator.elementsToState(stormSentinelElements, baseEpoch);
+            Spacecraft stormSentinel = new Spacecraft(
+                    "STORM-SENTINEL", "STORM-SNT", "Storm-Sentinel Space-Weather Sentry", "Sun-Earth L1 Warning Sentry",
+                    940.0, 450.0, stormSentinelState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    99.0, 2200.0, "Sun-Earth L1 Halo Warning Orbit (1,500,000 km)", "Solar"
+            );
+            registerSpacecraft(stormSentinel, stormSentinelElements);
+
+            // 48. FLARE-ALERT (Solar Flare Extreme-UV Heliograph)
+            KeplerianElements flareAlertElements = new KeplerianElements(105000000.0, 0.22, 3.0, 215.0, 15.0, 70.0);
+            OrbitState flareAlertState = orbitalPropagator.elementsToState(flareAlertElements, baseEpoch);
+            Spacecraft flareAlert = new Spacecraft(
+                    "FLARE-ALERT", "FLARE-ALRT", "Flare-Alert Extreme-UV Heliograph", "Solar Flare Rapid Alert",
+                    680.0, 320.0, flareAlertState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    96.0, 2600.0, "Heliocentric Drift Flare Watch (0.7 AU)", "Solar"
+            );
+            registerSpacecraft(flareAlert, flareAlertElements);
+
+            // =========================================================================
+            // GROUP 6 EXTENSION: DEEP SPACE OPERATIONS FLEET (4 vehicles)
+            // =========================================================================
+            // 49. ODYSSEY-NAV (Autonomous Optical Interplanetary Cruise Navigator)
+            KeplerianElements odysseyNavElements = new KeplerianElements(375000000.0, 0.25, 5.5, 130.0, 60.0, 80.0);
+            OrbitState odysseyNavState = orbitalPropagator.elementsToState(odysseyNavElements, baseEpoch);
+            Spacecraft odysseyNav = new Spacecraft(
+                    "ODYSSEY-NAV", "ODYSSEY", "Odyssey Autonomous Deep Navigator", "Interplanetary Cruise Navigator",
+                    1100.0, 780.0, odysseyNavState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    95.0, 820.0, "Interplanetary Cruise Trajectory (2.5 AU)", "Deep Space"
+            );
+            registerSpacecraft(odysseyNav, odysseyNavElements);
+
+            // 50. VOYAGER-RELAY (Long-Range Interplanetary Deep-Space Comms Bridge)
+            KeplerianElements voyagerRelayElements = new KeplerianElements(630000000.0, 0.32, 8.0, 280.0, 100.0, 15.0);
+            OrbitState voyagerRelayState = orbitalPropagator.elementsToState(voyagerRelayElements, baseEpoch);
+            Spacecraft voyagerRelay = new Spacecraft(
+                    "VOYAGER-RELAY", "VOY-RELAY", "Voyager Long-Range Deep Comms Bridge", "Deep-Space Comms Bridge",
+                    1480.0, 1050.0, voyagerRelayState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    97.0, 650.0, "Interplanetary Deep-Space Comms Bridge (4.2 AU)", "Deep Space"
+            );
+            registerSpacecraft(voyagerRelay, voyagerRelayElements);
+
+            // 51. KEPLER-DRIFT (Interplanetary Navigation Calibration Probe)
+            KeplerianElements keplerDriftElements = new KeplerianElements(210000000.0, 0.08, 2.2, 95.0, 30.0, 140.0);
+            OrbitState keplerDriftState = orbitalPropagator.elementsToState(keplerDriftElements, baseEpoch);
+            Spacecraft keplerDrift = new Spacecraft(
+                    "KEPLER-DRIFT", "KEPLER-DFT", "Kepler-Drift Navigation Calibration", "Heliocentric Calibration Probe",
+                    870.0, 420.0, keplerDriftState, OperationalMode.SCIENCE_OPERATION, SpacecraftStatus.NOMINAL,
+                    94.5, 950.0, "Heliocentric Navigation Calibration Drift (1.4 AU)", "Deep Space"
+            );
+            registerSpacecraft(keplerDrift, keplerDriftElements);
+
+            // 52. FARPOINT-PROBE (Long-Duration Spacecraft Health & Heliopause Probe)
+            KeplerianElements farpointElements = new KeplerianElements(12000000000.0, 0.55, 16.5, 330.0, 120.0, 10.0);
+            OrbitState farpointState = orbitalPropagator.elementsToState(farpointElements, baseEpoch);
+            Spacecraft farpointProbe = new Spacecraft(
+                    "FARPOINT-PROBE", "FARPOINT", "Farpoint Long-Duration Health Probe", "Deep-Space Heliopause Cruise",
+                    790.0, 490.0, farpointState, OperationalMode.NOMINAL, SpacecraftStatus.NOMINAL,
+                    93.0, 410.0, "Deep-Space Heliopause Cruise (85 AU)", "Deep Space"
+            );
+            registerSpacecraft(farpointProbe, farpointElements);
+
             this.lifecycle = SimulationLifecycle.RUNNING;
 
             if (eventPublisher != null) {

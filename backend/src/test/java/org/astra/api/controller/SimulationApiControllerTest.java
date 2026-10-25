@@ -56,7 +56,7 @@ class SimulationApiControllerTest {
                 .andExpect(jsonPath("$.lifecycle").value("RUNNING"))
                 .andExpect(jsonPath("$.currentEpoch").isNotEmpty())
                 .andExpect(jsonPath("$.baseEpoch").isNotEmpty())
-                .andExpect(jsonPath("$.spacecraftCount").value(28));
+                .andExpect(jsonPath("$.spacecraftCount").value(52));
     }
 
     @Test
@@ -101,7 +101,7 @@ class SimulationApiControllerTest {
     void testListSpacecraft() throws Exception {
         mockMvc.perform(get("/api/v1/spacecraft"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(28)))
+                .andExpect(jsonPath("$", hasSize(52)))
                 .andExpect(jsonPath("$[*].id", hasItems("AURA-1", "TERRA-OBS", "SOLIS-RELAY", "ARES-ORBITER", "CHANDRA-ORB", "EUROPA-CLIPPER-S", "HELIOS-CORONA")));
     }
 

@@ -24,6 +24,20 @@ class MissionControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private org.astra.missions.service.MissionService missionService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void cleanActiveMissions() {
+        if (missionService != null) {
+            missionService.getActiveRun().ifPresent(run -> {
+                try {
+                    missionService.abortMission(run.runId(), "Test isolation cleanup");
+                } catch (Exception ignored) {}
+            });
+        }
+    }
+
     @Test
     @DisplayName("GET /api/v1/missions returns populated catalogue across solar system destinations")
     void testGetMissions() throws Exception {
@@ -241,20 +255,23 @@ class MissionControllerTest {
                 .andExpect(status().isConflict());
 
         // 4. Seamlessly switch to Mission B using /switch
-        mockMvc.perform(post("/api/v1/missions/MARS-ROVER-RELAY/switch")
+        String resB = mockMvc.perform(post("/api/v1/missions/MARS-ROVER-RELAY/switch")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"reason\":\"Flight Director switch to Mars surface relay operations\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.missionId", is("MARS-ROVER-RELAY")))
-                .andExpect(jsonPath("$.status", is("ACTIVE")));
+                .andExpect(jsonPath("$.status", is("ACTIVE")))
+                .andReturn().getResponse().getContentAsString();
+
+        String runIdB = new com.fasterxml.jackson.databind.ObjectMapper().readTree(resB).get("runId").asText();
 
         // 5. Verify Mission A was aborted and archived in history
         mockMvc.perform(get("/api/v1/missions/history"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.runId == '" + runIdA + "')].status", contains("ABORTED")));
 
-        // 6. Clean up: complete Mission B
-        mockMvc.perform(post("/api/v1/missions/runs/" + runIdA + "/abort")
+        // 6. Clean up: abort Mission B
+        mockMvc.perform(post("/api/v1/missions/runs/" + runIdB + "/abort")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
     }

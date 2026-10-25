@@ -1418,6 +1418,7 @@ describe('ASTRA Mission Control Operations Console', () => {
         { ...MOCK_DETAIL, id: 'CHANDRA-ORB', callSign: 'CHANDRA', name: 'CHANDRA-ORB', modelType: 'Lunar Polar Mapper' },
         { ...MOCK_DETAIL, id: 'EUROPA-CLIPPER-S', callSign: 'EUROPA', name: 'EUROPA-CLIPPER-S', modelType: 'Jovian Icy Moons Explorer' },
         { ...MOCK_DETAIL, id: 'HELIOS-CORONA', callSign: 'HELIOS', name: 'HELIOS-CORONA', modelType: 'Solar Corona Explorer' },
+        { ...MOCK_DETAIL, id: 'ODYSSEY-NAV', callSign: 'ODYSSEY', name: 'ODYSSEY-NAV', modelType: 'Deep Space Navigation' },
       ];
 
       render(
@@ -1448,6 +1449,7 @@ describe('ASTRA Mission Control Operations Console', () => {
       const filterMars = screen.getByTestId('fleet-filter-mars');
       const filterOuter = screen.getByTestId('fleet-filter-outer');
       const filterSolar = screen.getByTestId('fleet-filter-solar');
+      const filterDeepSpace = screen.getByTestId('fleet-filter-deep_space');
 
       expect(filterAll).toBeInTheDocument();
       expect(filterEarth).toBeInTheDocument();
@@ -1455,9 +1457,10 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(filterMars).toBeInTheDocument();
       expect(filterOuter).toBeInTheDocument();
       expect(filterSolar).toBeInTheDocument();
+      expect(filterDeepSpace).toBeInTheDocument();
 
       // Ensure NO counts are appended to any filter labels
-      [filterAll, filterEarth, filterLunar, filterMars, filterOuter, filterSolar].forEach((btn) => {
+      [filterAll, filterEarth, filterLunar, filterMars, filterOuter, filterSolar, filterDeepSpace].forEach((btn) => {
         expect(btn.textContent).not.toMatch(/\(\d+\)/);
       });
 
@@ -1485,6 +1488,12 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(screen.getByTestId('fleet-card-HELIOS-CORONA')).toBeInTheDocument();
       expect(screen.queryByTestId('fleet-card-EUROPA-CLIPPER-S')).not.toBeInTheDocument();
 
+      // Filter by DEEP SPACE
+      fireEvent.click(screen.getByTestId('destination-selector-trigger'));
+      fireEvent.click(filterDeepSpace);
+      expect(screen.getByTestId('fleet-card-ODYSSEY-NAV')).toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-HELIOS-CORONA')).not.toBeInTheDocument();
+
       // Filter by ALL
       fireEvent.click(screen.getByTestId('destination-selector-trigger'));
       fireEvent.click(filterAll);
@@ -1493,6 +1502,7 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(screen.getByTestId('fleet-card-CHANDRA-ORB')).toBeInTheDocument();
       expect(screen.getByTestId('fleet-card-EUROPA-CLIPPER-S')).toBeInTheDocument();
       expect(screen.getByTestId('fleet-card-HELIOS-CORONA')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-ODYSSEY-NAV')).toBeInTheDocument();
     });
 
     it('FleetSelectorBar displays distinct error and empty states', () => {

@@ -100,9 +100,9 @@ class WebSocketTelemetryIntegrationTest {
         SimulationSnapshotMessage snapshot = snapshotFuture.get(5, TimeUnit.SECONDS);
         assertNotNull(snapshot);
         assertNotNull(snapshot.currentEpoch());
-        assertEquals(28, snapshot.spacecraftCount());
+        assertEquals(52, snapshot.spacecraftCount());
         assertNotNull(snapshot.fleet());
-        assertEquals(28, snapshot.fleet().size());
+        assertEquals(52, snapshot.fleet().size());
     }
 
     @Test
@@ -124,7 +124,7 @@ class WebSocketTelemetryIntegrationTest {
 
         FleetTelemetryFrame initialFrame = initialFrameFuture.get(5, TimeUnit.SECONDS);
         assertNotNull(initialFrame);
-        assertEquals(28, initialFrame.spacecraftCount());
+        assertEquals(52, initialFrame.spacecraftCount());
         assertNotNull(initialFrame.telemetry());
 
         // Verify that all telemetry in this frame has the exact same simulation epoch (zero time skew)
