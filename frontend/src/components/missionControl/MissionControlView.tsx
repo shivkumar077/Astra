@@ -23,7 +23,7 @@ import {
 } from '../../api/missionControlApi';
 import { getMissionControlStompClient } from '../../api/stompClient';
 import { MissionControlHeader, OperationalModeView } from './MissionControlHeader';
-import { FleetSelectorBar } from './FleetSelectorBar';
+import { DestinationFilter, FleetSelectorBar } from './FleetSelectorBar';
 import { OrbitalStage3D, TimeAdvanceNotice } from './OrbitalStage3D';
 import { TelemetryWorkspace } from './TelemetryWorkspace';
 import { CommandConsole } from './CommandConsole';
@@ -55,6 +55,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>(
     navLocation?.selectedSpacecraftId || 'AURA-1'
   );
+  const [activeFleetDestination, setActiveFleetDestination] = useState<DestinationFilter>('ALL');
   const [simulationStatus, setSimulationStatus] = useState<SimulationStatus | null>(null);
   const [subsystemsHealth, setSubsystemsHealth] = useState<SubsystemsHealth | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandRecord[]>([]);
@@ -75,6 +76,20 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [timeAdvanceNotice, setTimeAdvanceNotice] = useState<TimeAdvanceNotice | null>(null);
   const timeAdvanceTimeoutRef = useRef<number | null>(null);
 
+  const getFleetDestination = (craft: SpacecraftDetail): DestinationFilter => {
+    const clues = `${craft.destinationGroup || ''} ${craft.modelType || ''} ${craft.id || ''} ${craft.name || ''}`.toLowerCase();
+    if (clues.includes('mars') || clues.includes('areocentric') || clues.includes('phobos') || clues.includes('deimos')) return 'MARS';
+    if (clues.includes('lunar') || clues.includes('moon') || clues.includes('selenocentric')) return 'LUNAR';
+    if (clues.includes('jupiter') || clues.includes('jovian') || clues.includes('saturn') || clues.includes('titan') || clues.includes('outer planet') || clues.includes('europa') || clues.includes('callisto') || clues.includes('rhea')) return 'OUTER';
+    if (clues.includes('solar') || clues.includes('sun') || clues.includes('corona') || clues.includes('space weather')) return 'SOLAR';
+    if (clues.includes('deep-space') || clues.includes('deep space') || clues.includes('interstellar') || clues.includes('asteroid') || clues.includes('voyager') || clues.includes('farpoint')) return 'DEEP_SPACE';
+    if (clues.includes('earth') || clues.includes('leo') || clues.includes('sso') || clues.includes('geo') || clues.includes('meo') || clues.includes('orbital debris') || clues.includes('weather monitor')) return 'EARTH';
+    return 'EARTH';
+  };
+
+  const operationalFleet = activeFleetDestination === 'ALL'
+    ? spacecraftList
+    : spacecraftList.filter((craft) => getFleetDestination(craft) === activeFleetDestination);
   const selectedCraft =
     spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
 
@@ -342,6 +357,13 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
           {/* Left: Multi-Craft Fleet Selector & Live Roster */}
           <FleetSelectorBar
             spacecraftList={spacecraftList}
+            onDestinationChange={(destination) => {
+              setActiveFleetDestination(destination);
+              if (destination !== 'ALL') {
+                const firstCraft = spacecraftList.find((craft) => getFleetDestination(craft) === destination);
+                if (firstCraft) setSelectedSpacecraftId(firstCraft.id);
+              }
+            }}
             selectedSpacecraftId={selectedSpacecraftId}
             onSelectSpacecraft={(id) => {
               setSelectedSpacecraftId(id);
@@ -352,7 +374,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
 
           {/* Center: Interactive 3D Orbital Visualization Stage */}
           <OrbitalStage3D
-            spacecraftList={spacecraftList}
+            spacecraftList={operationalFleet}
             selectedSpacecraftId={selectedSpacecraftId}
             onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
             reducedMotion={reducedMotion}
