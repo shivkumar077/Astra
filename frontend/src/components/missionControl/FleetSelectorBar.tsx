@@ -40,7 +40,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
   error = null,
   onDestinationChange,
 }) => {
-  const [destFilter, setDestFilter] = useState<DestinationFilter>('ALL');
+  const [destFilter, setDestFilter] = useState<DestinationFilter>('EARTH');
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
