@@ -72,84 +72,65 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
 
   return (
     <header className="astra-mc-header" data-testid="mission-control-header">
-      {/* 1. Left Return Action & Brand Badge */}
+      {/* 1. Left: Single Arrow-Only Return Button */}
       <div className="astra-mc-header-left">
         <button
           onClick={onReturnHome}
           className="astra-mc-return-btn"
-          aria-label="Return to ASTRA landing portal"
+          aria-label="Return to landing page"
           data-testid="return-to-landing"
-          title="Return to ASTRA [Esc]"
+          title="Return to landing page [Esc]"
         >
-          <ArrowLeft size={14} />
-          <span>RETURN TO ASTRA</span>
+          <ArrowLeft size={16} aria-hidden="true" />
         </button>
-
-        <div className="astra-mc-title-group">
-          <div className="astra-mc-brand-row">
-            <span className="astra-mc-brand-name">ASTRA</span>
-            <span className="astra-mc-badge">MISSION CONTROL</span>
-          </div>
-          <span className="astra-mc-subtitle">FLIGHT DYNAMICS &amp; ORBITAL OPERATIONS CONSOLE</span>
-        </div>
-
-        {/* Operational View Mode Switcher */}
-        <div className="astra-mc-viewmode-switcher" role="tablist">
-          <button
-            onClick={() => onSelectModeView?.('cockpit')}
-            className={`astra-mc-mode-btn ${activeModeView === 'cockpit' ? 'active' : ''}`}
-            data-testid="mode-cockpit-btn"
-            title="Orbital Cockpit & 3D Stage"
-          >
-            <Layers size={11} />
-            <span>COCKPIT</span>
-          </button>
-          <button
-            onClick={() => onSelectModeView?.('universe')}
-            className={`astra-mc-mode-btn ${activeModeView === 'universe' ? 'active' : ''}`}
-            data-testid="mode-universe-btn"
-            title="Mission Universe Discovery Hub"
-          >
-            <Compass size={11} />
-            <span>MISSIONS</span>
-          </button>
-          <button
-            onClick={() => onSelectModeView?.('diagnostics')}
-            className={`astra-mc-mode-btn ${activeModeView === 'diagnostics' ? 'active' : ''}`}
-            data-testid="mode-diagnostics-btn"
-            title="Failure Investigation Lab"
-          >
-            <ShieldAlert size={11} />
-            <span>FAILURE LAB</span>
-          </button>
-        </div>
       </div>
 
-      {/* 2. Center: Authoritative Simulation Clock & Wall Clock */}
-      <div className="astra-mc-header-center">
-        <div className="astra-mc-clock-item">
-          <span className="astra-mc-clock-label">STATION WALL-CLOCK</span>
+      {/* 2. Main Operations Navigation: Cockpit, Missions, Failure Lab */}
+      <nav className="astra-mc-header-nav astra-mc-viewmode-switcher" aria-label="Operations Navigation" role="tablist">
+        <button
+          onClick={() => onSelectModeView?.('cockpit')}
+          className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'cockpit' ? 'active' : ''}`}
+          data-testid="mode-cockpit-btn"
+          title="Orbital Cockpit & 3D Stage"
+          role="tab"
+          aria-selected={activeModeView === 'cockpit'}
+        >
+          <Layers size={13} className="astra-mc-nav-icon" aria-hidden="true" />
+          <span>COCKPIT</span>
+        </button>
+        <button
+          onClick={() => onSelectModeView?.('universe')}
+          className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'universe' ? 'active' : ''}`}
+          data-testid="mode-universe-btn"
+          title="Mission Universe Discovery Hub"
+          role="tab"
+          aria-selected={activeModeView === 'universe'}
+        >
+          <Compass size={13} className="astra-mc-nav-icon" aria-hidden="true" />
+          <span>MISSIONS</span>
+        </button>
+        <button
+          onClick={() => onSelectModeView?.('diagnostics')}
+          className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'diagnostics' ? 'active' : ''}`}
+          data-testid="mode-diagnostics-btn"
+          title="Failure Investigation Lab"
+          role="tab"
+          aria-selected={activeModeView === 'diagnostics'}
+        >
+          <ShieldAlert size={13} className="astra-mc-nav-icon" aria-hidden="true" />
+          <span>FAILURE LAB</span>
+        </button>
+      </nav>
+
+      {/* 3. Right: Station Wall Clock & Status Indicators */}
+      <div className="astra-mc-header-right">
+        {/* Station Wall Clock */}
+        <div className="astra-mc-clock-item astra-mc-station-clock" title="Station Master Time">
+          <span className="astra-mc-clock-label">STATION CLOCK</span>
           <span className="astra-mc-clock-val" data-telemetry="utc-wallclock">{wallClockUtc}</span>
         </div>
 
-        <div className="astra-mc-clock-item">
-          <span className="astra-mc-clock-label">SIMULATION EPOCH [UTC]</span>
-          <span className="astra-mc-clock-val" data-telemetry="sim-epoch">
-            {simulationStatus ? simulationStatus.currentEpoch.replace('T', ' ').substring(0, 19) : 'SYNCHRONIZING...'}
-          </span>
-        </div>
-
-        <div className="astra-mc-clock-item">
-          <span className="astra-mc-clock-label">ELAPSED SIM TIME</span>
-          <span className="astra-mc-clock-val" data-telemetry="elapsed-time">
-            {simulationStatus ? `T+ ${simulationStatus.elapsedSeconds.toFixed(1)}s` : 'T+ 0.0s'}
-          </span>
-        </div>
-      </div>
-
-      {/* 3. Right: Simulation Controls & Connection Status */}
-      <div className="astra-mc-header-right">
-        {/* Simulation Clock Controls */}
+        {/* Simulation Controls */}
         <div className="astra-mc-sim-controls">
           <button
             onClick={handleToggleLifecycle}
@@ -160,12 +141,12 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
           >
             {simulationStatus?.lifecycle === 'RUNNING' ? (
               <>
-                <Pause size={11} />
+                <Pause size={11} aria-hidden="true" />
                 <span>PAUSE</span>
               </>
             ) : (
               <>
-                <Play size={11} />
+                <Play size={11} aria-hidden="true" />
                 <span>RESUME</span>
               </>
             )}
@@ -178,7 +159,7 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
             data-testid="advance-sim-btn"
             title="Step Simulation Forward 60 Seconds"
           >
-            <FastForward size={11} />
+            <FastForward size={11} aria-hidden="true" />
             <span>+60s</span>
           </button>
         </div>
@@ -190,7 +171,7 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
           title={`WebSocket Telemetry Stream: ${connectionStatus.toUpperCase()}`}
         >
           <span className="astra-mc-pulse-dot" />
-          <span>STREAM: {connectionStatus.toUpperCase()}</span>
+          <span className="astra-mc-stream-label">STREAM: {connectionStatus.toUpperCase()}</span>
         </div>
       </div>
     </header>

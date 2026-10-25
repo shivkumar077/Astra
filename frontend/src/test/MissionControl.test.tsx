@@ -162,23 +162,25 @@ describe('ASTRA Mission Control Operations Console', () => {
       />
     );
 
-    // Verify brand identity
-    expect(screen.getByText('MISSION CONTROL')).toBeInTheDocument();
-    expect(screen.getByText(/FLIGHT DYNAMICS & ORBITAL OPERATIONS CONSOLE/i)).toBeInTheDocument();
+    // Verify arrow-only return button with accessible label
+    const returnBtn = screen.getByTestId('return-to-landing');
+    expect(returnBtn).toBeInTheDocument();
+    expect(returnBtn).toHaveAttribute('aria-label', 'Return to landing page');
 
-    // Verify clocks
-    expect(screen.getByText(/STATION WALL-CLOCK/i)).toBeInTheDocument();
-    expect(screen.getByText(/SIMULATION EPOCH/i)).toBeInTheDocument();
-    expect(screen.getByText(/ELAPSED SIM TIME/i)).toBeInTheDocument();
-    expect(screen.getByText('T+ 3600.0s')).toBeInTheDocument();
+    // Verify operations navigation tabs
+    expect(screen.getByRole('tab', { name: /cockpit/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /missions/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /failure lab/i })).toBeInTheDocument();
+
+    // Verify Station Master Clock
+    expect(screen.getByText(/STATION CLOCK/i)).toBeInTheDocument();
 
     // Verify STOMP connection indicator
     const connectionChip = screen.getByTestId('gateway-status');
     expect(connectionChip).toBeInTheDocument();
     expect(connectionChip).toHaveTextContent(/CONNECTED/i);
 
-    // Verify return button
-    const returnBtn = screen.getByTestId('return-to-landing');
+    // Verify return button click
     fireEvent.click(returnBtn);
     expect(handleReturn).toHaveBeenCalledTimes(1);
 

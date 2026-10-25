@@ -53,79 +53,119 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 28px;
-  background: rgba(6, 9, 14, 0.88);
+  padding: 10px 24px;
+  min-height: 58px;
+  background: rgba(6, 9, 14, 0.92);
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.16);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.75);
+  gap: 16px;
+  box-sizing: border-box;
 }
 
 .astra-mc-header-left {
   display: flex;
   align-items: center;
-  gap: 18px;
+  flex-shrink: 0;
 }
 
+/* Single Arrow Return Button */
 .astra-mc-return-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-xs);
-  padding: 6px 14px;
   color: var(--color-text-display);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
   cursor: pointer;
-  transition: all 180ms ease;
+  position: relative;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+/* 44x44px touch target compliance */
+.astra-mc-return-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  pointer-events: auto;
 }
 
 .astra-mc-return-btn:hover {
-  background: rgba(56, 189, 248, 0.12);
+  background: rgba(56, 189, 248, 0.14);
   border-color: var(--color-earth-cyan);
   color: var(--color-earth-cyan);
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+  transform: translateX(-2px);
 }
 
-.astra-mc-title-group {
-  display: flex;
-  flex-direction: column;
+.astra-mc-return-btn:focus-visible {
+  outline: 2px solid var(--color-earth-cyan);
+  outline-offset: 2px;
 }
 
-.astra-mc-brand-row {
+.astra-mc-return-btn:active {
+  transform: translateX(-3px) scale(0.96);
+  background: rgba(56, 189, 248, 0.22);
+}
+
+/* Primary Operations Navigation Strip */
+.astra-mc-header-nav,
+.astra-mc-viewmode-switcher {
   display: flex;
   align-items: center;
-  gap: 8px;
+  background: rgba(4, 12, 24, 0.75);
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  border-radius: var(--radius-xs);
+  padding: 3px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
-.astra-mc-brand-name {
-  font-family: var(--font-serif);
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--color-text-display);
-}
-
-.astra-mc-badge {
+.astra-mc-nav-btn,
+.astra-mc-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: transparent;
+  color: #7ba3c0;
+  border: none;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  padding: 2px 7px;
-  border-radius: 2px;
-  text-transform: uppercase;
-  background: rgba(56, 189, 248, 0.14);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  color: var(--color-earth-cyan);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 6px 14px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
 }
 
-.astra-mc-subtitle {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  color: var(--color-text-ghost);
-  text-transform: uppercase;
+.astra-mc-nav-btn:hover,
+.astra-mc-mode-btn:hover {
+  color: #e0f2fe;
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.astra-mc-nav-btn.active,
+.astra-mc-mode-btn.active {
+  color: #030a14;
+  background: #00f0ff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.5);
+}
+
+.astra-mc-nav-icon {
+  flex-shrink: 0;
 }
 
 .astra-mc-header-center {
@@ -968,16 +1008,100 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .astra-mc-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 16px;
+    flex-wrap: wrap;
+    padding: 8px 14px;
+    gap: 8px 12px;
+    justify-content: space-between;
+    min-height: auto;
   }
 
-  .astra-mc-header-center {
+  .astra-mc-header-left {
+    order: 1;
+  }
+
+  .astra-mc-header-right {
+    order: 2;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .astra-mc-station-clock .astra-mc-clock-label {
     display: none;
+  }
+
+  .astra-mc-station-clock .astra-mc-clock-val {
+    font-size: 11px;
+  }
+
+  .astra-mc-sim-clock {
+    display: none;
+  }
+
+  .astra-mc-sim-controls {
+    padding: 2px 4px;
+    gap: 4px;
+  }
+
+  .astra-mc-sim-btn {
+    padding: 4px 6px;
+    font-size: 9px;
+  }
+
+  .astra-mc-gateway-chip {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+
+  .astra-mc-header-nav,
+  .astra-mc-viewmode-switcher {
+    order: 3;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    margin-top: 4px;
+    padding: 2px;
+    box-sizing: border-box;
+  }
+
+  .astra-mc-nav-btn,
+  .astra-mc-mode-btn {
+    justify-content: center;
+    padding: 8px 4px;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    gap: 5px;
+    min-height: 42px;
+  }
+
+  .astra-mc-fullscreen-workspace {
+    padding: 18px 12px 32px 12px;
+  }
+
+  .astra-mc-universe-header,
+  .astra-mc-universe-hero,
+  .astra-mc-failure-header,
+  .astra-mc-failure-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+
+  .astra-mc-universe-nav-tabs {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .astra-mc-universe-heading,
+  .astra-mc-failure-heading {
+    font-size: 20px;
   }
 
   .astra-mc-center-viewport {
@@ -991,6 +1115,35 @@
 
   .astra-mc-orbital-metrics-bar {
     display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .astra-mc-stream-label {
+    display: none;
+  }
+
+  .astra-mc-gateway-chip {
+    padding: 6px;
+    border-radius: 50%;
+  }
+
+  .astra-mc-sim-btn span {
+    display: none;
+  }
+
+  .astra-mc-station-clock .astra-mc-clock-val {
+    font-size: 10px;
+  }
+
+  .astra-mc-nav-btn span,
+  .astra-mc-mode-btn span {
+    font-size: 9px;
+  }
+
+  .astra-mc-nav-btn,
+  .astra-mc-mode-btn {
+    gap: 3px;
   }
 }
 
@@ -1046,9 +1199,11 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
   background: radial-gradient(circle at 50% 10%, rgba(6, 24, 48, 0.45) 0%, rgba(3, 8, 16, 0.95) 85%);
-  padding: 20px 28px;
+  padding: 28px 36px 40px 36px;
   position: relative;
+  box-sizing: border-box;
 }
 
 /* ------------------------------------------------------------------------------
@@ -1060,39 +1215,68 @@
   gap: 24px;
   max-width: 1440px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+.astra-mc-universe-header,
 .astra-mc-universe-hero {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
-  padding-bottom: 18px;
+  align-items: flex-start;
+  gap: 24px;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.18);
+  padding-bottom: 22px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+}
+
+.astra-mc-universe-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
 }
 
 .astra-mc-universe-tag {
-  font-family: 'Space Mono', monospace;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
   font-size: 10px;
-  letter-spacing: 0.2em;
-  color: #00f0ff;
+  letter-spacing: 0.18em;
+  color: var(--color-earth-cyan);
   text-transform: uppercase;
+  margin: 0;
 }
 
 .astra-mc-universe-heading {
-  font-family: 'Space Mono', monospace;
+  font-family: var(--font-mono);
   font-size: 24px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: #f0f6fc;
-  margin: 4px 0 6px 0;
+  margin: 0;
+  line-height: 1.25;
 }
 
+.astra-mc-universe-sub,
 .astra-mc-universe-subtitle {
   font-size: 13px;
   color: #8da4be;
   margin: 0;
-  max-width: 620px;
-  line-height: 1.5;
+  max-width: 680px;
+  line-height: 1.55;
+  font-family: var(--font-sans);
+}
+
+.astra-mc-universe-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-top: 4px;
 }
 
 .astra-mc-universe-stats-banner {
@@ -1560,17 +1744,45 @@
 /* ------------------------------------------------------------------------------
    15. FAILURE INVESTIGATION LAB
    ------------------------------------------------------------------------------ */
+.astra-mc-failure-suite-container,
 .astra-mc-failure-lab-container {
   display: flex;
   flex-direction: column;
   gap: 22px;
   max-width: 1440px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+.astra-mc-failure-header,
 .astra-mc-failure-hero {
-  border-bottom: 1px solid rgba(239, 68, 68, 0.25);
-  padding-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  border-bottom: 1px solid rgba(239, 68, 68, 0.22);
+  padding-bottom: 22px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  box-sizing: border-box;
+}
+
+.astra-mc-failure-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 720px;
+}
+
+.astra-mc-failure-heading {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f0f6fc;
+  margin: 0;
+  line-height: 1.25;
 }
 
 .astra-mc-vehicle-selector-bar {

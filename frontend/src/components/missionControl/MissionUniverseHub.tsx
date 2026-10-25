@@ -501,7 +501,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                   {onNavigateToConsole && (
                     <button
                       onClick={onNavigateToConsole}
-                      className="astra-mc-return-btn"
+                      className="astra-mc-btn-jump-cockpit"
                       style={{ marginTop: '12px' }}
                     >
                       <ExternalLink size={12} />
