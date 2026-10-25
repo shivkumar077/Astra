@@ -66,4 +66,35 @@ public final class AstroConstants {
      * (360 degrees per sidereal day: 86164.0905 seconds)
      */
     public static final double EARTH_ROTATION_RATE_RAD_S = 7.292115e-5;
+
+    /**
+     * Standard gravitational parameter of Mars (&mu; = GM_mars) in km^3 / s^2.
+     * NASA JPL Planetary Data System value.
+     */
+    public static final double MARS_MU_KM3_S2 = 42828.3752;
+
+    /**
+     * Mean volumetric radius of Mars in kilometers [km].
+     */
+    public static final double MARS_EQUATORIAL_RADIUS_KM = 3396.2;
+
+    /**
+     * Standard gravitational parameter of Earth's Moon (&mu; = GM_moon) in km^3 / s^2.
+     */
+    public static final double MOON_MU_KM3_S2 = 4902.800066;
+
+    /**
+     * Mean radius of Earth's Moon in kilometers [km].
+     */
+    public static final double MOON_RADIUS_KM = 1737.4;
+
+    /**
+     * Standard gravitational parameter of Jupiter (&mu; = GM_jupiter) in km^3 / s^2.
+     */
+    public static final double JUPITER_MU_KM3_S2 = 126686534.0;
+
+    /**
+     * Equatorial radius of Jupiter in kilometers [km].
+     */
+    public static final double JUPITER_EQUATORIAL_RADIUS_KM = 71492.0;
 }

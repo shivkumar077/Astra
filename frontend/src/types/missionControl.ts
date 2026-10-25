@@ -260,6 +260,8 @@ export interface MissionRun {
   runId: string;
   missionId: string;
   spacecraftId: string;
+  destination?: string;
+  destinationGroup?: string;
   status: MissionStatus;
   startedEpoch: string;
   completedEpoch?: string;

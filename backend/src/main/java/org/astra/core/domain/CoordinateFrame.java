@@ -21,5 +21,20 @@ public enum CoordinateFrame {
     /**
      * Earth-Centered Earth-Fixed rotating terrestrial frame (WGS 84).
      */
-    ECEF_WGS84
+    ECEF_WGS84,
+
+    /**
+     * Mars-Centered Inertial reference frame with standard epoch J2000 (Areocentric Inertial).
+     */
+    MCI_J2000,
+
+    /**
+     * Lunar-Centered Inertial reference frame (Selenocentric Inertial).
+     */
+    LCI_J2000,
+
+    /**
+     * Heliocentric reference frame with standard epoch J2000.
+     */
+    HELIOCENTRIC_J2000
 }

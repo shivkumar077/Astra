@@ -48,6 +48,10 @@ class SecurityAuthorizationIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
 
+        mockMvc.perform(get("/api/v1/missions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))));
+
         mockMvc.perform(get("/api/v1/faults/scenarios"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(13)));
@@ -57,6 +61,9 @@ class SecurityAuthorizationIntegrationTest {
                 .andExpect(status().isOk());
 
         mockMvc.perform(head("/api/v1/imagery/destinations"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(head("/api/v1/missions"))
                 .andExpect(status().isOk());
 
         // CORS preflight OPTIONS request
@@ -233,5 +240,83 @@ class SecurityAuthorizationIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401))
                 .andExpect(jsonPath("$.error").value("Unauthorized"));
+    }
+
+    @Test
+    @DisplayName("Unauthenticated caller rejected with 401 on mission creation")
+    void testUnauthenticatedMissionCreation() throws Exception {
+        String payload = """
+                {
+                    "title": "Unauthorized Deep Space Mission",
+                    "destination": "Jupiter",
+                    "category": "PLANETARY_RECONNAISSANCE",
+                    "difficulty": "CRITICAL",
+                    "spacecraftId": "AURA-1",
+                    "synopsis": "Unauthenticated probe creation attempt"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message", containsString("Authentication required")));
+    }
+
+    @Test
+    @WithMockUser(username = "viewer_bob", roles = {"VIEWER"})
+    @DisplayName("ROLE_VIEWER rejected with 403 Forbidden on mission creation")
+    void testViewerForbiddenOnMissionCreation() throws Exception {
+        String payload = """
+                {
+                    "title": "Viewer Deep Space Mission",
+                    "destination": "Mars",
+                    "category": "PLANETARY_RECONNAISSANCE",
+                    "difficulty": "CHALLENGING",
+                    "spacecraftId": "AURA-1",
+                    "synopsis": "Viewer attempting mission creation"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message", containsString("Insufficient privileges")));
+    }
+
+    @Test
+    @WithMockUser(username = "operator_alice", roles = {"OPERATOR"})
+    @DisplayName("ROLE_OPERATOR permitted to create mission")
+    void testOperatorPermittedMissionCreation() throws Exception {
+        String payload = """
+                {
+                    "title": "Secured Reconnaissance Alpha",
+                    "destination": "Lunar Polar Orbit",
+                    "destinationGroup": "Lunar & Deep Space",
+                    "category": "PLANETARY_RECONNAISSANCE",
+                    "difficulty": "STANDARD",
+                    "spacecraftId": "AURA-1",
+                    "durationMinutes": 45,
+                    "riskLevel": "LOW",
+                    "synopsis": "Authorized operator reconnaissance mission creation",
+                    "objectives": ["Map polar shadows"],
+                    "completionCriteria": ["Telemetry lock verified"],
+                    "operationalConstraints": ["Thermal bounds nominal"],
+                    "isSimulated": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.title", is("Secured Reconnaissance Alpha")))
+                .andExpect(jsonPath("$.destinationGroup", is("Lunar & Deep Space")));
     }
 }

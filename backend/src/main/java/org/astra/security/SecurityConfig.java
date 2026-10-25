@@ -113,6 +113,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/v1/simulation/status",
                                 "/api/v1/simulation/continuous/status",
+                                "/api/v1/spacecraft",
                                 "/api/v1/spacecraft/**",
                                 "/api/v1/faults/scenarios",
                                 "/api/v1/faults/**",
@@ -120,11 +121,13 @@ public class SecurityConfig {
                                 "/api/v1/events/**",
                                 "/api/v1/anomalies/**",
                                 "/api/v1/imagery/**",
+                                "/api/v1/missions",
                                 "/api/v1/missions/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.HEAD,
                                 "/api/v1/simulation/status",
                                 "/api/v1/simulation/continuous/status",
+                                "/api/v1/spacecraft",
                                 "/api/v1/spacecraft/**",
                                 "/api/v1/faults/scenarios",
                                 "/api/v1/faults/**",
@@ -132,6 +135,7 @@ public class SecurityConfig {
                                 "/api/v1/events/**",
                                 "/api/v1/anomalies/**",
                                 "/api/v1/imagery/**",
+                                "/api/v1/missions",
                                 "/api/v1/missions/**"
                         ).permitAll()
 
@@ -142,6 +146,7 @@ public class SecurityConfig {
                                 "/api/v1/simulation/advance",
                                 "/api/v1/simulation/pause",
                                 "/api/v1/simulation/resume",
+                                "/api/v1/missions",
                                 "/api/v1/missions/**"
                         ).hasAnyRole("OPERATOR", "FLIGHT_DIRECTOR", "ADMIN")
 

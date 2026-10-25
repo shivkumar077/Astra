@@ -8,6 +8,7 @@ import {
   FleetTelemetryFrame,
   SimulationSnapshotMessage,
   StompConnectionStatus,
+  MissionResponse,
 } from '../../types/missionControl';
 import {
   listSpacecraft,
@@ -16,6 +17,7 @@ import {
   getCommandHistory,
   getEvents,
   getSubsystemsHealth,
+  listMissions,
 } from '../../api/missionControlApi';
 import { getMissionControlStompClient } from '../../api/stompClient';
 import { MissionControlHeader, OperationalModeView } from './MissionControlHeader';
@@ -49,6 +51,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [events, setEvents] = useState<SimulationEvent[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('telemetry');
   const [activeModeView, setActiveModeView] = useState<OperationalModeView>('cockpit');
+  const [activeMission, setActiveMission] = useState<MissionResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<StompConnectionStatus>('connecting');
 
@@ -59,11 +62,12 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const loadInitialData = useCallback(async () => {
     setLoading(true);
     try {
-      const [crafts, simStatus, history, evts] = await Promise.all([
+      const [crafts, simStatus, history, evts, missions] = await Promise.all([
         listSpacecraft(),
         getSimulationStatus().catch(() => null),
         getCommandHistory().catch(() => []),
         getEvents().catch(() => []),
+        listMissions().catch(() => []),
       ]);
 
       if (crafts && crafts.length > 0) {
@@ -73,6 +77,17 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         );
         setSpacecraftList(detailedCrafts);
         setSelectedSpacecraftId((prev) => (prev && detailedCrafts.some((c) => c.id === prev) ? prev : detailedCrafts[0].id));
+      }
+
+      // Check for active mission run from authoritative catalogue
+      if (missions && missions.length > 0) {
+        const runningMission = missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null);
+        if (runningMission) {
+          setActiveMission(runningMission);
+          if (runningMission.activeRun?.spacecraftId) {
+            setSelectedSpacecraftId(runningMission.activeRun.spacecraftId);
+          }
+        }
       }
 
       if (simStatus) {
@@ -202,6 +217,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         onSimulationUpdated={loadInitialData}
         activeModeView={activeModeView}
         onSelectModeView={setActiveModeView}
+        activeMission={activeMission}
       />
 
       {/* 2. Operational Views */}
@@ -223,6 +239,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             selectedSpacecraftId={selectedSpacecraftId}
             onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
             reducedMotion={reducedMotion}
+            activeMission={activeMission}
           />
 
           {/* Right: Operations & Subsystems Console */}
@@ -318,10 +335,19 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         <main className="astra-mc-fullscreen-workspace">
           <MissionUniverseHub
             spacecraftList={spacecraftList}
+            activeMission={activeMission}
             onSelectSpacecraft={(id) => {
               setSelectedSpacecraftId(id);
               setActiveModeView('cockpit');
             }}
+            onStartMissionSuccess={(mission, run) => {
+              setActiveMission(mission);
+              if (run.spacecraftId) {
+                setSelectedSpacecraftId(run.spacecraftId);
+              }
+              setActiveModeView('cockpit');
+            }}
+            onMissionStatusChanged={loadInitialData}
             onNavigateToConsole={() => setActiveModeView('cockpit')}
           />
         </main>

@@ -15,6 +15,7 @@ import {
   getMissionHistory,
   createMission,
   CreateMissionPayload,
+  MissionControlApiError,
 } from '../../api/missionControlApi';
 import {
   Compass,
@@ -30,15 +31,21 @@ import {
   History,
   Activity,
   Terminal,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
   Plus,
   X,
+  Filter,
+  RefreshCw,
 } from 'lucide-react';
 
 interface MissionUniverseHubProps {
   spacecraftList?: SpacecraftDetail[];
+  activeMission?: MissionResponse | null;
   onSelectSpacecraft?: (id: string) => void;
+  onStartMissionSuccess?: (mission: MissionResponse, run: MissionRun) => void;
+  onMissionStatusChanged?: () => void;
   onNavigateToConsole?: () => void;
 }
 
@@ -53,7 +60,10 @@ const DESTINATION_TABS = [
 
 export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   spacecraftList = [],
+  activeMission = null,
   onSelectSpacecraft,
+  onStartMissionSuccess,
+  onMissionStatusChanged,
   onNavigateToConsole,
 }) => {
   const [missions, setMissions] = useState<MissionResponse[]>([]);
@@ -68,19 +78,20 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isActionRunning, setIsActionRunning] = useState<boolean>(false);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [expandedGatesMissionId, setExpandedGatesMissionId] = useState<string | null>(null);
 
   // New Mission Modal State
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+  const [showAdvancedDirectives, setShowAdvancedDirectives] = useState<boolean>(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [createTitle, setCreateTitle] = useState<string>('');
   const [createDestination, setCreateDestination] = useState<string>('');
-  const [createDestGroup, setCreateDestGroup] = useState<string>('Earth');
   const [createCategory, setCreateCategory] = useState<MissionCategory>('EARTH_OBSERVATION');
   const [createDifficulty, setCreateDifficulty] = useState<MissionDifficulty>('STANDARD');
   const [createSpacecraftId, setCreateSpacecraftId] = useState<string>(
     spacecraftList.length > 0 ? spacecraftList[0].id : 'AURA-1'
   );
   const [createDuration, setCreateDuration] = useState<number>(45);
-  const [createRisk, setCreateRisk] = useState<string>('MODERATE');
   const [createSynopsis, setCreateSynopsis] = useState<string>('');
   const [createObjectives, setCreateObjectives] = useState<string>(
     'Maintain nominal telemetry lock\nVerify subsystem thermal balance'
@@ -93,9 +104,27 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   );
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createErrorType, setCreateErrorType] = useState<'AUTH' | 'VALIDATION' | 'SERVER' | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadErrorType, setLoadErrorType] = useState<'AUTH' | 'NETWORK' | 'SERVER' | null>(null);
+
+  const deriveDestinationGroup = useCallback((dest: string): string => {
+    const d = dest.toLowerCase();
+    if (d.includes('mars') || d.includes('phobos') || d.includes('deimos')) return 'Mars';
+    if (d.includes('lunar') || d.includes('moon') || d.includes('europa') || d.includes('titan') || d.includes('ganymede')) {
+      return 'Lunar & Deep Space';
+    }
+    if (d.includes('sun') || d.includes('solar')) return 'Solar';
+    if (d.includes('jupiter') || d.includes('saturn') || d.includes('neptune') || d.includes('uranus') || d.includes('pluto')) {
+      return 'Outer Planets';
+    }
+    return 'Earth';
+  }, []);
 
   const loadMissionsData = useCallback(async () => {
     setIsLoading(true);
+    setLoadError(null);
+    setLoadErrorType(null);
     try {
       const [mList, hList] = await Promise.all([
         listMissions(),
@@ -107,12 +136,35 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
         const updated = mList.find((m) => m.id === selectedMission.id);
         if (updated) setSelectedMission(updated);
       }
-    } catch (e) {
+    } catch (e: unknown) {
       console.warn('Failed loading mission catalogue', e);
+      if (e instanceof MissionControlApiError) {
+        if (e.status === 401 || e.status === 403) {
+          setLoadErrorType('AUTH');
+          setLoadError('Authentication required: Full authentication is required to access this resource.');
+        } else if (e.status === 0) {
+          setLoadErrorType('NETWORK');
+          setLoadError(`Network connection to ASTRA server failed: ${e.message}`);
+        } else {
+          setLoadErrorType('SERVER');
+          setLoadError(`Server error (${e.status}): ${e.message}`);
+        }
+      } else {
+        const msg = e instanceof Error ? e.message : 'Failed to establish connection to mission catalogue service.';
+        setLoadError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
   }, [selectedMission]);
+
+  const handleResetFilters = useCallback(() => {
+    setSelectedDestination('ALL');
+    setSelectedCategory('ALL');
+    setSelectedDifficulty('ALL');
+    setSelectedStatus('ALL');
+    setSearchQuery('');
+  }, []);
 
   useEffect(() => {
     loadMissionsData();
@@ -125,9 +177,19 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       const run = await startMission(missionId);
       setActionFeedback(`Mission run ${run.runId} started successfully on spacecraft ${run.spacecraftId}.`);
       await loadMissionsData();
-      if (onSelectSpacecraft && run.spacecraftId) {
+      
+      const targetMission = missions.find((m) => m.id === missionId);
+      if (targetMission) {
+        const updatedMission: MissionResponse = {
+          ...targetMission,
+          status: 'ACTIVE',
+          activeRun: run,
+        };
+        onStartMissionSuccess?.(updatedMission, run);
+      } else if (onSelectSpacecraft && run.spacecraftId) {
         onSelectSpacecraft(run.spacecraftId);
       }
+      onMissionStatusChanged?.();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setActionFeedback(`Start Failed: ${msg}`);
@@ -143,6 +205,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       const run = await completeMissionRun(runId);
       setActionFeedback(`Mission evaluated: ${run.status}. ${run.outcomeSummary}`);
       await loadMissionsData();
+      onMissionStatusChanged?.();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setActionFeedback(`Evaluation Failed: ${msg}`);
@@ -158,6 +221,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       const run = await abortMissionRun(runId, 'Aborted via Mission Universe Hub');
       setActionFeedback(`Mission run ${run.runId} ABORTED.`);
       await loadMissionsData();
+      onMissionStatusChanged?.();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       setActionFeedback(`Abort Failed: ${msg}`);
@@ -169,50 +233,80 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const handleCreateMissionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateError(null);
+    setCreateErrorType(null);
 
+    const errors: Record<string, string> = {};
     if (!createTitle.trim()) {
-      setCreateError('Mission title is required.');
-      return;
+      errors.title = 'Mission title is required.';
     }
     if (!createDestination.trim()) {
-      setCreateError('Mission destination is required.');
-      return;
+      errors.destination = 'Destination target is required.';
     }
     if (!createSynopsis.trim()) {
-      setCreateError('Mission synopsis is required.');
+      errors.synopsis = 'Mission objective or synopsis is required.';
+    }
+    if (!createDuration || Number(createDuration) < 5) {
+      errors.duration = 'Duration must be at least 5 minutes.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
+    setFieldErrors({});
 
     setIsCreating(true);
     try {
+      const targetCraft = createSpacecraftId || (spacecraftList.length > 0 ? spacecraftList[0].id : 'AURA-1');
+      const destGroup = deriveDestinationGroup(createDestination);
+      const derivedRisk = createDifficulty === 'CRITICAL' ? 'SEVERE' : createDifficulty === 'CHALLENGING' ? 'HIGH' : 'MODERATE';
+
       const payload: CreateMissionPayload = {
         title: createTitle.trim(),
         destination: createDestination.trim(),
-        destinationGroup: createDestGroup,
+        destinationGroup: destGroup,
         category: createCategory,
         difficulty: createDifficulty,
-        spacecraftId: createSpacecraftId,
+        spacecraftId: targetCraft,
         durationMinutes: Number(createDuration) || 45,
-        riskLevel: createRisk,
+        riskLevel: derivedRisk,
         synopsis: createSynopsis.trim(),
-        objectives: createObjectives.split('\n').map((s) => s.trim()).filter(Boolean),
-        completionCriteria: createCriteria.split('\n').map((s) => s.trim()).filter(Boolean),
-        operationalConstraints: createConstraints.split('\n').map((s) => s.trim()).filter(Boolean),
+        objectives: createObjectives.trim() ? createObjectives.split('\n').map((s) => s.trim()).filter(Boolean) : undefined,
+        completionCriteria: createCriteria.trim() ? createCriteria.split('\n').map((s) => s.trim()).filter(Boolean) : undefined,
+        operationalConstraints: createConstraints.trim() ? createConstraints.split('\n').map((s) => s.trim()).filter(Boolean) : undefined,
         isSimulated: true,
       };
 
       const newMission = await createMission(payload);
       setShowCreateModal(false);
       setActionFeedback(`Mission scenario '${newMission.title}' registered successfully [${newMission.id}].`);
+      
+      // Authoritative reload from backend
       await loadMissionsData();
       setSelectedMission(newMission);
       setActiveTab('briefing');
+
+      // Clear form
       setCreateTitle('');
       setCreateDestination('');
       setCreateSynopsis('');
+      setFieldErrors({});
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setCreateError(`Registration Failed: ${msg}`);
+      if (err instanceof MissionControlApiError) {
+        if (err.status === 401 || err.status === 403) {
+          setCreateErrorType('AUTH');
+          setCreateError(`Authorization Failure: Operator credentials required to register scenarios. (${err.message})`);
+        } else if (err.status === 400) {
+          setCreateErrorType('VALIDATION');
+          setCreateError(`Validation Failure: ${err.message}`);
+        } else {
+          setCreateErrorType('SERVER');
+          setCreateError(`Server Error (${err.status}): ${err.message}`);
+        }
+      } else {
+        const msg = err instanceof Error ? err.message : String(err);
+        setCreateError(`Registration Failed: ${msg}`);
+      }
     } finally {
       setIsCreating(false);
     }
@@ -338,12 +432,13 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       )}
 
       {/* Destination Pill Navigator */}
-      <div className="astra-mc-universe-destination-bar">
+      <div className="astra-mc-universe-destination-bar" role="toolbar" aria-label="Filter by destination">
         {DESTINATION_TABS.map((dest) => (
           <button
             key={dest.id}
             onClick={() => setSelectedDestination(dest.id)}
             className={`astra-mc-destination-btn ${selectedDestination === dest.id ? 'active' : ''}`}
+            data-testid={`dest-filter-${dest.id}`}
           >
             <span>{dest.label}</span>
           </button>
@@ -352,17 +447,29 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
 
       {activeTab === 'catalogue' && (
         <div className="astra-mc-universe-main">
-          {/* Filter Bar */}
-          <div className="astra-mc-universe-filters">
+          {/* Catalogue Toolbar: Search + Category + Difficulty + Status */}
+          <div className="astra-mc-universe-filters" role="region" aria-label="Mission catalogue filters">
             <div className="astra-mc-search-box">
-              <Search size={14} color="var(--color-text-ghost)" />
+              <Search size={14} className="astra-mc-search-icon" aria-hidden="true" />
               <input
                 type="text"
                 placeholder="Search missions, destinations, spacecraft..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="astra-mc-search-input"
+                aria-label="Search missions by name, destination, or spacecraft"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="astra-mc-search-clear-btn"
+                  aria-label="Clear search query"
+                  title="Clear search"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
 
             <div className="astra-mc-filter-group">
@@ -370,6 +477,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="astra-mc-select"
+                aria-label="Filter by category"
               >
                 <option value="ALL">All Categories</option>
                 <option value="EARTH_OBSERVATION">Earth Observation</option>
@@ -386,6 +494,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
                 className="astra-mc-select"
+                aria-label="Filter by difficulty"
               >
                 <option value="ALL">All Difficulties</option>
                 <option value="STANDARD">Standard</option>
@@ -397,6 +506,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="astra-mc-select"
+                aria-label="Filter by status"
               >
                 <option value="ALL">All Statuses</option>
                 <option value="AVAILABLE">Available</option>
@@ -407,37 +517,89 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
             </div>
           </div>
 
-          {/* Missions Grid */}
+          {/* Missions Grid or Empty States */}
           {isLoading ? (
-            <div className="astra-mc-empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}>
-              <Activity size={24} style={{ color: 'var(--color-earth-cyan)', margin: '0 auto 12px' }} />
-              <p>SYNCHRONIZING MISSION UNIVERSE REPOSITORY...</p>
-            </div>
-          ) : filteredMissions.length === 0 ? (
-            <div className="astra-mc-empty-state" data-testid="missions-empty-state">
-              <Compass size={28} style={{ color: 'var(--color-earth-cyan)', margin: '0 auto 12px' }} />
-              <h3 style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', letterSpacing: '0.12em', color: 'var(--color-text-display)', marginBottom: '8px' }}>
-                NO MISSIONS FOUND MATCHING ACTIVE FILTERS
-              </h3>
-              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                Adjust your destination, category, or status criteria, or register a new scenario.
+            <div className="astra-mc-empty-state astra-mc-state-loading" data-testid="missions-loading-state">
+              <div className="astra-mc-empty-icon-wrap">
+                <Activity size={26} className="astra-mc-spinning-icon" />
+              </div>
+              <h3 className="astra-mc-empty-heading">SYNCHRONIZING MISSION UNIVERSE REPOSITORY...</h3>
+              <p className="astra-mc-empty-desc">
+                Querying orbital telemetry nodes and active mission scenario registry.
               </p>
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            </div>
+          ) : loadError ? (
+            <div className="astra-mc-empty-state astra-mc-state-error" data-testid="missions-error-state">
+              <div className="astra-mc-empty-icon-wrap astra-mc-icon-danger">
+                {loadErrorType === 'AUTH' ? <Shield size={26} /> : <AlertTriangle size={26} />}
+              </div>
+              <h3 className="astra-mc-empty-heading">
+                {loadErrorType === 'AUTH' ? 'AUTHENTICATION REQUIRED' : 'UNABLE TO LOAD MISSION CATALOGUE'}
+              </h3>
+              <p className="astra-mc-empty-desc">
+                {loadError}
+              </p>
+              <div className="astra-mc-empty-actions">
                 <button
-                  onClick={() => {
-                    setSelectedDestination('ALL');
-                    setSelectedCategory('ALL');
-                    setSelectedDifficulty('ALL');
-                    setSelectedStatus('ALL');
-                    setSearchQuery('');
-                  }}
-                  className="astra-mc-card-action-btn"
+                  onClick={loadMissionsData}
+                  className="astra-mc-btn-primary"
+                  data-testid="missions-retry-btn"
                 >
-                  RESET FILTERS
+                  <RefreshCw size={12} />
+                  <span>RETRY CONNECTION</span>
                 </button>
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="astra-mc-create-mission-btn"
+                  className="astra-mc-btn-secondary"
+                  data-testid="error-create-mission-btn"
+                >
+                  <Plus size={12} />
+                  <span>NEW MISSION</span>
+                </button>
+              </div>
+            </div>
+          ) : missions.length === 0 ? (
+            <div className="astra-mc-empty-state" data-testid="missions-empty-catalogue-state">
+              <div className="astra-mc-empty-icon-wrap">
+                <Compass size={26} />
+              </div>
+              <h3 className="astra-mc-empty-heading">MISSION CATALOGUE EMPTY</h3>
+              <p className="astra-mc-empty-desc">
+                No mission scenarios are currently registered in the database. Create your first operational flight scenario to begin simulation runs.
+              </p>
+              <div className="astra-mc-empty-actions">
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="astra-mc-btn-primary"
+                  data-testid="create-first-mission-btn"
+                >
+                  <Plus size={12} />
+                  <span>NEW MISSION</span>
+                </button>
+              </div>
+            </div>
+          ) : filteredMissions.length === 0 ? (
+            <div className="astra-mc-empty-state" data-testid="missions-empty-state">
+              <div className="astra-mc-empty-icon-wrap">
+                <Filter size={26} />
+              </div>
+              <h3 className="astra-mc-empty-heading">NO MISSIONS FOUND MATCHING ACTIVE FILTERS</h3>
+              <p className="astra-mc-empty-desc">
+                No mission scenarios match your current destination ({selectedDestination}), category, difficulty, or search criteria.
+              </p>
+              <div className="astra-mc-empty-actions">
+                <button
+                  onClick={handleResetFilters}
+                  className="astra-mc-btn-reset-filters"
+                  data-testid="reset-filters-btn"
+                >
+                  <RefreshCw size={12} />
+                  <span>RESET FILTERS</span>
+                </button>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="astra-mc-btn-primary"
+                  data-testid="empty-create-mission-btn"
                 >
                   <Plus size={12} />
                   <span>NEW MISSION</span>
@@ -449,6 +611,8 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
               {filteredMissions.map((mission) => {
               const isSelected = selectedMission?.id === mission.id;
               const hasActiveRun = mission.status === 'ACTIVE' && mission.activeRun;
+              const isGatesExpanded = expandedGatesMissionId === mission.id;
+              const isCurrentlyActiveScenario = activeMission?.id === mission.id;
 
               return (
                 <div
@@ -457,11 +621,14 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                     setSelectedMission(mission);
                     setActiveTab('briefing');
                   }}
-                  className={`astra-mc-mission-card ${isSelected ? 'selected' : ''} ${hasActiveRun ? 'card-active' : ''}`}
+                  className={`astra-mc-mission-card ${isSelected ? 'selected' : ''} ${hasActiveRun || isCurrentlyActiveScenario ? 'card-active' : ''}`}
                   data-testid={`mission-card-${mission.id}`}
                 >
                   <div className="astra-mc-card-header">
-                    <span className="astra-mc-card-dest-tag">{mission.destinationGroup} // {mission.destination}</span>
+                    <div className="astra-mc-card-dest-group">
+                      <span className="astra-mc-card-dest-badge">{mission.destinationGroup}</span>
+                      <span className="astra-mc-card-dest-name">{mission.destination}</span>
+                    </div>
                     {getStatusBadge(mission.status)}
                   </div>
 
@@ -470,36 +637,104 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
 
                   <div className="astra-mc-card-meta-row">
                     <div className="astra-mc-card-meta-item">
-                      <Clock size={11} />
+                      <Clock size={11} aria-hidden="true" />
                       <span>{mission.durationMinutes}m duration</span>
                     </div>
                     <div className="astra-mc-card-meta-item">
-                      <Shield size={11} color={getDifficultyColor(mission.difficulty)} />
+                      <Shield size={11} color={getDifficultyColor(mission.difficulty)} aria-hidden="true" />
                       <span style={{ color: getDifficultyColor(mission.difficulty) }}>
                         {mission.difficulty}
                       </span>
                     </div>
                     <div className="astra-mc-card-meta-item">
-                      <Terminal size={11} />
+                      <Terminal size={11} aria-hidden="true" />
                       <span>CRAFT: {mission.spacecraftId}</span>
                     </div>
                   </div>
 
-                  <div className="astra-mc-card-footer">
-                    <span className="astra-mc-objectives-count">
-                      {mission.objectives.length} Operational Gates
-                    </span>
+                  {/* Expandable Operational Gates Disclosure */}
+                  <div className="astra-mc-card-gates-section">
                     <button
-                      className="astra-mc-card-action-btn"
+                      type="button"
+                      className={`astra-mc-card-gates-toggle-btn ${isGatesExpanded ? 'expanded' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedGatesMissionId((prev) => (prev === mission.id ? null : mission.id));
+                      }}
+                      aria-expanded={isGatesExpanded}
+                      aria-label={`Toggle operational gates for ${mission.title}`}
+                      data-testid={`gates-toggle-${mission.id}`}
+                    >
+                      <Layers size={11} className="astra-mc-gates-icon" aria-hidden="true" />
+                      <span className="astra-mc-gates-label">{mission.objectives.length} Operational Gates</span>
+                      {isGatesExpanded ? (
+                        <ChevronUp size={12} aria-hidden="true" />
+                      ) : (
+                        <ChevronDown size={12} aria-hidden="true" />
+                      )}
+                    </button>
+                    {isGatesExpanded && (
+                      <div className="astra-mc-card-gates-expanded-list" data-testid={`gates-list-${mission.id}`}>
+                        {mission.objectives.map((gate, idx) => (
+                          <div key={idx} className="astra-mc-card-gate-item">
+                            <CheckCircle size={10} color="var(--color-earth-cyan)" aria-hidden="true" />
+                            <span>{gate}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Action Buttons: Briefing & Start Mission */}
+                  <div className="astra-mc-card-footer">
+                    <button
+                      type="button"
+                      className="astra-mc-card-action-btn astra-mc-card-briefing-btn"
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedMission(mission);
                         setActiveTab('briefing');
                       }}
+                      aria-label={`Briefing for ${mission.title}`}
+                      data-testid={`card-briefing-btn-${mission.id}`}
                     >
+                      <Compass size={12} aria-hidden="true" />
                       <span>BRIEFING</span>
-                      <ChevronRight size={12} />
                     </button>
+
+                    {mission.status === 'AVAILABLE' && (
+                      <button
+                        type="button"
+                        className="astra-mc-card-action-btn astra-mc-card-start-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartMission(mission.id);
+                        }}
+                        disabled={isActionRunning}
+                        aria-label={`Start mission ${mission.title}`}
+                        data-testid={`card-start-btn-${mission.id}`}
+                      >
+                        <Play size={12} aria-hidden="true" />
+                        <span>START MISSION</span>
+                      </button>
+                    )}
+
+                    {mission.status === 'ACTIVE' && (
+                      <button
+                        type="button"
+                        className="astra-mc-card-action-btn astra-mc-card-active-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedMission(mission);
+                          setActiveTab('briefing');
+                        }}
+                        aria-label={`Active run for ${mission.title}`}
+                        data-testid={`card-active-btn-${mission.id}`}
+                      >
+                        <Activity size={12} aria-hidden="true" />
+                        <span>ACTIVE RUN</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -683,12 +918,18 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
               {history.map((run) => (
                 <div key={run.runId} className="astra-mc-history-row" data-testid={`history-row-${run.runId}`}>
                   <div className="astra-mc-history-col-main">
-                    <span className="astra-mc-history-id">RUN // {run.runId}</span>
+                    <div className="astra-mc-history-title-line">
+                      <span className="astra-mc-history-id">RUN // {run.runId}</span>
+                      {run.destinationGroup && (
+                        <span className="astra-mc-history-dest-badge">{run.destinationGroup}</span>
+                      )}
+                    </div>
                     <span className="astra-mc-history-mission">{run.missionId}</span>
                     <span className="astra-mc-history-summary">{run.outcomeSummary}</span>
                   </div>
                   <div className="astra-mc-history-col-meta">
-                    <span className="astra-mc-history-craft">{run.spacecraftId}</span>
+                    <span className="astra-mc-history-craft">CRAFT: {run.spacecraftId}</span>
+                    <span className="astra-mc-history-op">OP: {run.operatorUsername || 'operator'}</span>
                     {getStatusBadge(run.status)}
                     <span className="astra-mc-history-time">
                       {new Date(run.startedEpoch).toLocaleString()}
@@ -734,185 +975,278 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
             </div>
 
             {createError && (
-              <div className="astra-mc-modal-error" role="alert">
-                <AlertTriangle size={14} color="var(--color-critical)" />
+              <div
+                className="astra-mc-modal-error"
+                role="alert"
+                data-error-type={createErrorType || 'ERROR'}
+              >
+                {createErrorType === 'AUTH' ? (
+                  <Shield size={14} color="var(--color-critical)" />
+                ) : (
+                  <AlertTriangle size={14} color="var(--color-critical)" />
+                )}
                 <span>{createError}</span>
               </div>
             )}
 
             <form onSubmit={handleCreateMissionSubmit} className="astra-mc-create-mission-form">
-              <div className="astra-mc-form-grid">
-                <div className="astra-mc-form-field astra-mc-span-2">
-                  <label htmlFor="create-mission-title">MISSION TITLE *</label>
-                  <input
-                    id="create-mission-title"
-                    type="text"
-                    required
-                    placeholder="e.g., Europa Subsurface Ocean Conjunction Survey"
-                    value={createTitle}
-                    onChange={(e) => setCreateTitle(e.target.value)}
-                    disabled={isCreating}
-                  />
-                </div>
+              <div className="astra-mc-form-body">
+                {/* SECTION A: MISSION IDENTITY */}
+                <div className="astra-mc-form-section">
+                  <div className="astra-mc-form-section-title">
+                    <span className="astra-mc-form-section-num">1</span>
+                    <span>MISSION IDENTITY</span>
+                  </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-dest">DESTINATION TARGET *</label>
-                  <input
-                    id="create-mission-dest"
-                    type="text"
-                    required
-                    placeholder="e.g., Europa (Low Jovian Polar, 400 km)"
-                    value={createDestination}
-                    onChange={(e) => setCreateDestination(e.target.value)}
-                    disabled={isCreating}
-                  />
-                </div>
+                  <div className="astra-mc-form-grid-2">
+                    <div className="astra-mc-form-field">
+                      <label htmlFor="create-mission-title">MISSION TITLE / NAME *</label>
+                      <input
+                        id="create-mission-title"
+                        type="text"
+                        placeholder="e.g., Europa Subsurface Conjunction Survey"
+                        value={createTitle}
+                        onChange={(e) => {
+                          setCreateTitle(e.target.value);
+                          if (fieldErrors.title) {
+                            setFieldErrors((prev) => ({ ...prev, title: '' }));
+                          }
+                        }}
+                        disabled={isCreating}
+                        className={fieldErrors.title ? 'has-error' : ''}
+                      />
+                      {fieldErrors.title && (
+                        <span className="astra-mc-field-error">{fieldErrors.title}</span>
+                      )}
+                    </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-destgroup">DESTINATION REGION</label>
-                  <select
-                    id="create-mission-destgroup"
-                    value={createDestGroup}
-                    onChange={(e) => setCreateDestGroup(e.target.value)}
-                    disabled={isCreating}
-                  >
-                    <option value="Earth">Earth Orbit</option>
-                    <option value="Mars">Mars</option>
-                    <option value="Lunar & Deep Space">Lunar & Deep Space</option>
-                    <option value="Outer Planets">Outer Planets</option>
-                    <option value="Solar">Solar</option>
-                  </select>
-                </div>
+                    <div className="astra-mc-form-field">
+                      <label htmlFor="create-mission-dest">DESTINATION TARGET *</label>
+                      <input
+                        id="create-mission-dest"
+                        type="text"
+                        placeholder="e.g., Mars (Gale Crater Orbit, 350 km)"
+                        value={createDestination}
+                        onChange={(e) => {
+                          setCreateDestination(e.target.value);
+                          if (fieldErrors.destination) {
+                            setFieldErrors((prev) => ({ ...prev, destination: '' }));
+                          }
+                        }}
+                        disabled={isCreating}
+                        className={fieldErrors.destination ? 'has-error' : ''}
+                      />
+                      <span className="astra-mc-field-help">
+                        Detected Region: <strong>{deriveDestinationGroup(createDestination)}</strong>
+                      </span>
+                      {fieldErrors.destination && (
+                        <span className="astra-mc-field-error">{fieldErrors.destination}</span>
+                      )}
+                    </div>
+                  </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-category">OPERATIONAL CATEGORY</label>
-                  <select
-                    id="create-mission-category"
-                    value={createCategory}
-                    onChange={(e) => setCreateCategory(e.target.value as MissionCategory)}
-                    disabled={isCreating}
-                  >
-                    <option value="EARTH_OBSERVATION">Earth Observation</option>
-                    <option value="TELEMETRY_MONITORING">Telemetry Monitoring</option>
-                    <option value="ORBITAL_SAFETY">Orbital Safety & Collision Avoidance</option>
-                    <option value="COMMUNICATIONS_RECOVERY">Communications Recovery</option>
-                    <option value="PAYLOAD_CALIBRATION">Payload Calibration</option>
-                    <option value="PLANETARY_RECONNAISSANCE">Planetary Reconnaissance</option>
-                    <option value="DEEP_SPACE_SURVIVAL">Deep Space Survival</option>
-                    <option value="THERMAL_MANAGEMENT">Thermal Management</option>
-                  </select>
-                </div>
+                  <div className="astra-mc-form-field">
+                    <label htmlFor="create-mission-category">MISSION CATEGORY</label>
+                    <select
+                      id="create-mission-category"
+                      value={createCategory}
+                      onChange={(e) => setCreateCategory(e.target.value as MissionCategory)}
+                      disabled={isCreating}
+                    >
+                      <option value="EARTH_OBSERVATION">Earth Observation</option>
+                      <option value="TELEMETRY_MONITORING">Telemetry Monitoring</option>
+                      <option value="ORBITAL_SAFETY">Orbital Safety & Collision Avoidance</option>
+                      <option value="COMMUNICATIONS_RECOVERY">Communications Recovery</option>
+                      <option value="PAYLOAD_CALIBRATION">Payload Calibration</option>
+                      <option value="PLANETARY_RECONNAISSANCE">Planetary Reconnaissance</option>
+                      <option value="DEEP_SPACE_SURVIVAL">Deep Space Survival</option>
+                      <option value="THERMAL_MANAGEMENT">Thermal Management</option>
+                    </select>
+                  </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-difficulty">MISSION DIFFICULTY</label>
-                  <select
-                    id="create-mission-difficulty"
-                    value={createDifficulty}
-                    onChange={(e) => setCreateDifficulty(e.target.value as MissionDifficulty)}
-                    disabled={isCreating}
-                  >
-                    <option value="STANDARD">Standard</option>
-                    <option value="CHALLENGING">Challenging</option>
-                    <option value="CRITICAL">Critical</option>
-                  </select>
-                </div>
-
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-craft">ASSIGNED SPACECRAFT *</label>
-                  <select
-                    id="create-mission-craft"
-                    value={createSpacecraftId}
-                    onChange={(e) => setCreateSpacecraftId(e.target.value)}
-                    disabled={isCreating}
-                  >
-                    {spacecraftList.length > 0 ? (
-                      spacecraftList.map((craft) => (
-                        <option key={craft.id} value={craft.id}>
-                          {craft.id} ({craft.callSign || craft.name})
-                        </option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="AURA-1">AURA-1 (LEO Sentinel)</option>
-                        <option value="TERRA-OBS">TERRA-OBS (Orbital Observatory)</option>
-                        <option value="SOLAR-PROBE">SOLAR-PROBE (Coronal Scout)</option>
-                      </>
+                  <div className="astra-mc-form-field">
+                    <label htmlFor="create-mission-synopsis">SHORT OBJECTIVE / OPERATIONAL SYNOPSIS *</label>
+                    <textarea
+                      id="create-mission-synopsis"
+                      rows={2}
+                      placeholder="Brief description of operational goals, flight profile, and primary directives..."
+                      value={createSynopsis}
+                      onChange={(e) => {
+                        setCreateSynopsis(e.target.value);
+                        if (fieldErrors.synopsis) {
+                          setFieldErrors((prev) => ({ ...prev, synopsis: '' }));
+                        }
+                      }}
+                      disabled={isCreating}
+                      className={fieldErrors.synopsis ? 'has-error' : ''}
+                    />
+                    {fieldErrors.synopsis && (
+                      <span className="astra-mc-field-error">{fieldErrors.synopsis}</span>
                     )}
-                  </select>
+                  </div>
                 </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-duration">DURATION (MINUTES)</label>
-                  <input
-                    id="create-mission-duration"
-                    type="number"
-                    min="5"
-                    max="1440"
-                    value={createDuration}
-                    onChange={(e) => setCreateDuration(Number(e.target.value))}
-                    disabled={isCreating}
-                  />
-                </div>
+                {/* SECTION B: MISSION CONFIGURATION */}
+                <div className="astra-mc-form-section">
+                  <div className="astra-mc-form-section-title">
+                    <span className="astra-mc-form-section-num">2</span>
+                    <span>MISSION CONFIGURATION</span>
+                  </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-risk">ASSESSED RISK LEVEL</label>
-                  <select
-                    id="create-mission-risk"
-                    value={createRisk}
-                    onChange={(e) => setCreateRisk(e.target.value)}
-                    disabled={isCreating}
+                  <div className="astra-mc-form-grid-3">
+                    <div className="astra-mc-form-field">
+                      <label htmlFor="create-mission-craft">ASSIGNED SPACECRAFT *</label>
+                      <select
+                        id="create-mission-craft"
+                        value={createSpacecraftId}
+                        onChange={(e) => setCreateSpacecraftId(e.target.value)}
+                        disabled={isCreating}
+                      >
+                        {spacecraftList.length > 0 ? (
+                          spacecraftList.map((craft) => (
+                            <option key={craft.id} value={craft.id}>
+                              {craft.id} ({craft.callSign || craft.name})
+                            </option>
+                          ))
+                        ) : (
+                          <>
+                            <option value="AURA-1">AURA-1 (LEO Sentinel)</option>
+                            <option value="TERRA-OBS">TERRA-OBS (Orbital Observatory)</option>
+                            <option value="SOLAR-PROBE">SOLAR-PROBE (Coronal Scout)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    <div className="astra-mc-form-field">
+                      <label htmlFor="create-mission-difficulty">DIFFICULTY & OPERATIONAL RISK</label>
+                      <select
+                        id="create-mission-difficulty"
+                        value={createDifficulty}
+                        onChange={(e) => setCreateDifficulty(e.target.value as MissionDifficulty)}
+                        disabled={isCreating}
+                      >
+                        <option value="STANDARD">Standard (Moderate Risk)</option>
+                        <option value="CHALLENGING">Challenging (High Risk)</option>
+                        <option value="CRITICAL">Critical (Severe Risk)</option>
+                      </select>
+                    </div>
+
+                    <div className="astra-mc-form-field">
+                      <label htmlFor="create-mission-duration">DURATION (MINUTES) *</label>
+                      <input
+                        id="create-mission-duration"
+                        type="number"
+                        min="5"
+                        max="1440"
+                        value={createDuration}
+                        onChange={(e) => {
+                          setCreateDuration(Number(e.target.value));
+                          if (fieldErrors.duration) {
+                            setFieldErrors((prev) => ({ ...prev, duration: '' }));
+                          }
+                        }}
+                        disabled={isCreating}
+                        className={fieldErrors.duration ? 'has-error' : ''}
+                      />
+                      {fieldErrors.duration && (
+                        <span className="astra-mc-field-error">{fieldErrors.duration}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Advanced Directives Disclosure */}
+                  <button
+                    type="button"
+                    className="astra-mc-advanced-toggle"
+                    onClick={() => setShowAdvancedDirectives(!showAdvancedDirectives)}
+                    aria-expanded={showAdvancedDirectives}
+                    data-testid="toggle-advanced-directives-btn"
                   >
-                    <option value="LOW">Low</option>
-                    <option value="MODERATE">Moderate</option>
-                    <option value="HIGH">High</option>
-                    <option value="SEVERE">Severe</option>
-                  </select>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Terminal size={12} />
+                      ADVANCED SIMULATION DIRECTIVES & TELEMETRY PROTOCOLS
+                    </span>
+                    {showAdvancedDirectives ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                  </button>
+
+                  {showAdvancedDirectives && (
+                    <div className="astra-mc-advanced-fields">
+                      <div className="astra-mc-form-field">
+                        <label htmlFor="create-mission-objectives">PRIMARY DIRECTIVES (ONE PER LINE)</label>
+                        <textarea
+                          id="create-mission-objectives"
+                          rows={2}
+                          value={createObjectives}
+                          onChange={(e) => setCreateObjectives(e.target.value)}
+                          disabled={isCreating}
+                        />
+                      </div>
+
+                      <div className="astra-mc-form-grid-2">
+                        <div className="astra-mc-form-field">
+                          <label htmlFor="create-mission-criteria">COMPLETION CRITERIA</label>
+                          <textarea
+                            id="create-mission-criteria"
+                            rows={2}
+                            value={createCriteria}
+                            onChange={(e) => setCreateCriteria(e.target.value)}
+                            disabled={isCreating}
+                          />
+                        </div>
+
+                        <div className="astra-mc-form-field">
+                          <label htmlFor="create-mission-constraints">OPERATIONAL CONSTRAINTS</label>
+                          <textarea
+                            id="create-mission-constraints"
+                            rows={2}
+                            value={createConstraints}
+                            onChange={(e) => setCreateConstraints(e.target.value)}
+                            disabled={isCreating}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="astra-mc-form-field astra-mc-span-2">
-                  <label htmlFor="create-mission-synopsis">OPERATIONAL SYNOPSIS & BRIEFING *</label>
-                  <textarea
-                    id="create-mission-synopsis"
-                    required
-                    rows={3}
-                    placeholder="Detailed mission parameters, operational directives, and flight profile..."
-                    value={createSynopsis}
-                    onChange={(e) => setCreateSynopsis(e.target.value)}
-                    disabled={isCreating}
-                  />
-                </div>
+                {/* SECTION C: REVIEW AND CREATE */}
+                <div className="astra-mc-form-section" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+                  <div className="astra-mc-form-section-title">
+                    <span className="astra-mc-form-section-num">3</span>
+                    <span>REVIEW & CREATE</span>
+                  </div>
 
-                <div className="astra-mc-form-field astra-mc-span-2">
-                  <label htmlFor="create-mission-objectives">PRIMARY OBJECTIVES (One per line)</label>
-                  <textarea
-                    id="create-mission-objectives"
-                    rows={2}
-                    value={createObjectives}
-                    onChange={(e) => setCreateObjectives(e.target.value)}
-                    disabled={isCreating}
-                  />
-                </div>
+                  <div className="astra-mc-review-summary">
+                    <div className="astra-mc-review-item">
+                      <span className="astra-mc-review-label">Destination</span>
+                      <span className="astra-mc-review-value">
+                        {createDestination.trim() || 'Unassigned'} ({deriveDestinationGroup(createDestination)})
+                      </span>
+                    </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-criteria">COMPLETION CRITERIA</label>
-                  <textarea
-                    id="create-mission-criteria"
-                    rows={2}
-                    value={createCriteria}
-                    onChange={(e) => setCreateCriteria(e.target.value)}
-                    disabled={isCreating}
-                  />
-                </div>
+                    <div className="astra-mc-review-item">
+                      <span className="astra-mc-review-label">Spacecraft</span>
+                      <span className="astra-mc-review-value">{createSpacecraftId}</span>
+                    </div>
 
-                <div className="astra-mc-form-field">
-                  <label htmlFor="create-mission-constraints">OPERATIONAL CONSTRAINTS</label>
-                  <textarea
-                    id="create-mission-constraints"
-                    rows={2}
-                    value={createConstraints}
-                    onChange={(e) => setCreateConstraints(e.target.value)}
-                    disabled={isCreating}
-                  />
+                    <div className="astra-mc-review-item">
+                      <span className="astra-mc-review-label">Profile / Risk</span>
+                      <span className="astra-mc-review-value">
+                        {createDifficulty} ({createDifficulty === 'CRITICAL' ? 'Severe' : createDifficulty === 'CHALLENGING' ? 'High' : 'Moderate'})
+                      </span>
+                    </div>
+
+                    <div className="astra-mc-review-item">
+                      <span className="astra-mc-review-label">Duration</span>
+                      <span className="astra-mc-review-value">{createDuration} min</span>
+                    </div>
+
+                    <div className="astra-mc-review-item">
+                      <span className="astra-mc-review-label">Category</span>
+                      <span className="astra-mc-review-value">{createCategory.replace(/_/g, ' ')}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -931,7 +1265,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                   disabled={isCreating}
                   data-testid="submit-create-mission-btn"
                 >
-                  {isCreating ? 'REGISTERING...' : 'REGISTER MISSION'}
+                  {isCreating ? 'CREATING MISSION...' : 'CREATE MISSION'}
                 </button>
               </div>
             </form>

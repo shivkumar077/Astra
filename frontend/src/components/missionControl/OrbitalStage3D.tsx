@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { SpacecraftDetail, KeplerianElements } from '../../types/missionControl';
+import { SpacecraftDetail, KeplerianElements, MissionResponse } from '../../types/missionControl';
+import { getProceduralPlanetTexture } from '../imagery/PlanetTextureGenerator';
 import {
   computeKeplerianCartesian,
   clampObserverDistance,
@@ -14,6 +15,7 @@ interface OrbitalStage3DProps {
   selectedSpacecraftId: string;
   onSelectSpacecraft: (id: string) => void;
   reducedMotion?: boolean;
+  activeMission?: MissionResponse | null;
 }
 
 // Authoritative orbital elements fallback if elements have not arrived via REST yet
@@ -49,9 +51,29 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   selectedSpacecraftId,
   onSelectSpacecraft,
   reducedMotion = false,
+  activeMission = null,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
-  const [referenceFrame, setReferenceFrame] = useState<'ECI_J2000' | 'LVLH' | 'GROUND_TRACK'>('ECI_J2000');
+  
+  // Destination-aware default reference frame
+  const destGroup = (activeMission?.destinationGroup || '').toLowerCase();
+  const destName = (activeMission?.destination || '').toLowerCase();
+  const isMars = destGroup.includes('mars') || destName.includes('mars') || destName.includes('phobos');
+  const isLunar = destGroup.includes('lunar') || destGroup.includes('deep space') || destName.includes('moon');
+  const isOuter = destGroup.includes('outer') || destName.includes('jupiter') || destName.includes('saturn');
+  const isSolar = destGroup.includes('solar') || destName.includes('sun');
+
+  const defaultFrame = isMars
+    ? 'MCI_J2000'
+    : isLunar
+    ? 'LCI_J2000'
+    : isOuter
+    ? 'JOVIAN_CENTRIC'
+    : isSolar
+    ? 'HELIOCENTRIC'
+    : 'ECI_J2000';
+
+  const [referenceFrame, setReferenceFrame] = useState<string>(defaultFrame);
   const [trackingMode, setTrackingMode] = useState<'FREE' | 'TARGET_LOCK'>('TARGET_LOCK');
 
   // Tracking state refs to avoid tearing down the WebGL context on UI toggles
@@ -67,10 +89,22 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const reducedMotionRef = useRef<boolean>(reducedMotion);
   reducedMotionRef.current = reducedMotion;
 
+  const activeMissionRef = useRef<MissionResponse | null>(activeMission);
+  activeMissionRef.current = activeMission;
+
   const updateOrbitsRef = useRef<() => void>(() => {});
+  const updateCelestialBodyRef = useRef<() => void>(() => {});
 
   const selectedCraft =
     spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
+
+  // Auto-switch reference frame when active mission destination changes
+  useEffect(() => {
+    setReferenceFrame(defaultFrame);
+    if (updateCelestialBodyRef.current) {
+      updateCelestialBodyRef.current();
+    }
+  }, [defaultFrame, activeMission]);
 
   // Orbit update effect: runs only when spacecraft data changes, WITHOUT recreating canvas or WebGLRenderer
   useEffect(() => {
@@ -284,6 +318,78 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     });
     const atmosphereMesh = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
     earthGroup.add(atmosphereMesh);
+
+    // Dynamic Celestial Body Handler
+    const updateCelestialBody = () => {
+      const mission = activeMissionRef.current;
+      const grp = (mission?.destinationGroup || '').toLowerCase();
+      const dst = (mission?.destination || '').toLowerCase();
+      const isMarsDest = grp.includes('mars') || dst.includes('mars') || dst.includes('phobos');
+      const isLunarDest = grp.includes('lunar') || grp.includes('deep space') || dst.includes('moon');
+      const isOuterDest = grp.includes('outer') || dst.includes('jupiter') || dst.includes('saturn') || dst.includes('titan');
+
+      if (isMarsDest) {
+        const marsTex = getProceduralPlanetTexture('mars');
+        if (marsTex) {
+          marsTex.colorSpace = THREE.SRGBColorSpace;
+          earthMesh.material.map = marsTex;
+        }
+        earthMesh.material.emissiveMap = null;
+        earthMesh.material.emissiveIntensity = 0.0;
+        earthMesh.material.roughness = 0.85;
+        earthMesh.material.needsUpdate = true;
+        earthGroup.rotation.z = THREE.MathUtils.degToRad(-25.19);
+        cloudMesh.visible = false;
+        atmosphereMesh.visible = true;
+        gridMaterial.color.setHex(0xf97316);
+        gridMaterial.opacity = 0.14;
+      } else if (isLunarDest) {
+        const lunarTex = getProceduralPlanetTexture('mercury');
+        if (lunarTex) {
+          lunarTex.colorSpace = THREE.SRGBColorSpace;
+          earthMesh.material.map = lunarTex;
+        }
+        earthMesh.material.emissiveMap = null;
+        earthMesh.material.emissiveIntensity = 0.0;
+        earthMesh.material.roughness = 0.95;
+        earthMesh.material.needsUpdate = true;
+        earthGroup.rotation.z = THREE.MathUtils.degToRad(-1.54);
+        cloudMesh.visible = false;
+        atmosphereMesh.visible = false;
+        gridMaterial.color.setHex(0x94a3b8);
+        gridMaterial.opacity = 0.12;
+      } else if (isOuterDest) {
+        const jupiterTex = getProceduralPlanetTexture('jupiter');
+        if (jupiterTex) {
+          jupiterTex.colorSpace = THREE.SRGBColorSpace;
+          earthMesh.material.map = jupiterTex;
+        }
+        earthMesh.material.emissiveMap = null;
+        earthMesh.material.emissiveIntensity = 0.0;
+        earthMesh.material.roughness = 0.7;
+        earthMesh.material.needsUpdate = true;
+        earthGroup.rotation.z = THREE.MathUtils.degToRad(-3.13);
+        cloudMesh.visible = false;
+        atmosphereMesh.visible = true;
+        gridMaterial.color.setHex(0xeab308);
+        gridMaterial.opacity = 0.12;
+      } else {
+        earthMesh.material.map = earthTexture;
+        earthMesh.material.emissiveMap = lightsTexture;
+        earthMesh.material.emissiveIntensity = 0.5;
+        earthMesh.material.roughness = 0.68;
+        earthMesh.material.needsUpdate = true;
+        earthGroup.rotation.z = THREE.MathUtils.degToRad(-23.4);
+        cloudMesh.visible = true;
+        atmosphereMesh.visible = true;
+        gridMaterial.color.setHex(0x38bdf8);
+        gridMaterial.opacity = 0.1;
+      }
+      if (!isDisposed) renderer.render(scene, camera);
+    };
+
+    updateCelestialBodyRef.current = updateCelestialBody;
+    updateCelestialBody();
 
     // 5. Orbital Trajectory Ribbons & Spacecraft Nodes
     const trajectoryGroup = new THREE.Group();
@@ -520,20 +626,38 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
       {/* Top HUD: Target Telemetry Badge & Control Toolbar */}
       <div className="astra-mc-viewport-hud">
-        <div className="astra-mc-hud-target-card">
+        <div className="astra-mc-hud-target-card" data-testid="hud-target-card">
           <span className="astra-mc-hud-target-tag">
-            [ ACTIVE TARGET // {selectedCraft ? selectedCraft.id : 'AURA-1'} ]
+            {activeMission ? (
+              `[ ACTIVE SCENARIO // ${activeMission.id} [${(activeMission.destinationGroup || 'EARTH').toUpperCase()}] ]`
+            ) : (
+              `[ ACTIVE TARGET // ${selectedCraft ? selectedCraft.id : 'AURA-1'} ]`
+            )}
           </span>
           <span className="astra-mc-hud-target-title">
-            {selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform'}
+            {activeMission
+              ? `${activeMission.title} [${selectedCraft ? selectedCraft.id : activeMission.spacecraftId}]`
+              : (selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform')}
+          </span>
+          <span className="astra-mc-hud-target-regime" data-testid="hud-scientific-regime">
+            TARGET: {activeMission ? activeMission.destination.toUpperCase() : 'EARTH (TERRA)'} // REGIME: {isMars ? 'AREOCENTRIC (MARS KEPLERIAN TWO-BODY APPROXIMATION)' : isLunar ? 'SELENOCENTRIC TWO-BODY REGIME' : isOuter ? 'JOVIAN BARYCENTRIC REGIME' : 'ECI J2000 TWO-BODY KEPLERIAN'}
           </span>
         </div>
 
         <div className="astra-mc-hud-controls">
           <button
-            onClick={() => setReferenceFrame((f) => (f === 'ECI_J2000' ? 'LVLH' : 'ECI_J2000'))}
-            className={`astra-mc-hud-btn ${referenceFrame === 'ECI_J2000' ? 'active' : ''}`}
+            onClick={() => {
+              if (isMars) {
+                setReferenceFrame((f) => (f === 'MCI_J2000' ? 'AREOCENTRIC' : 'MCI_J2000'));
+              } else if (isLunar) {
+                setReferenceFrame((f) => (f === 'LCI_J2000' ? 'SELENOCENTRIC' : 'LCI_J2000'));
+              } else {
+                setReferenceFrame((f) => (f === 'ECI_J2000' ? 'LVLH' : 'ECI_J2000'));
+              }
+            }}
+            className="astra-mc-hud-btn active"
             title="Toggle Reference Frame"
+            data-testid="toggle-frame-btn"
           >
             <Compass size={12} />
             <span>FRAME: {referenceFrame}</span>

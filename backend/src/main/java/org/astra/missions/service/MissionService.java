@@ -14,6 +14,11 @@ import org.astra.missions.dto.MissionResponse;
 import org.astra.simulation.engine.SimulationEngine;
 import org.astra.telemetry.TelemetryService;
 import org.astra.telemetry.TelemetrySnapshot;
+import org.astra.persistence.JsonUtils;
+import org.astra.persistence.entity.MissionDefinitionEntity;
+import org.astra.persistence.entity.MissionRunEntity;
+import org.astra.persistence.repository.MissionDefinitionRepository;
+import org.astra.persistence.repository.MissionRunRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,20 +47,36 @@ public class MissionService {
     private final TelemetryService telemetryService;
     private final CommandHistoryService commandHistoryService;
     private final SimulationEventPublisher eventPublisher;
+    private final MissionDefinitionRepository missionDefinitionRepository;
+    private final MissionRunRepository missionRunRepository;
 
-    @Autowired
     public MissionService(
             SimulationEngine simulationEngine,
             TelemetryService telemetryService,
             CommandHistoryService commandHistoryService,
             Optional<SimulationEventPublisher> eventPublisher
     ) {
+        this(simulationEngine, telemetryService, commandHistoryService, eventPublisher, Optional.empty(), Optional.empty());
+    }
+
+    @Autowired
+    public MissionService(
+            SimulationEngine simulationEngine,
+            TelemetryService telemetryService,
+            CommandHistoryService commandHistoryService,
+            Optional<SimulationEventPublisher> eventPublisher,
+            Optional<MissionDefinitionRepository> missionDefinitionRepository,
+            Optional<MissionRunRepository> missionRunRepository
+    ) {
         this.simulationEngine = Objects.requireNonNull(simulationEngine, "simulationEngine must not be null");
         this.telemetryService = Objects.requireNonNull(telemetryService, "telemetryService must not be null");
         this.commandHistoryService = Objects.requireNonNull(commandHistoryService, "commandHistoryService must not be null");
         this.eventPublisher = eventPublisher.orElse(null);
+        this.missionDefinitionRepository = missionDefinitionRepository.orElse(null);
+        this.missionRunRepository = missionRunRepository.orElse(null);
 
         initializeCatalog();
+        hydrateFromDatabase();
     }
 
     private void initializeCatalog() {
@@ -460,6 +481,13 @@ public class MissionService {
         );
 
         registerMission(def);
+        if (missionDefinitionRepository != null) {
+            try {
+                missionDefinitionRepository.save(mapToEntity(def));
+            } catch (Exception e) {
+                log.warn("Failed persisting mission definition {} to database: {}", def.id(), e.getMessage());
+            }
+        }
         log.info("Registered new mission scenario: {} ('{}') targeting {}", def.id(), def.title(), def.destination());
         return MissionResponse.fromDefinition(def, null, null);
     }
@@ -521,6 +549,8 @@ public class MissionService {
                 runId,
                 missionId,
                 def.spacecraftId(),
+                def.destination(),
+                def.destinationGroup(),
                 MissionStatus.ACTIVE,
                 now,
                 null,
@@ -533,6 +563,14 @@ public class MissionService {
 
         runsById.put(runId, run);
         activeRunsByMissionId.put(missionId, run);
+
+        if (missionRunRepository != null) {
+            try {
+                missionRunRepository.save(mapToRunEntity(run));
+            } catch (Exception e) {
+                log.warn("Failed persisting active mission run {} to database: {}", runId, e.getMessage());
+            }
+        }
 
         log.info("Started mission {} (runId: {}) on spacecraft {}", missionId, runId, def.spacecraftId());
 
@@ -627,6 +665,22 @@ public class MissionService {
         activeRunsByMissionId.remove(run.missionId());
         missionHistory.add(completed);
 
+        if (missionRunRepository != null) {
+            try {
+                Optional<MissionRunEntity> existingEntity = missionRunRepository.findByRunId(runId);
+                MissionRunEntity entityToSave = existingEntity.orElseGet(() -> mapToRunEntity(completed));
+                entityToSave.setStatus(completed.status().name());
+                entityToSave.setCompletedEpoch(completed.completedEpoch());
+                entityToSave.setOutcomeSummary(completed.outcomeSummary());
+                entityToSave.setObjectiveResultsJson(JsonUtils.toJson(completed.objectiveResults()));
+                entityToSave.setTelemetrySnapshotsCaptured(completed.telemetrySnapshotsCaptured());
+                entityToSave.setCommandsDispatched(completed.commandsDispatched());
+                missionRunRepository.save(entityToSave);
+            } catch (Exception e) {
+                log.warn("Failed updating mission run {} in database: {}", runId, e.getMessage());
+            }
+        }
+
         log.info("Mission run {} {} on spacecraft {}", runId, finalStatus, run.spacecraftId());
 
         if (eventPublisher != null) {
@@ -664,6 +718,19 @@ public class MissionService {
         activeRunsByMissionId.remove(run.missionId());
         missionHistory.add(aborted);
 
+        if (missionRunRepository != null) {
+            try {
+                Optional<MissionRunEntity> existingEntity = missionRunRepository.findByRunId(runId);
+                MissionRunEntity entityToSave = existingEntity.orElseGet(() -> mapToRunEntity(aborted));
+                entityToSave.setStatus(aborted.status().name());
+                entityToSave.setCompletedEpoch(aborted.completedEpoch());
+                entityToSave.setOutcomeSummary(aborted.outcomeSummary());
+                missionRunRepository.save(entityToSave);
+            } catch (Exception e) {
+                log.warn("Failed updating aborted mission run {} in database: {}", runId, e.getMessage());
+            }
+        }
+
         if (eventPublisher != null) {
             eventPublisher.publish(
                     SimulationEventType.MISSION_ABORTED,
@@ -678,5 +745,125 @@ public class MissionService {
 
     public List<MissionRun> getHistory() {
         return Collections.unmodifiableList(missionHistory);
+    }
+
+    private void hydrateFromDatabase() {
+        if (missionDefinitionRepository != null) {
+            try {
+                // Ensure baseline catalog definitions are persisted
+                for (MissionDefinition def : catalog.values()) {
+                    if (missionDefinitionRepository.findById(def.id()).isEmpty()) {
+                        missionDefinitionRepository.save(mapToEntity(def));
+                    }
+                }
+
+                // Load custom user-created definitions
+                List<MissionDefinitionEntity> entities = missionDefinitionRepository.findAll();
+                for (MissionDefinitionEntity entity : entities) {
+                    if (!catalog.containsKey(entity.getId())) {
+                        catalog.put(entity.getId(), mapToDefinition(entity));
+                    }
+                }
+                log.info("Hydrated {} total mission scenario definitions from database.", catalog.size());
+            } catch (Exception e) {
+                log.warn("Could not hydrate mission definitions from database: {}", e.getMessage());
+            }
+        }
+
+        if (missionRunRepository != null) {
+            try {
+                List<MissionRunEntity> runs = missionRunRepository.findTop500ByOrderByStartedEpochDesc();
+                if (runs != null && !runs.isEmpty()) {
+                    List<MissionRunEntity> chronological = new ArrayList<>(runs);
+                    Collections.reverse(chronological);
+                    for (MissionRunEntity entity : chronological) {
+                        MissionRun run = mapToRun(entity);
+                        runsById.put(run.runId(), run);
+                        if (run.status() == MissionStatus.ACTIVE) {
+                            activeRunsByMissionId.put(run.missionId(), run);
+                        } else {
+                            missionHistory.add(run);
+                        }
+                    }
+                    log.info("Recovered {} durable mission execution runs from database.", runs.size());
+                }
+            } catch (Exception e) {
+                log.warn("Could not hydrate mission run history from database: {}", e.getMessage());
+            }
+        }
+    }
+
+    private MissionDefinition mapToDefinition(MissionDefinitionEntity entity) {
+        return new MissionDefinition(
+                entity.getId(),
+                entity.getTitle(),
+                entity.getDestination(),
+                entity.getDestinationGroup(),
+                MissionCategory.valueOf(entity.getCategory()),
+                MissionDifficulty.valueOf(entity.getDifficulty()),
+                entity.getSpacecraftId(),
+                entity.getDurationMinutes(),
+                entity.getRiskLevel(),
+                entity.getSynopsis(),
+                JsonUtils.fromJsonToList(entity.getObjectivesJson()),
+                JsonUtils.fromJsonToList(entity.getCompletionCriteriaJson()),
+                JsonUtils.fromJsonToList(entity.getOperationalConstraintsJson()),
+                entity.isSimulated()
+        );
+    }
+
+    private MissionDefinitionEntity mapToEntity(MissionDefinition def) {
+        return new MissionDefinitionEntity(
+                def.id(),
+                def.title(),
+                def.destination(),
+                def.destinationGroup(),
+                def.category().name(),
+                def.difficulty().name(),
+                def.spacecraftId(),
+                def.durationMinutes(),
+                def.riskLevel(),
+                def.synopsis(),
+                JsonUtils.toJson(def.objectives()),
+                JsonUtils.toJson(def.completionCriteria()),
+                JsonUtils.toJson(def.operationalConstraints()),
+                def.isSimulated()
+        );
+    }
+
+    private MissionRun mapToRun(MissionRunEntity entity) {
+        return new MissionRun(
+                entity.getRunId(),
+                entity.getMissionId(),
+                entity.getSpacecraftId(),
+                entity.getDestination(),
+                entity.getDestinationGroup(),
+                MissionStatus.valueOf(entity.getStatus()),
+                entity.getStartedEpoch(),
+                entity.getCompletedEpoch(),
+                entity.getTelemetrySnapshotsCaptured(),
+                entity.getCommandsDispatched(),
+                entity.getOutcomeSummary(),
+                JsonUtils.fromJsonToBooleanMap(entity.getObjectiveResultsJson()),
+                entity.getOperatorUsername()
+        );
+    }
+
+    private MissionRunEntity mapToRunEntity(MissionRun run) {
+        return new MissionRunEntity(
+                run.runId(),
+                run.missionId(),
+                run.spacecraftId(),
+                run.destination(),
+                run.destinationGroup(),
+                run.status().name(),
+                run.startedEpoch(),
+                run.completedEpoch(),
+                run.telemetrySnapshotsCaptured(),
+                run.commandsDispatched(),
+                run.outcomeSummary(),
+                JsonUtils.toJson(run.objectiveResults()),
+                run.operatorUsername()
+        );
     }
 }

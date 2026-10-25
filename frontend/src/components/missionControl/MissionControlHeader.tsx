@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SimulationStatus, StompConnectionStatus } from '../../types/missionControl';
+import { SimulationStatus, StompConnectionStatus, MissionResponse } from '../../types/missionControl';
 import { advanceSimulation, pauseSimulation, resumeSimulation } from '../../api/missionControlApi';
 import { ArrowLeft, Play, Pause, FastForward, Layers, Compass, ShieldAlert } from 'lucide-react';
 
@@ -12,6 +12,7 @@ interface MissionControlHeaderProps {
   onSimulationUpdated: () => void;
   activeModeView?: OperationalModeView;
   onSelectModeView?: (mode: OperationalModeView) => void;
+  activeMission?: MissionResponse | null;
 }
 
 export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
@@ -21,6 +22,7 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
   onSimulationUpdated,
   activeModeView = 'cockpit',
   onSelectModeView,
+  activeMission = null,
 }) => {
   const [wallClockUtc, setWallClockUtc] = useState<string>('');
   const [isUpdatingSim, setIsUpdatingSim] = useState<boolean>(false);
@@ -141,6 +143,15 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
             <span>FAILURE LAB</span>
           </button>
         </nav>
+
+        {activeMission && (
+          <div className="astra-mc-header-active-mission" data-testid="header-active-mission-badge">
+            <span className="astra-mc-active-mission-dot" />
+            <span className="astra-mc-active-mission-label">SCENARIO:</span>
+            <span className="astra-mc-active-mission-title">{activeMission.title}</span>
+            <span className="astra-mc-active-mission-dest">// {activeMission.destinationGroup.toUpperCase()}</span>
+          </div>
+        )}
       </div>
 
       {/* 2. Right Group: Station Wall Clock, Sim Controls, +60s Jump, and Stream Status */}

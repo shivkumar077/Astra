@@ -157,4 +157,62 @@ class MissionControllerTest {
                         .content(payload))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @DisplayName("Regression Test: Starting a Mars mission retains Mars destination in run and history without falling back to Earth")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testMarsMissionDestinationRetention() throws Exception {
+        // 1. Launch MARS-RECON-01
+        String response = mockMvc.perform(post("/api/v1/missions/MARS-RECON-01/start")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.missionId", is("MARS-RECON-01")))
+                .andExpect(jsonPath("$.destination", is("Mars (Areostationary & Polar Elliptical)")))
+                .andExpect(jsonPath("$.destinationGroup", is("Mars")))
+                .andExpect(jsonPath("$.status", is("ACTIVE")))
+                .andReturn().getResponse().getContentAsString();
+
+        com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response);
+        String runId = node.get("runId").asText();
+
+        // 2. Authoritatively abort or complete the run
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/abort")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Completed Mars atmospheric test cycle\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("ABORTED")))
+                .andExpect(jsonPath("$.destinationGroup", is("Mars")));
+
+        // 3. Verify history record retains Mars destination
+        mockMvc.perform(get("/api/v1/missions/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.runId == '" + runId + "')].destinationGroup", contains("Mars")))
+                .andExpect(jsonPath("$[?(@.runId == '" + runId + "')].destination", contains("Mars (Areostationary & Polar Elliptical)")));
+    }
+
+    @Test
+    @DisplayName("Regression Test: Starting a Lunar mission retains Lunar destination in run and history")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testLunarMissionDestinationRetention() throws Exception {
+        String response = mockMvc.perform(post("/api/v1/missions/LUNAR-SURVEY-01/start")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.missionId", is("LUNAR-SURVEY-01")))
+                .andExpect(jsonPath("$.destinationGroup", is("Lunar & Deep Space")))
+                .andReturn().getResponse().getContentAsString();
+
+        com.fasterxml.jackson.databind.JsonNode node = new com.fasterxml.jackson.databind.ObjectMapper().readTree(response);
+        String runId = node.get("runId").asText();
+
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/complete")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("COMPLETED")))
+                .andExpect(jsonPath("$.destinationGroup", is("Lunar & Deep Space")));
+
+        mockMvc.perform(get("/api/v1/missions/history"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.runId == '" + runId + "')].destinationGroup", contains("Lunar & Deep Space")));
+    }
 }
+
