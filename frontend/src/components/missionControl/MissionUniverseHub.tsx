@@ -40,6 +40,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { resolveDestinationBody } from '../../utils/destinationModel';
+import { FALLBACK_MISSION_CATALOG } from '../../utils/fallbackMissionCatalog';
 
 interface MissionUniverseHubProps {
   spacecraftList?: SpacecraftDetail[];
@@ -181,7 +182,11 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
         listMissions(),
         getMissionHistory().catch(() => []),
       ]);
-      setMissions(mList);
+      // Some local/backend deployments have a stale or partially seeded catalogue.
+      // Keep the curated baseline visible and let server definitions override by ID.
+      const mergedMissions = new Map(FALLBACK_MISSION_CATALOG.map((mission) => [mission.id, mission]));
+      mList.forEach((mission) => mergedMissions.set(mission.id, mission));
+      setMissions(Array.from(mergedMissions.values()));
       setHistory(hList);
       if (selectedMission) {
         const updated = mList.find((m) => m.id === selectedMission.id);
