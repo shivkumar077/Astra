@@ -133,7 +133,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [createCategory, setCreateCategory] = useState<MissionCategory>('EARTH_OBSERVATION');
   const [createDifficulty, setCreateDifficulty] = useState<MissionDifficulty>('STANDARD');
   const [createSpacecraftId, setCreateSpacecraftId] = useState<string>(
-    spacecraftList.length > 0 ? spacecraftList[0].id : 'AURA-1'
+    availableCraftOptions.length > 0 ? availableCraftOptions[0].id : 'AURA-1'
   );
   const [createDuration, setCreateDuration] = useState<number>(45);
   const [createSynopsis, setCreateSynopsis] = useState<string>('');
@@ -151,6 +151,28 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [createErrorType, setCreateErrorType] = useState<'AUTH' | 'VALIDATION' | 'SERVER' | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadErrorType, setLoadErrorType] = useState<'AUTH' | 'NETWORK' | 'SERVER' | null>(null);
+
+  const getCraftDestinationGroup = useCallback((craft: SpacecraftDetail): string => {
+    const clues = `${craft.destinationGroup || ''} ${craft.modelType || ''} ${craft.id || ''} ${craft.name || ''}`.toLowerCase();
+    if (clues.includes('mars') || clues.includes('areocentric') || clues.includes('phobos') || clues.includes('deimos')) return 'Mars';
+    if (clues.includes('lunar') || clues.includes('moon') || clues.includes('selenocentric')) return 'Lunar';
+    if (clues.includes('jupiter') || clues.includes('jovian') || clues.includes('saturn') || clues.includes('titan') || clues.includes('outer planet') || clues.includes('europa') || clues.includes('callisto') || clues.includes('rhea')) return 'Outer Planets';
+    if (clues.includes('solar') || clues.includes('sun') || clues.includes('corona') || clues.includes('space weather')) return 'Solar';
+    if (clues.includes('deep-space') || clues.includes('deep space') || clues.includes('interstellar') || clues.includes('asteroid') || clues.includes('voyager') || clues.includes('farpoint')) return 'Deep Space';
+    return 'Earth';
+  }, []);
+
+  const destinationCraftOptions = spacecraftList.filter((craft) =>
+    getCraftDestinationGroup(craft) === deriveDestinationGroup(createDestination)
+  );
+  const availableCraftOptions = destinationCraftOptions.length > 0 ? destinationCraftOptions : spacecraftList;
+
+  useEffect(() => {
+    if (availableCraftOptions.length === 0) return;
+    if (!availableCraftOptions.some((craft) => craft.id === createSpacecraftId)) {
+      setCreateSpacecraftId(availableCraftOptions[0].id);
+    }
+  }, [createDestination, createSpacecraftId, availableCraftOptions]);
 
   const deriveDestinationGroup = useCallback((dest: string): string => {
     const body = resolveDestinationBody(dest);
@@ -330,7 +352,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
 
     setIsCreating(true);
     try {
-      const targetCraft = createSpacecraftId || (spacecraftList.length > 0 ? spacecraftList[0].id : 'AURA-1');
+      const targetCraft = availableCraftOptions.some((craft) => craft.id === createSpacecraftId) ? createSpacecraftId : (availableCraftOptions[0]?.id || 'AURA-1');
       const destGroup = deriveDestinationGroup(createDestination);
       const derivedRisk = createDifficulty === 'CRITICAL' ? 'SEVERE' : createDifficulty === 'CHALLENGING' ? 'HIGH' : 'MODERATE';
 
@@ -1495,8 +1517,8 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                         onChange={(e) => setCreateSpacecraftId(e.target.value)}
                         disabled={isCreating}
                       >
-                        {spacecraftList.length > 0 ? (
-                          spacecraftList.map((craft) => (
+                        {availableCraftOptions.length > 0 ? (
+                          availableCraftOptions.map((craft) => (
                             <option key={craft.id} value={craft.id}>
                               {craft.id} ({craft.callSign || craft.name})
                             </option>
