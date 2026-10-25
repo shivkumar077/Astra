@@ -21,6 +21,10 @@ import {
   MissionResponse,
   MissionRun,
 } from '../types/missionControl';
+import {
+  resolveDestinationBody,
+  getAuthoritativeVisualizationContext,
+} from '../utils/destinationModel';
 
 // Mock spacecraft detail fixture matching backend domain schema
 const MOCK_DETAIL: SpacecraftDetail = {
@@ -1675,6 +1679,193 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(clock).toHaveTextContent(/IST/i);
     });
   });
+
+  describe('Priority 0, 1 & 2: Authoritative Destination Consistency, Clean Roster Heading, and Scenario Popover', () => {
+    it('proves Earth missions with Sun-Synchronous destinations resolve to Earth and NEVER the Sun', () => {
+      // Root cause verification: "Sun-Synchronous LEO" contains "sun", which previously flipped the scene to the Sun!
+      expect(resolveDestinationBody('Earth (Sun-Synchronous LEO, 702 km)', 'Earth Orbit')).toBe('earth');
+      expect(resolveDestinationBody('Sun-Synchronous orbit (SSO)', 'Earth Orbit')).toBe('earth');
+      expect(resolveDestinationBody('Low Earth Orbit (LEO, 400 km)', 'Earth Orbit')).toBe('earth');
+      expect(resolveDestinationBody('Geostationary Transfer Orbit (GTO)', 'Earth Orbit')).toBe('earth');
+
+      // Check authoritative context
+      const ctx = getAuthoritativeVisualizationContext({
+        id: 'EARTH-OBS-AURA',
+        destination: 'Earth (Sun-Synchronous LEO, 702 km)',
+        destinationGroup: 'Earth Orbit',
+      });
+      expect(ctx.destinationBody).toBe('earth');
+      expect(ctx.coordinateFrame).toBe('ECI_J2000');
+      expect(ctx.simulationMode).toBe('KEPLERIAN_TWO_BODY_ECI');
+    });
+
+    it('proves valid solar missions correctly resolve to the Sun', () => {
+      expect(resolveDestinationBody('Heliospheric Orbit (0.3 AU perihelion)', 'Solar')).toBe('solar');
+      expect(resolveDestinationBody('Solar Corona Rendezvous', 'Solar')).toBe('solar');
+      expect(resolveDestinationBody('Sun-Earth L1 Lagrange Orbit', 'Solar')).toBe('solar');
+
+      const ctx = getAuthoritativeVisualizationContext({
+        id: 'SOLAR-PROBE-01',
+        destination: 'Heliospheric Orbit (0.3 AU perihelion)',
+        destinationGroup: 'Solar',
+      });
+      expect(ctx.destinationBody).toBe('solar');
+      expect(ctx.coordinateFrame).toBe('HELIOCENTRIC');
+    });
+
+    it('proves Mars, Lunar, and Outer Planet missions resolve to their authoritative contexts', () => {
+      expect(resolveDestinationBody('Mars (Areostationary & Polar Elliptical)', 'Mars')).toBe('mars');
+      expect(resolveDestinationBody('Lunar Polar Insertion (100 km orbit)', 'Lunar & Deep Space')).toBe('lunar');
+      expect(resolveDestinationBody('Europa Surface Reconnaissance (100 km orbit)', 'Outer Planets')).toBe('jupiter');
+      expect(resolveDestinationBody('Saturn & Enceladus Plume Pass', 'Outer Planets')).toBe('saturn');
+
+      const marsCtx = getAuthoritativeVisualizationContext({
+        id: 'MARS-ATMOS-01',
+        destination: 'Mars (Areostationary & Polar Elliptical)',
+        destinationGroup: 'Mars',
+      });
+      expect(marsCtx.destinationBody).toBe('mars');
+      expect(marsCtx.coordinateFrame).toBe('MCI_J2000');
+
+      const lunarCtx = getAuthoritativeVisualizationContext({
+        id: 'LUNAR-SURVEY-01',
+        destination: 'Lunar Polar Insertion (100 km orbit)',
+        destinationGroup: 'Lunar & Deep Space',
+      });
+      expect(lunarCtx.destinationBody).toBe('lunar');
+      expect(lunarCtx.coordinateFrame).toBe('LCI_J2000');
+    });
+
+    it('renders OrbitalStage3D for an Earth-observation mission and verifies Earth regime without reverting to the Sun', () => {
+      const earthMission: MissionResponse = {
+        id: 'EARTH-OBS-AURA',
+        title: 'Aura-1 Earth Observation Platform',
+        destination: 'Earth (Sun-Synchronous LEO, 702 km)',
+        destinationGroup: 'Earth Orbit',
+        category: 'EARTH_OBSERVATION' as any,
+        difficulty: 'NOMINAL' as any,
+        spacecraftId: 'AURA-1',
+        durationMinutes: 60,
+        riskLevel: 'LOW',
+        synopsis: 'Continuous hyperspectral atmosphere mapping',
+        objectives: ['Deploy synthetic aperture radar'],
+        completionCriteria: ['100% nominal telemetry'],
+        operationalConstraints: ['Sun-synchronous nodal precession'],
+        isSimulated: true,
+        status: 'ACTIVE' as any,
+        categoryLabel: 'Earth Observation',
+        difficultyLabel: 'Nominal',
+      };
+
+      const { rerender } = render(
+        <OrbitalStage3D
+          spacecraftList={[MOCK_DETAIL]}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={vi.fn()}
+          activeMission={earthMission}
+        />
+      );
+
+      // Verify the accessible regime indicator displays EARTH, not SUN
+      const regimeEl = screen.getByTestId('hud-scientific-regime');
+      expect(regimeEl).toBeInTheDocument();
+      expect(regimeEl.textContent).toContain('TARGET: EARTH');
+      expect(regimeEl.textContent).not.toContain('TARGET: SUN');
+
+      // Verify changing view mode or updating telemetry does not revert destination
+      rerender(
+        <OrbitalStage3D
+          spacecraftList={[{ ...MOCK_DETAIL, altitudeKm: 705.4 }]}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={vi.fn()}
+          activeMission={earthMission}
+        />
+      );
+
+      const updatedRegimeEl = screen.getByTestId('hud-scientific-regime');
+      expect(updatedRegimeEl).toBeInTheDocument();
+      expect(updatedRegimeEl.textContent).toContain('TARGET: EARTH');
+      expect(updatedRegimeEl.textContent).not.toContain('TARGET: SUN');
+    });
+
+    it('renders FleetSelectorBar with a clean heading containing NO count appended', () => {
+      render(
+        <FleetSelectorBar
+          spacecraftList={[MOCK_DETAIL, MOCK_DETAIL_TERRA]}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={vi.fn()}
+        />
+      );
+
+      const headerTitle = screen.getByTestId('fleet-roster-title');
+      expect(headerTitle).toBeInTheDocument();
+      // Must be clean: "ORBITAL FLEET ROSTER", NOT "ORBITAL FLEET ROSTER (2)" or similar
+      expect(headerTitle.textContent?.trim()).toBe('ORBITAL FLEET ROSTER');
+      expect(headerTitle.textContent).not.toMatch(/\(\d+\)/);
+      expect(headerTitle.textContent).not.toMatch(/\[\d+\s+VEHICLES/i);
+    });
+
+    it('renders Scenario indicator and opens/closes interactive frosted glass popover', () => {
+      const activeMission: MissionResponse = {
+        id: 'LUNAR-EXPLORER-01',
+        title: 'Artemis South Pole Volatiles Prospecting',
+        destination: 'Lunar South Pole Shackleton Crater',
+        destinationGroup: 'Lunar & Deep Space',
+        category: 'DEEP_SPACE' as any,
+        difficulty: 'CHALLENGING' as any,
+        spacecraftId: 'LUNAR-ROVER',
+        durationMinutes: 120,
+        riskLevel: 'HIGH',
+        synopsis: 'Sub-surface water ice core extraction along permanently shadowed regions',
+        objectives: ['Perform drill deployment', 'Maintain UHF relay lock'],
+        completionCriteria: ['Collect 3 volatile samples'],
+        operationalConstraints: ['Stay within line-of-sight thermal margin'],
+        isSimulated: true,
+        status: 'ACTIVE' as any,
+        categoryLabel: 'Deep Space',
+        difficultyLabel: 'Challenging',
+      };
+
+      render(
+        <MissionControlHeader
+          onReturnHome={vi.fn()}
+          simulationStatus={MOCK_SIM_STATUS}
+          connectionStatus="connected"
+          onSimulationUpdated={vi.fn()}
+          activeMission={activeMission}
+        />
+      );
+
+      // Verify scenario button in header
+      const scenarioBtn = screen.getByTestId('header-active-mission-badge');
+      expect(scenarioBtn).toBeInTheDocument();
+      expect(scenarioBtn).toHaveTextContent(/SCENARIO:/i);
+      expect(scenarioBtn).toHaveTextContent(/Artemis South Pole/i);
+
+      // Popover should not be visible initially
+      expect(screen.queryByTestId('scenario-detail-popover')).not.toBeInTheDocument();
+
+      // Click to open popover
+      fireEvent.click(scenarioBtn);
+      const popover = screen.getByTestId('scenario-detail-popover');
+      expect(popover).toBeInTheDocument();
+      expect(within(popover).getByText(/SCENARIO DIRECTIVE/i)).toBeInTheDocument();
+      expect(within(popover).getByText(/Shackleton Crater/i)).toBeInTheDocument();
+      expect(within(popover).getByText(/Perform drill deployment/i)).toBeInTheDocument();
+
+      // Press Escape to close popover
+      fireEvent.keyDown(window, { key: 'Escape' });
+      expect(screen.queryByTestId('scenario-detail-popover')).not.toBeInTheDocument();
+
+      // Click again and test close button
+      fireEvent.click(scenarioBtn);
+      expect(screen.getByTestId('scenario-detail-popover')).toBeInTheDocument();
+      const closeBtn = screen.getByTestId('close-scenario-popover');
+      fireEvent.click(closeBtn);
+      expect(screen.queryByTestId('scenario-detail-popover')).not.toBeInTheDocument();
+    });
+  });
 });
+
 
 

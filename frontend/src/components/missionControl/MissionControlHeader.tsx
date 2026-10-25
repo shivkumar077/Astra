@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { SimulationStatus, StompConnectionStatus, MissionResponse } from '../../types/missionControl';
 import { advanceSimulation, pauseSimulation, resumeSimulation } from '../../api/missionControlApi';
-import { ArrowLeft, Play, Pause, FastForward, Layers, Compass, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Play, Pause, FastForward, Layers, Compass, ShieldAlert, X, Info } from 'lucide-react';
 import { formatStationClockIST } from '../../utils/timeFormatters';
 
 export type OperationalModeView = 'cockpit' | 'universe' | 'diagnostics';
@@ -31,7 +31,30 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
   const [isUpdatingSim, setIsUpdatingSim] = useState<boolean>(false);
   const [isAdvancingSim, setIsAdvancingSim] = useState<boolean>(false);
   const [showTimeJumpToast, setShowTimeJumpToast] = useState<boolean>(false);
+  const [showScenarioPopover, setShowScenarioPopover] = useState<boolean>(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const toastTimeoutRef = useRef<number | null>(null);
+
+  // Close popover on Escape key or outside click
+  useEffect(() => {
+    if (!showScenarioPopover) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowScenarioPopover(false);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setShowScenarioPopover(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showScenarioPopover]);
 
   useEffect(() => {
     const updateTime = () => {
@@ -145,61 +168,173 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
         </nav>
 
         {activeMission && (
-          <div
-            className="astra-mc-header-active-mission"
-            data-testid="header-active-mission-badge"
-            title={`Active Mission: ${activeMission.title} (${activeMission.id} // ${activeMission.destinationGroup})`}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '3px 8px',
-              background: 'rgba(0, 229, 255, 0.08)',
-              border: '1px solid rgba(0, 229, 255, 0.25)',
-              borderRadius: '2px',
-              maxWidth: '300px',
-              overflow: 'hidden',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            <span className="astra-mc-active-mission-dot" />
-            <span
-              className="astra-mc-active-mission-label"
+          <div style={{ position: 'relative' }} ref={popoverRef}>
+            <button
+              type="button"
+              className="astra-mc-header-active-mission astra-mc-header-mission-btn"
+              data-testid="header-active-mission-badge"
+              title={`Active Mission: ${activeMission.title} (${activeMission.id} // ${activeMission.destinationGroup}) — Click to view full scenario briefing`}
+              onClick={() => setShowScenarioPopover((prev) => !prev)}
+              aria-expanded={showScenarioPopover}
+              aria-haspopup="dialog"
               style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '9px',
-                fontWeight: 700,
-                color: 'var(--color-earth-cyan)',
-                flexShrink: 0,
-              }}
-            >
-              SCENARIO:
-            </span>
-            <span
-              className="astra-mc-active-mission-title"
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: '11px',
-                fontWeight: 600,
-                color: 'var(--color-text-display)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 10px',
+                background: showScenarioPopover ? 'rgba(0, 229, 255, 0.16)' : 'rgba(0, 229, 255, 0.08)',
+                border: '1px solid rgba(0, 229, 255, 0.35)',
+                borderRadius: '3px',
+                maxWidth: '320px',
                 overflow: 'hidden',
-                textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
+                cursor: 'pointer',
+                transition: 'all 160ms ease',
               }}
             >
-              {activeMission.title}
-            </span>
-            <span
-              className="astra-mc-active-mission-dest"
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: '9px',
-                color: 'var(--color-text-ghost)',
-                flexShrink: 0,
-              }}
-            >
-              // {activeMission.destinationGroup.toUpperCase()}
-            </span>
+              <span className="astra-mc-active-mission-dot" />
+              <span
+                className="astra-mc-active-mission-label"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '9px',
+                  fontWeight: 700,
+                  color: 'var(--color-earth-cyan)',
+                  flexShrink: 0,
+                }}
+              >
+                SCENARIO:
+              </span>
+              <span
+                className="astra-mc-active-mission-title"
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--color-text-display)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {activeMission.title}
+              </span>
+              <span
+                className="astra-mc-active-mission-dest"
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '9px',
+                  color: 'var(--color-text-ghost)',
+                  flexShrink: 0,
+                }}
+              >
+                // {activeMission.destinationGroup.toUpperCase()}
+              </span>
+            </button>
+
+            {/* Accessible Frosted Glass Scenario Popover */}
+            {showScenarioPopover && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Active Scenario Briefing Details"
+                className="astra-mc-scenario-popover"
+                data-testid="scenario-detail-popover"
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  left: '0',
+                  zIndex: 200,
+                  width: '380px',
+                  maxWidth: '90vw',
+                  background: 'rgba(6, 12, 22, 0.88)',
+                  backdropFilter: 'blur(20px)',
+                  WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(0, 229, 255, 0.35)',
+                  borderRadius: '6px',
+                  boxShadow: '0 16px 48px rgba(0, 0, 0, 0.75), 0 0 24px rgba(0, 229, 255, 0.12)',
+                  padding: '16px',
+                  color: 'var(--color-text-body)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Info size={14} color="var(--color-earth-cyan)" />
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-earth-cyan)', letterSpacing: '0.08em', fontWeight: 700 }}>
+                      SCENARIO DIRECTIVE // {activeMission.id}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowScenarioPopover(false)}
+                    data-testid="close-scenario-popover"
+                    title="Close Scenario Details (Esc)"
+                    aria-label="Close"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+
+                <h3
+                  data-testid="scenario-popover-title"
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '15px',
+                    fontWeight: 600,
+                    color: 'var(--color-text-display)',
+                    margin: '8px 0 6px 0',
+                    lineHeight: '1.3',
+                  }}
+                >
+                  {activeMission.title}
+                </h3>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px', margin: '8px 0 12px 0', padding: '8px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '4px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div>
+                    <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '8px', color: 'var(--color-text-ghost)', letterSpacing: '0.06em' }}>DESTINATION</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-display)' }}>{activeMission.destination}</span>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '8px', color: 'var(--color-text-ghost)', letterSpacing: '0.06em' }}>ASSIGNED CRAFT</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-earth-cyan)', fontWeight: 600 }}>{activeMission.spacecraftId}</span>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '8px', color: 'var(--color-text-ghost)', letterSpacing: '0.06em' }}>CATEGORY</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-text-display)' }}>{activeMission.categoryLabel || activeMission.category}</span>
+                  </div>
+                  <div>
+                    <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '8px', color: 'var(--color-text-ghost)', letterSpacing: '0.06em' }}>DIFFICULTY</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--color-advisory)', fontWeight: 600 }}>{activeMission.difficultyLabel || activeMission.difficulty}</span>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: '11px', color: 'var(--color-text-dim)', margin: '0 0 10px 0', lineHeight: '1.4' }}>
+                  {activeMission.synopsis}
+                </p>
+
+                {activeMission.objectives && activeMission.objectives.length > 0 && (
+                  <div>
+                    <span style={{ display: 'block', fontFamily: 'var(--font-mono)', fontSize: '9px', color: 'var(--color-text-muted)', letterSpacing: '0.06em', marginBottom: '4px' }}>
+                      PRIMARY GATES:
+                    </span>
+                    <ul style={{ margin: 0, paddingLeft: '14px', fontSize: '10px', color: 'var(--color-text-body)', lineHeight: '1.4' }}>
+                      {activeMission.objectives.slice(0, 3).map((obj, i) => (
+                        <li key={i}>{obj}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

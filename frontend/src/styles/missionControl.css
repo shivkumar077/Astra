@@ -11,19 +11,34 @@
   width: 100%;
   height: 100vh;
   max-height: 100vh;
-  background-color: #04060a;
+  background-color: #020409;
   color: var(--color-text-body);
   font-family: var(--font-sans);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   background-image: 
-    radial-gradient(1px 1px at 24px 32px, rgba(255, 255, 255, 0.4), transparent),
-    radial-gradient(1px 1px at 120px 80px, rgba(56, 189, 248, 0.3), transparent),
-    radial-gradient(1px 1px at 260px 180px, rgba(255, 255, 255, 0.25), transparent),
-    linear-gradient(to right, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-  background-size: 320px 320px, 480px 480px, 360px 360px, 40px 40px, 40px 40px;
+    /* Distant star layer 1 */
+    radial-gradient(1px 1px at 35px 50px, rgba(255, 255, 255, 0.45), transparent),
+    radial-gradient(1.2px 1.2px at 155px 115px, rgba(186, 230, 253, 0.5), transparent),
+    radial-gradient(1px 1px at 275px 235px, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1.5px 1.5px at 390px 75px, rgba(147, 197, 253, 0.55), transparent),
+    /* Distant star layer 2 */
+    radial-gradient(1px 1px at 50px 180px, rgba(255, 255, 255, 0.4), transparent),
+    radial-gradient(1.3px 1.3px at 180px 290px, rgba(224, 242, 254, 0.45), transparent),
+    radial-gradient(1px 1px at 310px 130px, rgba(255, 255, 255, 0.35), transparent),
+    radial-gradient(1.8px 1.8px at 440px 340px, rgba(165, 243, 252, 0.6), transparent),
+    /* Deep space subtle celestial nebula */
+    radial-gradient(circle 900px at 75% 25%, rgba(14, 45, 84, 0.16), transparent 75%),
+    radial-gradient(circle 700px at 20% 80%, rgba(6, 78, 99, 0.10), transparent 65%),
+    /* Tactical aerospace coordinate grid */
+    linear-gradient(to right, rgba(56, 189, 248, 0.015) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(56, 189, 248, 0.015) 1px, transparent 1px);
+  background-size: 
+    380px 380px, 490px 490px, 420px 420px, 560px 560px,
+    460px 460px, 580px 580px, 510px 510px, 640px 640px,
+    100% 100%, 100% 100%,
+    48px 48px, 48px 48px;
 }
 
 /* Subtle aerospace scanline ambiance */
@@ -359,10 +374,11 @@
    4. LEFT COLUMN: FLEET ROSTER & ACTIVE CRAFT SELECTION
    ------------------------------------------------------------------------------ */
 .astra-mc-fleet-panel {
-  background: rgba(6, 10, 18, 0.55);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(6, 12, 22, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -376,9 +392,10 @@
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 15, 26, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10, 18, 30, 0.50);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .astra-mc-panel-title {
@@ -411,30 +428,32 @@
   flex-direction: column;
   gap: 10px;
   padding: 16px 16px;
-  background: rgba(10, 16, 28, 0.40);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-left: 3px solid rgba(255, 255, 255, 0.15);
-  border-radius: var(--radius-xs);
+  background: rgba(12, 20, 34, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   cursor: pointer;
   transition: all 200ms cubic-bezier(0.16, 1, 0.3, 1);
   text-align: left;
 }
 
 .astra-mc-craft-card:hover {
-  background: rgba(16, 26, 44, 0.55);
-  border-color: rgba(56, 189, 248, 0.35);
-  transform: translateX(2px);
+  background: rgba(18, 30, 48, 0.70);
+  border-color: rgba(56, 189, 248, 0.38);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .astra-mc-craft-card.active {
-  background: rgba(10, 26, 48, 0.65);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(14, 30, 52, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-color: rgba(0, 240, 255, 0.45);
   border-left: 3px solid var(--color-earth-cyan);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 240, 255, 0.08);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.18), inset 0 0 20px rgba(0, 240, 255, 0.08);
 }
 
 .astra-mc-craft-header {
@@ -524,7 +543,7 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #030407;
+  background: transparent;
   overflow: hidden;
   height: 100%;
 }
@@ -673,10 +692,11 @@
    6. RIGHT COLUMN: TABBED OPERATIONS CONSOLE
    ------------------------------------------------------------------------------ */
 .astra-mc-ops-panel {
-  background: rgba(6, 10, 18, 0.58);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(6, 12, 22, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-left: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.04);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -688,9 +708,10 @@
 .astra-mc-nav-tabs {
   display: flex;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(10, 15, 26, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(10, 18, 30, 0.50);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   padding: 0 8px;
 }
 

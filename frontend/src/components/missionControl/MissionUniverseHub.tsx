@@ -39,6 +39,7 @@ import {
   Filter,
   RefreshCw,
 } from 'lucide-react';
+import { resolveDestinationBody } from '../../utils/destinationModel';
 
 interface MissionUniverseHubProps {
   spacecraftList?: SpacecraftDetail[];
@@ -150,16 +151,23 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [loadErrorType, setLoadErrorType] = useState<'AUTH' | 'NETWORK' | 'SERVER' | null>(null);
 
   const deriveDestinationGroup = useCallback((dest: string): string => {
-    const d = dest.toLowerCase();
-    if (d.includes('mars') || d.includes('phobos') || d.includes('deimos')) return 'Mars';
-    if (d.includes('lunar') || d.includes('moon') || d.includes('europa') || d.includes('titan') || d.includes('ganymede')) {
-      return 'Lunar & Deep Space';
+    const body = resolveDestinationBody(dest);
+    switch (body) {
+      case 'mars':
+        return 'Mars';
+      case 'lunar':
+      case 'deep_space':
+        return 'Lunar & Deep Space';
+      case 'jupiter':
+      case 'saturn':
+      case 'ice_giant':
+        return 'Outer Planets';
+      case 'solar':
+        return 'Solar';
+      case 'earth':
+      default:
+        return 'Earth';
     }
-    if (d.includes('sun') || d.includes('solar')) return 'Solar';
-    if (d.includes('jupiter') || d.includes('saturn') || d.includes('neptune') || d.includes('uranus') || d.includes('pluto')) {
-      return 'Outer Planets';
-    }
-    return 'Earth';
   }, []);
 
   const loadMissionsData = useCallback(async () => {

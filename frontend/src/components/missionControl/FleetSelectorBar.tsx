@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { SpacecraftDetail, SpacecraftStatus } from '../../types/missionControl';
 import { Spacecraft as SpacecraftIcon } from '../common/CelestialIcons';
 
+import { resolveDestinationBody } from '../../utils/destinationModel';
+
 interface FleetSelectorBarProps {
   spacecraftList: SpacecraftDetail[];
   selectedSpacecraftId: string;
@@ -20,79 +22,23 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
   const [destFilter, setDestFilter] = useState<DestinationFilter>('ALL');
 
   const getCraftCategory = (craft: SpacecraftDetail): 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR' => {
-    const id = (craft.id || '').toUpperCase();
-    const role = (craft.modelType || '').toLowerCase();
-    const name = (craft.name || '').toLowerCase();
-
-    // Mars Exploration Fleet
-    if (
-      id.startsWith('ARES') ||
-      id.startsWith('MARS') ||
-      id.startsWith('PHOBOS') ||
-      id.startsWith('DEIMOS') ||
-      id.startsWith('AERO') ||
-      id.startsWith('OLYMPUS') ||
-      role.includes('mars') ||
-      role.includes('areo') ||
-      name.includes('mars')
-    ) {
-      return 'MARS';
+    const dest = resolveDestinationBody(null, craft);
+    switch (dest) {
+      case 'mars':
+        return 'MARS';
+      case 'lunar':
+        return 'LUNAR';
+      case 'saturn':
+      case 'jupiter':
+      case 'ice_giant':
+        return 'OUTER';
+      case 'solar':
+      case 'deep_space':
+        return 'SOLAR';
+      case 'earth':
+      default:
+        return 'EARTH';
     }
-
-    // Lunar Exploration Fleet
-    if (
-      id.startsWith('CHANDRA') ||
-      id.startsWith('LUNAR') ||
-      id.startsWith('SELENA') ||
-      id.startsWith('ARTEMIS') ||
-      id.startsWith('CRATER') ||
-      id.startsWith('MOON') ||
-      role.includes('lunar') ||
-      role.includes('seleno') ||
-      name.includes('lunar')
-    ) {
-      return 'LUNAR';
-    }
-
-    // Outer Planets Fleet (Jupiter, Saturn, Titan, Callisto, Europa)
-    if (
-      id.startsWith('JOVIAN') ||
-      id.startsWith('EUROPA') ||
-      id.startsWith('CALLISTO') ||
-      id.startsWith('CHRONOS') ||
-      id.startsWith('TITAN') ||
-      role.includes('jupiter') ||
-      role.includes('saturn') ||
-      role.includes('jovian') ||
-      role.includes('galilean') ||
-      role.includes('outer planet') ||
-      name.includes('jupiter') ||
-      name.includes('saturn')
-    ) {
-      return 'OUTER';
-    }
-
-    // Solar & Deep Space Fleet
-    if (
-      id.startsWith('HELIOS') ||
-      id.startsWith('SOLAR') ||
-      id.startsWith('ASTEROID') ||
-      id.startsWith('DEEP') ||
-      id.startsWith('VOYAGER') ||
-      role.includes('solar corona') ||
-      role.includes('deep-space') ||
-      role.includes('asteroid') ||
-      role.includes('heliopause') ||
-      role.includes('space weather') ||
-      name.includes('solar') ||
-      name.includes('voyager') ||
-      name.includes('asteroid')
-    ) {
-      return 'SOLAR';
-    }
-
-    // Earth Orbit (Default)
-    return 'EARTH';
   };
 
   const counts = React.useMemo(() => {
@@ -135,11 +81,8 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
       <div className="astra-mc-panel-header">
         <div className="astra-mc-panel-title">
           <SpacecraftIcon size={14} color="var(--color-earth-cyan)" />
-          <span>ORBITAL FLEET ROSTER</span>
+          <span data-testid="fleet-roster-title">ORBITAL FLEET ROSTER</span>
         </div>
-        <span className="astra-mc-fleet-count" data-testid="fleet-count">
-          [{spacecraftList.length} VEHICLES ACTIVE]
-        </span>
       </div>
 
       {/* Destination Filter Tabs for 28-craft Solar System Fleet */}

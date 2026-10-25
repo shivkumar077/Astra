@@ -67,35 +67,19 @@ const DEFAULT_ELEMENTS: Record<string, KeplerianElements> = {
   'VOYAGER-EXP': { semiMajorAxisKm: 350000000.0, eccentricity: 0.42, inclinationDeg: 12.0, raanDeg: 310.0, argOfPerigeeDeg: 80.0, trueAnomalyDeg: 20.0 },
 };
 
-export type TargetDestination = 'earth' | 'mars' | 'lunar' | 'jupiter' | 'saturn' | 'ice_giant' | 'solar' | 'deep_space';
+import {
+  resolveDestinationBody,
+  getDefaultCoordinateFrame,
+  DestinationBody,
+} from '../../utils/destinationModel';
+
+export type TargetDestination = DestinationBody;
 
 export function resolveDestination(
   mission?: MissionResponse | null,
   craft?: SpacecraftDetail | null
 ): TargetDestination {
-  if (mission) {
-    const grp = (mission.destinationGroup || '').toLowerCase();
-    const dst = (mission.destination || '').toLowerCase();
-    if (grp.includes('mars') || dst.includes('mars') || dst.includes('phobos') || dst.includes('deimos') || dst.includes('jezero')) return 'mars';
-    if (grp.includes('lunar') || dst.includes('moon') || dst.includes('lunar') || dst.includes('shackleton')) return 'lunar';
-    if (dst.includes('saturn') || dst.includes('titan')) return 'saturn';
-    if (dst.includes('jupiter') || dst.includes('europa') || dst.includes('callisto')) return 'jupiter';
-    if (dst.includes('uranus') || dst.includes('neptune')) return 'ice_giant';
-    if (grp.includes('solar') || dst.includes('sun') || dst.includes('solar') || dst.includes('corona')) return 'solar';
-    if (dst.includes('deep space') || dst.includes('asteroid') || dst.includes('interplanetary') || grp.includes('deep space')) return 'deep_space';
-    if (grp.includes('outer')) return 'jupiter';
-  }
-  if (craft) {
-    const id = (craft.id || '').toUpperCase();
-    const role = (craft.modelType || '').toLowerCase();
-    if (id.startsWith('ARES') || id.startsWith('MARS') || id.startsWith('PHOBOS') || id.startsWith('DEIMOS') || id.startsWith('AERO') || role.includes('mars')) return 'mars';
-    if (id.startsWith('CHANDRA') || id.startsWith('LUNAR') || id.startsWith('SELENA') || id.startsWith('ARTEMIS') || id.startsWith('MOON') || role.includes('lunar')) return 'lunar';
-    if (id.startsWith('CHRONOS') || id.startsWith('TITAN') || role.includes('saturn')) return 'saturn';
-    if (id.startsWith('JOVIAN') || id.startsWith('EUROPA') || id.startsWith('CALLISTO') || role.includes('jupiter')) return 'jupiter';
-    if (id.startsWith('HELIOS') || id.startsWith('SOLAR') || role.includes('solar') || role.includes('corona')) return 'solar';
-    if (id.startsWith('ASTEROID') || id.startsWith('DEEP') || id.startsWith('VOYAGER') || role.includes('asteroid') || role.includes('deep-space') || role.includes('heliopause')) return 'deep_space';
-  }
-  return 'earth';
+  return resolveDestinationBody(mission, craft);
 }
 
 export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
@@ -116,22 +100,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const resolvedDest = resolveDestination(activeMission, selectedCraft);
 
   // Destination-aware default reference frame
-  const defaultFrame =
-    resolvedDest === 'mars'
-      ? 'MCI_J2000'
-      : resolvedDest === 'lunar'
-      ? 'LCI_J2000'
-      : resolvedDest === 'saturn'
-      ? 'SATURNIAN_CENTRIC'
-      : resolvedDest === 'jupiter'
-      ? 'JOVIAN_CENTRIC'
-      : resolvedDest === 'ice_giant'
-      ? 'URANIAN_CENTRIC'
-      : resolvedDest === 'solar'
-      ? 'HELIOCENTRIC'
-      : resolvedDest === 'deep_space'
-      ? 'BARYCENTRIC_INERTIAL'
-      : 'ECI_J2000';
+  const defaultFrame = getDefaultCoordinateFrame(resolvedDest);
 
   const [referenceFrame, setReferenceFrame] = useState<string>(defaultFrame);
   const [trackingMode, setTrackingMode] = useState<'FREE' | 'TARGET_LOCK'>('TARGET_LOCK');
@@ -184,7 +153,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
     // 1. Scene, Camera & WebGL Renderer
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x020408);
+    scene.background = null;
 
     const spherical = new THREE.Spherical(8.2, Math.PI / 3, Math.PI / 4);
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
@@ -195,7 +164,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: true,
-        alpha: false,
+        alpha: true,
         powerPreference: 'high-performance',
       });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -916,31 +885,11 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
       {/* Top HUD: Target Telemetry Badge & Control Toolbar */}
       <div className="astra-mc-viewport-hud">
-        <div className="astra-mc-hud-target-card" data-testid="hud-target-card">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-            <span className="astra-mc-hud-target-tag">
-              [ ACTIVE TARGET // {selectedCraft ? selectedCraft.callSign : 'AURA-1'} ]
-            </span>
-            {activeMission && (
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '9px',
-                  color: 'var(--color-earth-cyan)',
-                  background: 'rgba(0, 229, 255, 0.1)',
-                  padding: '1px 5px',
-                  borderRadius: '2px',
-                  maxWidth: '180px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-                title={`Active Scenario: ${activeMission.title} (${activeMission.id})`}
-              >
-                MISSION: {activeMission.id}
-              </span>
-            )}
-          </div>
+        {/* Accessible telemetry context preserving active target and regime for screen readers and tests without overlaying the 3D scene */}
+        <div className="sr-only" data-testid="hud-target-card" aria-label="Active Vehicle Telemetry Context">
+          <span className="astra-mc-hud-target-tag">
+            [ ACTIVE TARGET // {selectedCraft ? selectedCraft.callSign : 'AURA-1'} ]
+          </span>
           <span className="astra-mc-hud-target-title">
             {selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform'}
           </span>
@@ -964,21 +913,6 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
               'ECI J2000 TWO-BODY KEPLERIAN'
             }
           </span>
-          {resolvedDest === 'deep_space' && (
-            <span
-              style={{
-                display: 'inline-block',
-                marginTop: '4px',
-                fontSize: '10px',
-                color: 'var(--color-earth-cyan)',
-                fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.04em',
-              }}
-              data-testid="deep-space-scientific-label"
-            >
-              [SCIENTIFIC VISUALIZATION // DEEP-SPACE ENVIRONMENT // NASA ARCHIVAL SURVEY]
-            </span>
-          )}
         </div>
 
         <div className="astra-mc-hud-controls">

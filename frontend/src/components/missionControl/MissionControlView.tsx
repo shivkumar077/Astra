@@ -32,6 +32,7 @@ import { EventLogFeed } from './EventLogFeed';
 import { MissionUniverseHub } from './MissionUniverseHub';
 import { FailureLabSuite } from './FailureLabSuite';
 import { navigationHistory, NavigationLocation } from '../../utils/navigationHistory';
+import { DEFAULT_SOLAR_SYSTEM_FLEET } from '../../utils/fleetCatalog';
 import { Activity, Terminal, ShieldAlert, Layers } from 'lucide-react';
 import '../../styles/missionControl.css';
 
@@ -48,7 +49,9 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   reducedMotion = false,
   navLocation,
 }) => {
-  const [spacecraftList, setSpacecraftList] = useState<SpacecraftDetail[]>([]);
+  const [spacecraftList, setSpacecraftList] = useState<SpacecraftDetail[]>(
+    DEFAULT_SOLAR_SYSTEM_FLEET
+  );
   const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>(
     navLocation?.selectedSpacecraftId || 'AURA-1'
   );
@@ -65,6 +68,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   );
   const [universeBackSignal, setUniverseBackSignal] = useState<number>(0);
   const [activeMission, setActiveMission] = useState<MissionResponse | null>(null);
+  const userSelectedMissionRef = useRef<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<StompConnectionStatus>('connecting');
   const [timeAdvanceNotice, setTimeAdvanceNotice] = useState<TimeAdvanceNotice | null>(null);
@@ -109,7 +113,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
     setLoading(true);
     try {
       const [crafts, simStatus, history, evts, missions, activeMsn] = await Promise.all([
-        listSpacecraft(),
+        listSpacecraft().catch(() => DEFAULT_SOLAR_SYSTEM_FLEET),
         getSimulationStatus().catch(() => null),
         getCommandHistory().catch(() => []),
         getEvents().catch(() => []),
@@ -127,14 +131,15 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
       }
 
       // Check for active mission run from authoritative active endpoint or catalogue
-      const currentActive = activeMsn || (missions ? missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null) : null);
-      if (currentActive) {
-        setActiveMission(currentActive);
-        if (currentActive.activeRun?.spacecraftId) {
-          setSelectedSpacecraftId(currentActive.activeRun.spacecraftId);
+      // Do not overwrite an explicit user-selected mission
+      if (!userSelectedMissionRef.current) {
+        const currentActive = activeMsn || (missions ? missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null) : null);
+        if (currentActive) {
+          setActiveMission(currentActive);
+          if (currentActive.activeRun?.spacecraftId) {
+            setSelectedSpacecraftId(currentActive.activeRun.spacecraftId);
+          }
         }
-      } else {
-        setActiveMission(null);
       }
 
       if (simStatus) {
