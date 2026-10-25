@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { SimulationStatus, StompConnectionStatus } from '../../types/missionControl';
 import { advanceSimulation, pauseSimulation, resumeSimulation } from '../../api/missionControlApi';
 import { ArrowLeft, Play, Pause, FastForward, Layers, Compass, ShieldAlert } from 'lucide-react';
@@ -24,6 +24,9 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
 }) => {
   const [wallClockUtc, setWallClockUtc] = useState<string>('');
   const [isUpdatingSim, setIsUpdatingSim] = useState<boolean>(false);
+  const [isAdvancingSim, setIsAdvancingSim] = useState<boolean>(false);
+  const [showTimeJumpToast, setShowTimeJumpToast] = useState<boolean>(false);
+  const toastTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     const updateUtc = () => {
@@ -39,6 +42,14 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
     updateUtc();
     const timer = setInterval(updateUtc, 1000);
     return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
+      }
+    };
   }, []);
 
   const handleToggleLifecycle = async () => {
@@ -59,20 +70,27 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
   };
 
   const handleStepClock = async (seconds: number) => {
-    setIsUpdatingSim(true);
+    if (isAdvancingSim || !simulationStatus) return;
+    setIsAdvancingSim(true);
     try {
       await advanceSimulation(seconds);
       onSimulationUpdated();
+      // Show polished floating animation only after confirmed authoritative acceptance
+      setShowTimeJumpToast(true);
+      if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      toastTimeoutRef.current = window.setTimeout(() => {
+        setShowTimeJumpToast(false);
+      }, 1400);
     } catch (e) {
       console.warn('Failed advancing simulation clock', e);
     } finally {
-      setIsUpdatingSim(false);
+      setIsAdvancingSim(false);
     }
   };
 
   return (
     <header className="astra-mc-header" data-testid="mission-control-header">
-      {/* 1. Left: Single Arrow-Only Return Button */}
+      {/* 1. Left Group: [←] [COCKPIT] [MISSIONS] [FAILURE LAB] */}
       <div className="astra-mc-header-left">
         <button
           onClick={onReturnHome}
@@ -83,46 +101,49 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
         >
           <ArrowLeft size={16} aria-hidden="true" />
         </button>
+
+        <nav
+          className="astra-mc-header-nav astra-mc-viewmode-switcher"
+          aria-label="Operations Navigation"
+          role="tablist"
+        >
+          <button
+            onClick={() => onSelectModeView?.('cockpit')}
+            className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'cockpit' ? 'active' : ''}`}
+            data-testid="mode-cockpit-btn"
+            title="Orbital Cockpit & 3D Stage"
+            role="tab"
+            aria-selected={activeModeView === 'cockpit'}
+          >
+            <Layers size={13} className="astra-mc-nav-icon" aria-hidden="true" />
+            <span>COCKPIT</span>
+          </button>
+          <button
+            onClick={() => onSelectModeView?.('universe')}
+            className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'universe' ? 'active' : ''}`}
+            data-testid="mode-universe-btn"
+            title="Mission Universe Discovery Hub"
+            role="tab"
+            aria-selected={activeModeView === 'universe'}
+          >
+            <Compass size={13} className="astra-mc-nav-icon" aria-hidden="true" />
+            <span>MISSIONS</span>
+          </button>
+          <button
+            onClick={() => onSelectModeView?.('diagnostics')}
+            className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'diagnostics' ? 'active' : ''}`}
+            data-testid="mode-diagnostics-btn"
+            title="Failure Investigation Lab"
+            role="tab"
+            aria-selected={activeModeView === 'diagnostics'}
+          >
+            <ShieldAlert size={13} className="astra-mc-nav-icon" aria-hidden="true" />
+            <span>FAILURE LAB</span>
+          </button>
+        </nav>
       </div>
 
-      {/* 2. Main Operations Navigation: Cockpit, Missions, Failure Lab */}
-      <nav className="astra-mc-header-nav astra-mc-viewmode-switcher" aria-label="Operations Navigation" role="tablist">
-        <button
-          onClick={() => onSelectModeView?.('cockpit')}
-          className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'cockpit' ? 'active' : ''}`}
-          data-testid="mode-cockpit-btn"
-          title="Orbital Cockpit & 3D Stage"
-          role="tab"
-          aria-selected={activeModeView === 'cockpit'}
-        >
-          <Layers size={13} className="astra-mc-nav-icon" aria-hidden="true" />
-          <span>COCKPIT</span>
-        </button>
-        <button
-          onClick={() => onSelectModeView?.('universe')}
-          className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'universe' ? 'active' : ''}`}
-          data-testid="mode-universe-btn"
-          title="Mission Universe Discovery Hub"
-          role="tab"
-          aria-selected={activeModeView === 'universe'}
-        >
-          <Compass size={13} className="astra-mc-nav-icon" aria-hidden="true" />
-          <span>MISSIONS</span>
-        </button>
-        <button
-          onClick={() => onSelectModeView?.('diagnostics')}
-          className={`astra-mc-nav-btn astra-mc-mode-btn ${activeModeView === 'diagnostics' ? 'active' : ''}`}
-          data-testid="mode-diagnostics-btn"
-          title="Failure Investigation Lab"
-          role="tab"
-          aria-selected={activeModeView === 'diagnostics'}
-        >
-          <ShieldAlert size={13} className="astra-mc-nav-icon" aria-hidden="true" />
-          <span>FAILURE LAB</span>
-        </button>
-      </nav>
-
-      {/* 3. Right: Station Wall Clock & Status Indicators */}
+      {/* 2. Right Group: Station Wall Clock, Sim Controls, +60s Jump, and Stream Status */}
       <div className="astra-mc-header-right">
         {/* Station Wall Clock */}
         <div className="astra-mc-clock-item astra-mc-station-clock" title="Station Master Time">
@@ -130,7 +151,7 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
           <span className="astra-mc-clock-val" data-telemetry="utc-wallclock">{wallClockUtc}</span>
         </div>
 
-        {/* Simulation Controls */}
+        {/* Authoritative Simulation Controls */}
         <div className="astra-mc-sim-controls">
           <button
             onClick={handleToggleLifecycle}
@@ -152,16 +173,28 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
             )}
           </button>
 
-          <button
-            onClick={() => handleStepClock(60)}
-            className="astra-mc-sim-btn"
-            disabled={isUpdatingSim || !simulationStatus}
-            data-testid="advance-sim-btn"
-            title="Step Simulation Forward 60 Seconds"
-          >
-            <FastForward size={11} aria-hidden="true" />
-            <span>+60s</span>
-          </button>
+          <div className="astra-mc-time-advance-box">
+            <button
+              onClick={() => handleStepClock(60)}
+              className={`astra-mc-sim-btn ${isAdvancingSim ? 'pending' : ''}`}
+              disabled={isAdvancingSim || isUpdatingSim || !simulationStatus}
+              data-testid="advance-sim-btn"
+              title="Step Authoritative Simulation Forward 60 Seconds"
+            >
+              <FastForward size={11} aria-hidden="true" />
+              <span>+60s</span>
+            </button>
+            {showTimeJumpToast && (
+              <span
+                className="astra-mc-time-jump-toast"
+                role="status"
+                aria-live="polite"
+                data-testid="time-advance-indicator"
+              >
+                +60 SECONDS
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Real-Time WebSocket / STOMP Telemetry Indicator */}

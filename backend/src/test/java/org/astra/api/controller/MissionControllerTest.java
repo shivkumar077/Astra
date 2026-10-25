@@ -86,4 +86,75 @@ class MissionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.runId == '" + runId + "')].status", contains("COMPLETED")));
     }
+
+    @Test
+    @DisplayName("POST /api/v1/missions as OPERATOR creates and registers custom mission scenario")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testCreateMission_Success() throws Exception {
+        String payload = """
+                {
+                    "title": "Titan Atmospheric Methane Probe",
+                    "destination": "Titan (Polar Descent, 1200 km)",
+                    "destinationGroup": "Outer Planets",
+                    "category": "PLANETARY_RECONNAISSANCE",
+                    "difficulty": "CRITICAL",
+                    "spacecraftId": "AURA-1",
+                    "durationMinutes": 60,
+                    "riskLevel": "SEVERE",
+                    "synopsis": "Descent probe measuring cryovolcanic methane lakes on Titan.",
+                    "objectives": ["Measure atmospheric pressure", "Sample methane cloud layer"],
+                    "completionCriteria": ["Telemetry link maintained", "Data downlink confirmed"],
+                    "operationalConstraints": ["Cryogenic temperature threshold -180C"],
+                    "isSimulated": true
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", notNullValue()))
+                .andExpect(jsonPath("$.title", is("Titan Atmospheric Methane Probe")))
+                .andExpect(jsonPath("$.destinationGroup", is("Outer Planets")))
+                .andExpect(jsonPath("$.spacecraftId", is("AURA-1")))
+                .andExpect(jsonPath("$.status", is("AVAILABLE")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/missions with invalid payload returns 400 Bad Request")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testCreateMission_ValidationError() throws Exception {
+        String invalidPayload = """
+                {
+                    "title": "",
+                    "destination": "",
+                    "spacecraftId": ""
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidPayload))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/missions unauthenticated returns 401 Unauthorized")
+    void testCreateMission_Unauthenticated() throws Exception {
+        String payload = """
+                {
+                    "title": "Unauthorized Mission",
+                    "destination": "Mars",
+                    "category": "PLANETARY_RECONNAISSANCE",
+                    "difficulty": "STANDARD",
+                    "spacecraftId": "AURA-1",
+                    "synopsis": "Test synopsis"
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isUnauthorized());
+    }
 }

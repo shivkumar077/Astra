@@ -9,6 +9,7 @@ import org.astra.events.SimulationEvent;
 import org.astra.events.SimulationEventPublisher;
 import org.astra.events.SimulationEventType;
 import org.astra.missions.domain.*;
+import org.astra.missions.dto.CreateMissionRequest;
 import org.astra.missions.dto.MissionResponse;
 import org.astra.simulation.engine.SimulationEngine;
 import org.astra.telemetry.TelemetryService;
@@ -406,6 +407,61 @@ public class MissionService {
 
     private void registerMission(MissionDefinition mission) {
         catalog.put(mission.id(), mission);
+    }
+
+    public synchronized MissionResponse createMission(CreateMissionRequest request) {
+        Objects.requireNonNull(request, "CreateMissionRequest cannot be null");
+        if (request.title() == null || request.title().isBlank()) {
+            throw new IllegalArgumentException("Mission title cannot be blank");
+        }
+        if (request.destination() == null || request.destination().isBlank()) {
+            throw new IllegalArgumentException("Mission destination cannot be blank");
+        }
+        if (request.spacecraftId() == null || request.spacecraftId().isBlank()) {
+            throw new IllegalArgumentException("Mission spacecraftId cannot be blank");
+        }
+
+        String missionId = request.id();
+        if (missionId == null || missionId.isBlank()) {
+            String slug = request.title().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "-");
+            if (slug.startsWith("-")) slug = slug.substring(1);
+            if (slug.endsWith("-")) slug = slug.substring(0, slug.length() - 1);
+            if (slug.length() > 20) slug = slug.substring(0, 20);
+            missionId = "MSN-" + slug + "-" + (System.currentTimeMillis() % 10000);
+        } else {
+            missionId = missionId.trim().toUpperCase(Locale.ROOT);
+        }
+
+        String destGroup = request.destinationGroup();
+        if (destGroup == null || destGroup.isBlank()) {
+            String lowerDest = request.destination().toLowerCase(Locale.ROOT);
+            if (lowerDest.contains("mars")) destGroup = "Mars";
+            else if (lowerDest.contains("lunar") || lowerDest.contains("moon") || lowerDest.contains("europa") || lowerDest.contains("titan")) destGroup = "Lunar & Deep Space";
+            else if (lowerDest.contains("sun") || lowerDest.contains("solar")) destGroup = "Solar";
+            else if (lowerDest.contains("jupiter") || lowerDest.contains("saturn") || lowerDest.contains("neptune") || lowerDest.contains("uranus")) destGroup = "Outer Planets";
+            else destGroup = "Earth";
+        }
+
+        MissionDefinition def = new MissionDefinition(
+                missionId,
+                request.title().trim(),
+                request.destination().trim(),
+                destGroup.trim(),
+                request.category() != null ? request.category() : MissionCategory.EARTH_OBSERVATION,
+                request.difficulty() != null ? request.difficulty() : MissionDifficulty.STANDARD,
+                request.spacecraftId().trim(),
+                request.durationMinutes() > 0 ? request.durationMinutes() : 45,
+                request.riskLevel() != null && !request.riskLevel().isBlank() ? request.riskLevel().trim() : "MODERATE",
+                request.synopsis() != null && !request.synopsis().isBlank() ? request.synopsis().trim() : "Custom operator mission scenario.",
+                request.objectives() != null && !request.objectives().isEmpty() ? request.objectives() : List.of("Maintain nominal telemetry lock", "Verify subsystem health"),
+                request.completionCriteria() != null && !request.completionCriteria().isEmpty() ? request.completionCriteria() : List.of("Telemetry snapshot recorded", "Zero unhandled faults"),
+                request.operationalConstraints() != null && !request.operationalConstraints().isEmpty() ? request.operationalConstraints() : List.of("Subsystem operating temperature within range"),
+                request.isSimulated() != null ? request.isSimulated() : true
+        );
+
+        registerMission(def);
+        log.info("Registered new mission scenario: {} ('{}') targeting {}", def.id(), def.title(), def.destination());
+        return MissionResponse.fromDefinition(def, null, null);
     }
 
     public List<MissionResponse> getMissions(

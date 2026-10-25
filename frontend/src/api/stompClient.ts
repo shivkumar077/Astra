@@ -3,7 +3,7 @@
  * Connects directly to backend Spring WebSocket MessageBroker at /ws/simulation.
  */
 
-export type StompConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+export type StompConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error';
 
 export interface StompMessage<T = unknown> {
   command: string;
@@ -23,6 +23,9 @@ export class AstraStompClient {
   private shouldReconnect = true;
   private statusListeners: Array<(status: StompConnectionStatus) => void> = [];
   private heartbeatTimer: number | null = null;
+  private reconnectAttempts = 0;
+  private readonly maxReconnectDelayMs = 15000;
+  private readonly baseReconnectDelayMs = 1500;
 
   constructor(url?: string) {
     if (url) {
@@ -59,7 +62,11 @@ export class AstraStompClient {
     }
 
     this.shouldReconnect = true;
-    this.setStatus('connecting');
+    if (this.reconnectAttempts > 0) {
+      this.setStatus('reconnecting');
+    } else {
+      this.setStatus('connecting');
+    }
 
     try {
       this.ws = new WebSocket(this.url);
@@ -91,7 +98,9 @@ export class AstraStompClient {
     };
 
     this.ws.onclose = () => {
-      this.setStatus('disconnected');
+      if (this.status !== 'error') {
+        this.setStatus('disconnected');
+      }
       if (this.shouldReconnect) {
         this.scheduleReconnect();
       }
@@ -100,15 +109,23 @@ export class AstraStompClient {
 
   private scheduleReconnect(): void {
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectAttempts++;
+    // Exponential backoff with jitter: base * 2^(attempts-1) capped at maxReconnectDelayMs
+    const expDelay = Math.min(
+      this.maxReconnectDelayMs,
+      this.baseReconnectDelayMs * Math.pow(1.5, Math.min(this.reconnectAttempts - 1, 6))
+    );
+    this.setStatus('reconnecting');
     this.reconnectTimer = window.setTimeout(() => {
       if (this.shouldReconnect) {
         this.connect();
       }
-    }, 3500);
+    }, expDelay);
   }
 
   public disconnect(): void {
     this.shouldReconnect = false;
+    this.reconnectAttempts = 0;
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -194,6 +211,7 @@ export class AstraStompClient {
       }
 
       if (command === 'CONNECTED') {
+        this.reconnectAttempts = 0;
         this.setStatus('connected');
         // Re-subscribe all active topic subscriptions
         this.subscriptions.forEach((sub, id) => {

@@ -24,7 +24,7 @@ export type FaultSeverity = 'MINOR' | 'MAJOR' | 'CRITICAL';
 
 export type FaultLifecycleState = 'ACTIVE' | 'DETECTED' | 'RECOVERED' | 'CLEARED';
 
-export type StompConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+export type StompConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error';
 
 export interface SimulationSnapshotMessage {
   lifecycle: SimulationLifecycle;

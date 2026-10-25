@@ -1,9 +1,11 @@
 package org.astra.missions.api;
 
+import jakarta.validation.Valid;
 import org.astra.missions.domain.MissionCategory;
 import org.astra.missions.domain.MissionDifficulty;
 import org.astra.missions.domain.MissionRun;
 import org.astra.missions.domain.MissionStatus;
+import org.astra.missions.dto.CreateMissionRequest;
 import org.astra.missions.dto.MissionResponse;
 import org.astra.missions.service.MissionService;
 import org.astra.security.SecurityUtils;
@@ -50,6 +52,19 @@ public class MissionController {
                 Optional.ofNullable(difficulty),
                 Optional.ofNullable(status)
         ));
+    }
+
+    /**
+     * Creates and registers a new mission scenario in the Mission Universe.
+     */
+    @PostMapping
+    public ResponseEntity<MissionResponse> createMission(@RequestBody @Valid CreateMissionRequest request) {
+        try {
+            MissionResponse response = missionService.createMission(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
     }
 
     /**

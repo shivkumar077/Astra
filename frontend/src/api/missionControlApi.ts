@@ -17,6 +17,8 @@ import {
   SimulationEvent,
   MissionResponse,
   MissionRun,
+  MissionCategory,
+  MissionDifficulty,
 } from '../types/missionControl';
 
 export function getApiBaseUrl(): string {
@@ -360,5 +362,36 @@ export async function abortMissionRun(
 
 export async function getMissionHistory(): Promise<MissionRun[]> {
   return request<MissionRun[]>('/missions/history');
+}
+
+export interface CreateMissionPayload {
+  id?: string;
+  title: string;
+  destination: string;
+  destinationGroup?: string;
+  category: MissionCategory;
+  difficulty: MissionDifficulty;
+  spacecraftId: string;
+  durationMinutes?: number;
+  riskLevel?: string;
+  synopsis: string;
+  objectives?: string[];
+  completionCriteria?: string[];
+  operationalConstraints?: string[];
+  isSimulated?: boolean;
+}
+
+export async function createMission(
+  payload: CreateMissionPayload,
+  creds: OperatorCredentials = DEFAULT_OPERATOR_CREDENTIALS
+): Promise<MissionResponse> {
+  return request<MissionResponse>('/missions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(creds),
+    },
+    body: JSON.stringify(payload),
+  });
 }
 

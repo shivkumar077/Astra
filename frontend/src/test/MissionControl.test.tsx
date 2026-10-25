@@ -8,6 +8,7 @@ import { CommandConsole } from '../components/missionControl/CommandConsole';
 import { FailureLabDrawer } from '../components/missionControl/FailureLabDrawer';
 import { EventLogFeed } from '../components/missionControl/EventLogFeed';
 import { OrbitalStage3D } from '../components/missionControl/OrbitalStage3D';
+import { MissionUniverseHub } from '../components/missionControl/MissionUniverseHub';
 import * as missionControlApi from '../api/missionControlApi';
 import {
   SpacecraftDetail,
@@ -445,6 +446,194 @@ describe('ASTRA Mission Control Operations Console', () => {
     // Toggle to FREE again
     fireEvent.click(toggleBtn);
     expect(toggleBtn).toHaveTextContent(/FREE/i);
+  });
+
+  it('renders reorganized top navigation with exact [<-] [COCKPIT] [MISSIONS] [FAILURE LAB] order inside header-left', () => {
+    const mockStatus: SimulationStatus = {
+      lifecycle: 'RUNNING',
+      currentEpoch: '2026-10-24T22:15:30Z',
+      baseEpoch: '2026-10-24T22:00:00Z',
+      elapsedSeconds: 930,
+      spacecraftCount: 3,
+    };
+
+    render(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={mockStatus}
+        connectionStatus="connected"
+        onSimulationUpdated={vi.fn()}
+        activeModeView="cockpit"
+        onSelectModeView={vi.fn()}
+      />
+    );
+
+    const header = screen.getByTestId('mission-control-header');
+    const headerLeft = header.querySelector('.astra-mc-header-left');
+    expect(headerLeft).toBeInTheDocument();
+
+    // Verify arrow button is the first child
+    const children = Array.from(headerLeft!.children);
+    expect(children[0]).toHaveAttribute('data-testid', 'return-to-landing');
+
+    // Verify primary navigation is directly after the return arrow
+    const nav = children[1];
+    expect(nav).toHaveClass('astra-mc-header-nav');
+
+    // Check nav buttons order: COCKPIT, MISSIONS, FAILURE LAB
+    const navButtons = Array.from(nav.querySelectorAll('button'));
+    expect(navButtons).toHaveLength(3);
+    expect(navButtons[0]).toHaveTextContent(/COCKPIT/i);
+    expect(navButtons[1]).toHaveTextContent(/MISSIONS/i);
+    expect(navButtons[2]).toHaveTextContent(/FAILURE LAB/i);
+  });
+
+  it('reflects truthful STOMP connection lifecycle states (CONNECTING, CONNECTED, RECONNECTING, DISCONNECTED, ERROR)', () => {
+    const { rerender } = render(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={null}
+        connectionStatus="connecting"
+        onSimulationUpdated={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('gateway-status')).toHaveTextContent(/STREAM: CONNECTING/i);
+
+    rerender(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={null}
+        connectionStatus="connected"
+        onSimulationUpdated={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('gateway-status')).toHaveTextContent(/STREAM: CONNECTED/i);
+
+    rerender(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={null}
+        connectionStatus="reconnecting"
+        onSimulationUpdated={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('gateway-status')).toHaveTextContent(/STREAM: RECONNECTING/i);
+
+    rerender(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={null}
+        connectionStatus="disconnected"
+        onSimulationUpdated={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('gateway-status')).toHaveTextContent(/STREAM: DISCONNECTED/i);
+
+    rerender(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={null}
+        connectionStatus="error"
+        onSimulationUpdated={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId('gateway-status')).toHaveTextContent(/STREAM: ERROR/i);
+  });
+
+  it('advances simulation time authoritatively on +60s and displays floating toast upon confirmation', async () => {
+    const mockStatus: SimulationStatus = {
+      lifecycle: 'RUNNING',
+      currentEpoch: '2026-10-24T22:15:30Z',
+      baseEpoch: '2026-10-24T22:00:00Z',
+      elapsedSeconds: 930,
+      spacecraftCount: 3,
+    };
+
+    const advanceSpy = vi.spyOn(missionControlApi, 'advanceSimulation').mockResolvedValue(undefined as any);
+    const updateSpy = vi.fn();
+
+    render(
+      <MissionControlHeader
+        onReturnHome={vi.fn()}
+        simulationStatus={mockStatus}
+        connectionStatus="connected"
+        onSimulationUpdated={updateSpy}
+      />
+    );
+
+    const advanceBtn = screen.getByTestId('advance-sim-btn');
+    expect(screen.queryByTestId('time-advance-indicator')).not.toBeInTheDocument();
+
+    fireEvent.click(advanceBtn);
+
+    await waitFor(() => {
+      expect(advanceSpy).toHaveBeenCalledWith(60);
+      expect(updateSpy).toHaveBeenCalled();
+      expect(screen.getByTestId('time-advance-indicator')).toBeInTheDocument();
+      expect(screen.getByTestId('time-advance-indicator')).toHaveTextContent('+60 SECONDS');
+    });
+
+    advanceSpy.mockRestore();
+  });
+
+  it('opens New Mission modal, validates fields, and registers mission', async () => {
+    const listSpy = vi.spyOn(missionControlApi, 'listMissions').mockResolvedValue([]);
+    const historySpy = vi.spyOn(missionControlApi, 'getMissionHistory').mockResolvedValue([]);
+    const createSpy = vi.spyOn(missionControlApi, 'createMission').mockResolvedValue({
+      id: 'MSN-TEST-EUROPA-1',
+      title: 'Europa Subsurface Survey',
+      destination: 'Europa',
+      destinationGroup: 'Outer Planets',
+      category: 'PLANETARY_RECONNAISSANCE',
+      categoryLabel: 'Planetary Reconnaissance',
+      difficulty: 'CRITICAL',
+      difficultyLabel: 'Critical',
+      spacecraftId: 'AURA-1',
+      durationMinutes: 60,
+      riskLevel: 'SEVERE',
+      synopsis: 'Surveying ice fractures on Europa',
+      objectives: ['Analyze plume spectra'],
+      completionCriteria: ['Data received'],
+      operationalConstraints: ['Radiation hardening'],
+      isSimulated: true,
+      status: 'AVAILABLE',
+    });
+
+    render(
+      <MissionUniverseHub
+        spacecraftList={[MOCK_DETAIL]}
+        onSelectSpacecraft={vi.fn()}
+      />
+    );
+
+    // Open modal
+    const openBtn = screen.getByTestId('open-create-mission-modal-btn');
+    fireEvent.click(openBtn);
+
+    expect(screen.getByTestId('create-mission-modal')).toBeInTheDocument();
+
+    // Fill form
+    const titleInput = screen.getByLabelText(/mission title/i);
+    const destInput = screen.getByLabelText(/destination target/i);
+    const synopsisInput = screen.getByLabelText(/operational synopsis/i);
+
+    fireEvent.change(titleInput, { target: { value: 'Europa Subsurface Survey' } });
+    fireEvent.change(destInput, { target: { value: 'Europa (Low Jovian Polar, 400 km)' } });
+    fireEvent.change(synopsisInput, { target: { value: 'Surveying ice fractures on Europa' } });
+
+    // Submit
+    const submitBtn = screen.getByTestId('submit-create-mission-btn');
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(createSpy).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createSpy.mock.calls[0][0].title).toBe('Europa Subsurface Survey');
+
+    listSpy.mockRestore();
+    historySpy.mockRestore();
+    createSpy.mockRestore();
   });
 });
 
