@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { SimulationStatus, StompConnectionStatus } from '../../types/missionControl';
 import { advanceSimulation, pauseSimulation, resumeSimulation } from '../../api/missionControlApi';
-import { ArrowLeft, Play, Pause, FastForward } from 'lucide-react';
+import { ArrowLeft, Play, Pause, FastForward, Layers, Compass, ShieldAlert } from 'lucide-react';
+
+export type OperationalModeView = 'cockpit' | 'universe' | 'diagnostics';
 
 interface MissionControlHeaderProps {
   onReturnHome: () => void;
   simulationStatus: SimulationStatus | null;
   connectionStatus: StompConnectionStatus;
   onSimulationUpdated: () => void;
+  activeModeView?: OperationalModeView;
+  onSelectModeView?: (mode: OperationalModeView) => void;
 }
 
 export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
@@ -15,6 +19,8 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
   simulationStatus,
   connectionStatus,
   onSimulationUpdated,
+  activeModeView = 'cockpit',
+  onSelectModeView,
 }) => {
   const [wallClockUtc, setWallClockUtc] = useState<string>('');
   const [isUpdatingSim, setIsUpdatingSim] = useState<boolean>(false);
@@ -85,6 +91,37 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
             <span className="astra-mc-badge">MISSION CONTROL</span>
           </div>
           <span className="astra-mc-subtitle">FLIGHT DYNAMICS &amp; ORBITAL OPERATIONS CONSOLE</span>
+        </div>
+
+        {/* Operational View Mode Switcher */}
+        <div className="astra-mc-viewmode-switcher" role="tablist">
+          <button
+            onClick={() => onSelectModeView?.('cockpit')}
+            className={`astra-mc-mode-btn ${activeModeView === 'cockpit' ? 'active' : ''}`}
+            data-testid="mode-cockpit-btn"
+            title="Orbital Cockpit & 3D Stage"
+          >
+            <Layers size={11} />
+            <span>COCKPIT</span>
+          </button>
+          <button
+            onClick={() => onSelectModeView?.('universe')}
+            className={`astra-mc-mode-btn ${activeModeView === 'universe' ? 'active' : ''}`}
+            data-testid="mode-universe-btn"
+            title="Mission Universe Discovery Hub"
+          >
+            <Compass size={11} />
+            <span>MISSIONS</span>
+          </button>
+          <button
+            onClick={() => onSelectModeView?.('diagnostics')}
+            className={`astra-mc-mode-btn ${activeModeView === 'diagnostics' ? 'active' : ''}`}
+            data-testid="mode-diagnostics-btn"
+            title="Failure Investigation Lab"
+          >
+            <ShieldAlert size={11} />
+            <span>FAILURE LAB</span>
+          </button>
         </div>
       </div>
 

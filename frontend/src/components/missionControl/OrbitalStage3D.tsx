@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { SpacecraftDetail, KeplerianElements } from '../../types/missionControl';
+import {
+  computeKeplerianCartesian,
+  clampObserverDistance,
+  EARTH_RADIUS_UNITS,
+  EARTH_RADIUS_KM,
+} from '../../utils/orbitalCamera';
 import { Crosshair, Compass } from 'lucide-react';
 
 interface OrbitalStage3DProps {
@@ -9,10 +15,6 @@ interface OrbitalStage3DProps {
   onSelectSpacecraft: (id: string) => void;
   reducedMotion?: boolean;
 }
-
-// Earth scale constant: 1 Earth Radius = 2.0 Three.js units
-const EARTH_RADIUS_UNITS = 2.0;
-const EARTH_RADIUS_KM = 6378.137;
 
 // Authoritative orbital elements fallback if elements have not arrived via REST yet
 const DEFAULT_ELEMENTS: Record<string, KeplerianElements> = {
@@ -52,9 +54,30 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const [referenceFrame, setReferenceFrame] = useState<'ECI_J2000' | 'LVLH' | 'GROUND_TRACK'>('ECI_J2000');
   const [trackingMode, setTrackingMode] = useState<'FREE' | 'TARGET_LOCK'>('TARGET_LOCK');
 
+  // Tracking state refs to avoid tearing down the WebGL context on UI toggles
+  const trackingModeRef = useRef<'FREE' | 'TARGET_LOCK'>(trackingMode);
+  trackingModeRef.current = trackingMode;
+
+  const selectedSpacecraftIdRef = useRef<string>(selectedSpacecraftId);
+  selectedSpacecraftIdRef.current = selectedSpacecraftId;
+
+  const spacecraftListRef = useRef<SpacecraftDetail[]>(spacecraftList);
+  spacecraftListRef.current = spacecraftList;
+
+  const reducedMotionRef = useRef<boolean>(reducedMotion);
+  reducedMotionRef.current = reducedMotion;
+
+  const updateOrbitsRef = useRef<() => void>(() => {});
+
   const selectedCraft =
     spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
 
+  // Orbit update effect: runs only when spacecraft data changes, WITHOUT recreating canvas or WebGLRenderer
+  useEffect(() => {
+    updateOrbitsRef.current();
+  }, [spacecraftList, selectedSpacecraftId]);
+
+  // Main 3D Scene Initialization: Runs once on mount
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -284,47 +307,18 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       }
       spacecraftMeshes.clear();
 
-      const craftsToRender = spacecraftList.length > 0
-        ? spacecraftList
+      const list = spacecraftListRef.current;
+      const selectedId = selectedSpacecraftIdRef.current;
+      const craftsToRender = list.length > 0
+        ? list
         : (selectedCraft ? [selectedCraft] : []);
 
       craftsToRender.forEach((craft) => {
-        const isSelected = craft.id === selectedSpacecraftId;
+        const isSelected = craft.id === selectedId;
         const elem = craft.elements || DEFAULT_ELEMENTS[craft.id] || DEFAULT_ELEMENTS['AURA-1'];
         if (!elem) return;
 
-        // Compute Keplerian Ellipse Points
-        const a_units = (elem.semiMajorAxisKm / EARTH_RADIUS_KM) * EARTH_RADIUS_UNITS;
-        const e = elem.eccentricity;
-        const inc_rad = (elem.inclinationDeg * Math.PI) / 180;
-        const raan_rad = (elem.raanDeg * Math.PI) / 180;
-        const argp_rad = (elem.argOfPerigeeDeg * Math.PI) / 180;
-
-        const points: THREE.Vector3[] = [];
-        const segments = 160;
-
-        for (let i = 0; i <= segments; i++) {
-          const nu = (i / segments) * Math.PI * 2;
-          const r = (a_units * (1 - e * e)) / (1 + e * Math.cos(nu));
-
-          // Perifocal coordinates
-          const x_p = r * Math.cos(nu);
-          const y_p = r * Math.sin(nu);
-
-          // Rotate to 3D ECI: R_z(-raan) * R_x(-inc) * R_z(-argp)
-          const x1 = x_p * Math.cos(argp_rad) - y_p * Math.sin(argp_rad);
-          const y1 = x_p * Math.sin(argp_rad) + y_p * Math.cos(argp_rad);
-
-          const x2 = x1;
-          const y2 = y1 * Math.cos(inc_rad);
-          const z2 = y1 * Math.sin(inc_rad);
-
-          const x_eci = x2 * Math.cos(raan_rad) - y2 * Math.sin(raan_rad);
-          const y_eci = x2 * Math.sin(raan_rad) + y2 * Math.cos(raan_rad);
-          const z_eci = z2;
-
-          points.push(new THREE.Vector3(x_eci, z_eci, -y_eci));
-        }
+        const { points, currentNode } = computeKeplerianCartesian(elem, EARTH_RADIUS_UNITS, EARTH_RADIUS_KM);
 
         const trajGeometry = new THREE.BufferGeometry().setFromPoints(points);
         const trajMaterial = new THREE.LineBasicMaterial({
@@ -336,24 +330,8 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
         const trajLine = new THREE.Line(trajGeometry, trajMaterial);
         trajectoryGroup.add(trajLine);
 
-        // Current Spacecraft Node Position
-        const trueNu = ((elem.trueAnomalyDeg || 0) * Math.PI) / 180;
-        const r_now = (a_units * (1 - e * e)) / (1 + e * Math.cos(trueNu));
-        const px = r_now * Math.cos(trueNu);
-        const py = r_now * Math.sin(trueNu);
-
-        const cx1 = px * Math.cos(argp_rad) - py * Math.sin(argp_rad);
-        const cy1 = px * Math.sin(argp_rad) + py * Math.cos(argp_rad);
-        const cx2 = cx1;
-        const cy2 = cy1 * Math.cos(inc_rad);
-        const cz2 = cy1 * Math.sin(inc_rad);
-
-        const nodeX = cx2 * Math.cos(raan_rad) - cy2 * Math.sin(raan_rad);
-        const nodeY = cx2 * Math.sin(raan_rad) + cy2 * Math.cos(raan_rad);
-        const nodeZ = cz2;
-
         const craftGroup = new THREE.Group();
-        craftGroup.position.set(nodeX, nodeZ, -nodeY);
+        craftGroup.position.copy(currentNode);
 
         // Spacecraft Core Node
         const coreGeometry = new THREE.SphereGeometry(isSelected ? 0.09 : 0.06, 16, 16);
@@ -380,6 +358,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       });
     };
 
+    updateOrbitsRef.current = updateOrbits;
     updateOrbits();
 
     // 6. Interactive Orbit & Pan Controls
@@ -402,9 +381,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
       spherical.theta -= deltaX * 0.006;
       spherical.phi = Math.max(0.15, Math.min(Math.PI - 0.15, spherical.phi - deltaY * 0.006));
-
-      camera.position.setFromSpherical(spherical);
-      camera.lookAt(0, 0, 0);
+      clampObserverDistance(spherical);
     };
 
     const onPointerUp = () => {
@@ -413,9 +390,8 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-      spherical.radius = Math.max(3.2, Math.min(22.0, spherical.radius + e.deltaY * 0.012));
-      camera.position.setFromSpherical(spherical);
-      camera.lookAt(0, 0, 0);
+      spherical.radius = Math.max(3.0, Math.min(22.0, spherical.radius + e.deltaY * 0.012));
+      clampObserverDistance(spherical);
     };
 
     container.addEventListener('pointerdown', onPointerDown);
@@ -423,8 +399,11 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     window.addEventListener('pointerup', onPointerUp);
     container.addEventListener('wheel', onWheel, { passive: false });
 
-    // 7. Animation Loop
+    // 7. Animation Loop with Target Camera Tracking & Damping
     const clock = new THREE.Clock();
+    const currentLookAt = new THREE.Vector3(0, 0, 0);
+    const targetLookAt = new THREE.Vector3(0, 0, 0);
+    const tempTarget = new THREE.Vector3();
 
     const animate = () => {
       if (isDisposed) return;
@@ -432,27 +411,49 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
       const delta = clock.getDelta();
 
-      if (!reducedMotion) {
+      if (!reducedMotionRef.current) {
         // Slow continuous Earth rotation
         earthMesh.rotation.y += delta * 0.02;
         cloudMesh.rotation.y += delta * 0.026;
         gridMesh.rotation.y += delta * 0.02;
       }
 
-      // Smooth target-lock camera tracking
-      if (trackingMode === 'TARGET_LOCK') {
-        const activeNode = spacecraftMeshes.get(selectedSpacecraftId);
+      // Smooth Target Camera Tracking
+      if (trackingModeRef.current === 'TARGET_LOCK') {
+        const activeNode = spacecraftMeshes.get(selectedSpacecraftIdRef.current);
         if (activeNode) {
-          const wp = new THREE.Vector3();
-          activeNode.getWorldPosition(wp);
-          camera.lookAt(wp.x * 0.35, wp.y * 0.35, wp.z * 0.35);
+          activeNode.getWorldPosition(tempTarget);
+          if (
+            !isNaN(tempTarget.x) && isFinite(tempTarget.x) &&
+            !isNaN(tempTarget.y) && isFinite(tempTarget.y) &&
+            !isNaN(tempTarget.z) && isFinite(tempTarget.z) &&
+            tempTarget.lengthSq() > 0.01
+          ) {
+            targetLookAt.copy(tempTarget);
+          } else {
+            targetLookAt.set(0, 0, 0);
+          }
         } else {
-          camera.lookAt(0, 0, 0);
+          targetLookAt.set(0, 0, 0);
         }
       } else {
-        camera.lookAt(0, 0, 0);
+        targetLookAt.set(0, 0, 0);
       }
 
+      // Smooth look-at interpolation without sudden jumps
+      const lerpFactor = reducedMotionRef.current ? 1.0 : 0.07;
+      currentLookAt.lerp(targetLookAt, lerpFactor);
+
+      // Compute camera position relative to target
+      camera.position.setFromSpherical(spherical).add(currentLookAt);
+
+      // Safety: camera must maintain distance from lookAt to prevent near-clipping
+      const distToLookAt = camera.position.distanceTo(currentLookAt);
+      if (distToLookAt < 2.5) {
+        camera.position.sub(currentLookAt).setLength(2.5).add(currentLookAt);
+      }
+
+      camera.lookAt(currentLookAt);
       renderer.render(scene, camera);
     };
 
@@ -504,7 +505,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [spacecraftList, selectedSpacecraftId, reducedMotion, trackingMode]);
+  }, []); // Run ONCE on mount: No context thrashing on target toggle!
 
   // Robust metrics with fallbacks
   const alt = (selectedCraft?.altitudeKm ?? 700.1).toFixed(1);
@@ -517,11 +518,11 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     <div className="astra-mc-center-viewport" data-testid="orbital-stage-3d">
       <div ref={mountRef} className="astra-mc-canvas-container" />
 
-      {/* Top HUD Card & Viewport Controls */}
+      {/* Top HUD: Target Telemetry Badge & Control Toolbar */}
       <div className="astra-mc-viewport-hud">
         <div className="astra-mc-hud-target-card">
           <span className="astra-mc-hud-target-tag">
-            [ ACTIVE TARGET // {selectedCraft ? selectedCraft.callSign : 'AURA-1'} ]
+            [ ACTIVE TARGET // {selectedCraft ? selectedCraft.id : 'AURA-1'} ]
           </span>
           <span className="astra-mc-hud-target-title">
             {selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform'}
@@ -542,6 +543,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
             onClick={() => setTrackingMode((m) => (m === 'TARGET_LOCK' ? 'FREE' : 'TARGET_LOCK'))}
             className={`astra-mc-hud-btn ${trackingMode === 'TARGET_LOCK' ? 'active' : ''}`}
             title="Toggle Target Camera Lock"
+            data-testid="toggle-target-camera-btn"
           >
             <Crosshair size={12} />
             <span>TRACK: {trackingMode}</span>

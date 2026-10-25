@@ -241,3 +241,54 @@ export interface SimulationEvent {
   parameters?: Record<string, unknown>;
   details?: Record<string, unknown>;
 }
+
+export type MissionCategory =
+  | 'EARTH_OBSERVATION'
+  | 'TELEMETRY_MONITORING'
+  | 'ORBITAL_SAFETY'
+  | 'COMMUNICATIONS_RECOVERY'
+  | 'PAYLOAD_CALIBRATION'
+  | 'PLANETARY_RECONNAISSANCE'
+  | 'DEEP_SPACE_SURVIVAL'
+  | 'THERMAL_MANAGEMENT';
+
+export type MissionDifficulty = 'STANDARD' | 'CHALLENGING' | 'CRITICAL';
+
+export type MissionStatus = 'AVAILABLE' | 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'ABORTED';
+
+export interface MissionRun {
+  runId: string;
+  missionId: string;
+  spacecraftId: string;
+  status: MissionStatus;
+  startedEpoch: string;
+  completedEpoch?: string;
+  telemetrySnapshotsCaptured: number;
+  commandsDispatched: number;
+  outcomeSummary: string;
+  objectiveResults?: Record<string, boolean>;
+  operatorUsername?: string;
+}
+
+export interface MissionResponse {
+  id: string;
+  title: string;
+  destination: string;
+  destinationGroup: string;
+  category: MissionCategory;
+  categoryLabel: string;
+  difficulty: MissionDifficulty;
+  difficultyLabel: string;
+  spacecraftId: string;
+  durationMinutes: number;
+  riskLevel: string;
+  synopsis: string;
+  objectives: string[];
+  completionCriteria: string[];
+  operationalConstraints: string[];
+  isSimulated: boolean;
+  status: MissionStatus;
+  activeRun?: MissionRun | null;
+  lastCompletedRun?: MissionRun | null;
+}
+

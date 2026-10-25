@@ -119,7 +119,8 @@ public class SecurityConfig {
                                 "/api/v1/commands/**",
                                 "/api/v1/events/**",
                                 "/api/v1/anomalies/**",
-                                "/api/v1/imagery/**"
+                                "/api/v1/imagery/**",
+                                "/api/v1/missions/**"
                         ).permitAll()
                         .requestMatchers(HttpMethod.HEAD,
                                 "/api/v1/simulation/status",
@@ -130,7 +131,8 @@ public class SecurityConfig {
                                 "/api/v1/commands/**",
                                 "/api/v1/events/**",
                                 "/api/v1/anomalies/**",
-                                "/api/v1/imagery/**"
+                                "/api/v1/imagery/**",
+                                "/api/v1/missions/**"
                         ).permitAll()
 
                         // 4. Operator command execution & simulation clock advancement
@@ -139,7 +141,8 @@ public class SecurityConfig {
                                 "/api/v1/spacecraft/*/commands",
                                 "/api/v1/simulation/advance",
                                 "/api/v1/simulation/pause",
-                                "/api/v1/simulation/resume"
+                                "/api/v1/simulation/resume",
+                                "/api/v1/missions/**"
                         ).hasAnyRole("OPERATOR", "FLIGHT_DIRECTOR", "ADMIN")
 
                         // 5. Flight Director Failure Lab operations (fault injection, recovery, clearance)

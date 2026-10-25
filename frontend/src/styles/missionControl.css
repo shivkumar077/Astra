@@ -1003,3 +1003,794 @@
     animation: none !important;
   }
 }
+
+/* ------------------------------------------------------------------------------
+   13. VIEW MODE SWITCHER & WORKSPACE EXPANSION
+   ------------------------------------------------------------------------------ */
+.astra-mc-viewmode-switcher {
+  display: flex;
+  align-items: center;
+  background: rgba(4, 12, 24, 0.7);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  border-radius: 4px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.astra-mc-mode-btn {
+  background: transparent;
+  color: #7ba3c0;
+  border: none;
+  font-family: 'Space Mono', monospace, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.astra-mc-mode-btn:hover {
+  color: #e0f2fe;
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.astra-mc-mode-btn.active {
+  color: #030a14;
+  background: #00f0ff;
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+.astra-mc-fullscreen-workspace {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: radial-gradient(circle at 50% 10%, rgba(6, 24, 48, 0.45) 0%, rgba(3, 8, 16, 0.95) 85%);
+  padding: 20px 28px;
+  position: relative;
+}
+
+/* ------------------------------------------------------------------------------
+   14. MISSION UNIVERSE HUB
+   ------------------------------------------------------------------------------ */
+.astra-mc-universe-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.astra-mc-universe-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  padding-bottom: 18px;
+}
+
+.astra-mc-universe-tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  color: #00f0ff;
+  text-transform: uppercase;
+}
+
+.astra-mc-universe-heading {
+  font-family: 'Space Mono', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #f0f6fc;
+  margin: 4px 0 6px 0;
+}
+
+.astra-mc-universe-subtitle {
+  font-size: 13px;
+  color: #8da4be;
+  margin: 0;
+  max-width: 620px;
+  line-height: 1.5;
+}
+
+.astra-mc-universe-stats-banner {
+  display: flex;
+  gap: 28px;
+  background: rgba(8, 20, 36, 0.6);
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  border-radius: 6px;
+  padding: 12px 20px;
+}
+
+.astra-mc-stat-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.astra-mc-stat-val {
+  font-family: 'Space Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: #00f0ff;
+}
+
+.astra-mc-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #647d96;
+  text-transform: uppercase;
+}
+
+.astra-mc-universe-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.astra-mc-destinations-track {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.astra-mc-destination-btn {
+  background: rgba(10, 24, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a9c0;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.astra-mc-destination-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.3);
+  color: #e2f1fd;
+}
+
+.astra-mc-destination-btn.active {
+  background: rgba(0, 240, 255, 0.18);
+  border-color: #00f0ff;
+  color: #00f0ff;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.25);
+}
+
+.astra-mc-dest-icon {
+  font-size: 13px;
+}
+
+.astra-mc-filter-dropdowns {
+  display: flex;
+  gap: 10px;
+}
+
+.astra-mc-filter-select {
+  background: rgba(8, 20, 36, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  color: #c9d8e8;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.astra-mc-filter-select:focus {
+  border-color: #00f0ff;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+.astra-mc-missions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.astra-mc-mission-card {
+  background: linear-gradient(170deg, rgba(10, 25, 45, 0.75) 0%, rgba(5, 14, 26, 0.9) 100%);
+  border: 1px solid rgba(0, 240, 255, 0.18);
+  border-radius: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.astra-mc-mission-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: rgba(0, 240, 255, 0.4);
+}
+
+.astra-mc-mission-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(0, 240, 255, 0.15);
+}
+
+.astra-mc-mission-card.active-run {
+  border-color: #00f0ff;
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+}
+
+.astra-mc-mission-card.active-run::before {
+  background: #00f0ff;
+}
+
+.astra-mc-mission-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.astra-mc-badge-diff,
+.astra-mc-badge-status {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 2px 8px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.astra-mc-badge-diff.beginner { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.3); }
+.astra-mc-badge-diff.intermediate { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(234, 179, 8, 0.3); }
+.astra-mc-badge-diff.expert { background: rgba(239, 68, 68, 0.15); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+
+.astra-mc-badge-status.available { background: rgba(56, 189, 248, 0.12); color: #38bdf8; }
+.astra-mc-badge-status.active { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
+.astra-mc-badge-status.completed { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+.astra-mc-badge-status.failed { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+
+.astra-mc-mission-card-body {
+  flex: 1;
+}
+
+.astra-mc-card-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0 0 6px 0;
+}
+
+.astra-mc-card-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.45;
+  margin: 0 0 14px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.astra-mc-card-meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 16px;
+  background: rgba(4, 12, 22, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.astra-mc-meta-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.astra-mc-meta-label {
+  color: #64748b;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.astra-mc-meta-val {
+  color: #cbd5e1;
+  font-family: 'Space Mono', monospace;
+  font-weight: 600;
+}
+
+.astra-mc-mission-card-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.astra-mc-btn-briefing,
+.astra-mc-btn-run {
+  flex: 1;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.astra-mc-btn-briefing {
+  background: transparent;
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: #00f0ff;
+}
+
+.astra-mc-btn-briefing:hover {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: #00f0ff;
+}
+
+.astra-mc-btn-run {
+  background: #00f0ff;
+  border: none;
+  color: #030810;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+}
+
+.astra-mc-btn-run:hover {
+  background: #38bdf8;
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.6);
+}
+
+/* Briefing Modal */
+.astra-mc-briefing-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(2, 6, 12, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.astra-mc-briefing-modal {
+  background: linear-gradient(175deg, #071526 0%, #030a14 100%);
+  border: 1px solid #00f0ff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 32px rgba(0, 240, 255, 0.25);
+  overflow: hidden;
+}
+
+.astra-mc-briefing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 16px 20px;
+}
+
+.astra-mc-briefing-close-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.astra-mc-briefing-close-btn:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.astra-mc-briefing-body {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.astra-mc-briefing-section h4 {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: #00f0ff;
+  text-transform: uppercase;
+  margin: 0 0 8px 0;
+}
+
+.astra-mc-briefing-section p {
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.astra-mc-obj-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.astra-mc-obj-item {
+  font-size: 12px;
+  color: #cbd5e1;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.astra-mc-briefing-footer {
+  border-top: 1px solid rgba(0, 240, 255, 0.2);
+  padding: 14px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: rgba(3, 8, 16, 0.6);
+}
+
+.astra-mc-btn-launch,
+.astra-mc-btn-complete,
+.astra-mc-btn-abort {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.astra-mc-btn-launch {
+  background: #00f0ff;
+  border: none;
+  color: #030810;
+}
+
+.astra-mc-btn-complete {
+  background: #22c55e;
+  border: none;
+  color: #030810;
+}
+
+.astra-mc-btn-abort {
+  background: transparent;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+}
+
+.astra-mc-btn-abort:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Live Run Observation Banner */
+.astra-mc-live-run-banner {
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid #00f0ff;
+  border-radius: 6px;
+  padding: 12px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.astra-mc-run-telemetry-pill {
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  color: #38bdf8;
+  background: rgba(4, 14, 26, 0.8);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+/* History Audit Table */
+.astra-mc-universe-history-section {
+  margin-top: 10px;
+}
+
+.astra-mc-universe-history-section h3 {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  color: #cbd5e1;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.astra-mc-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(5, 14, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.astra-mc-history-table th {
+  background: rgba(8, 20, 36, 0.9);
+  color: #64748b;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.astra-mc-history-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+}
+
+/* ------------------------------------------------------------------------------
+   15. FAILURE INVESTIGATION LAB
+   ------------------------------------------------------------------------------ */
+.astra-mc-failure-lab-container {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.astra-mc-failure-hero {
+  border-bottom: 1px solid rgba(239, 68, 68, 0.25);
+  padding-bottom: 16px;
+}
+
+.astra-mc-vehicle-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(6, 16, 28, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 10px 16px;
+}
+
+.astra-mc-vehicle-pill {
+  background: rgba(12, 28, 48, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.astra-mc-vehicle-pill:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.astra-mc-vehicle-pill.active {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
+}
+
+.astra-mc-failure-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.astra-mc-failure-subsystems-col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.astra-mc-diag-card {
+  background: rgba(6, 16, 28, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.astra-mc-diag-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.astra-mc-diag-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.astra-mc-diag-status {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.astra-mc-diag-status.nominal { background: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.astra-mc-diag-status.degraded { background: rgba(234, 179, 8, 0.2); color: #facc15; }
+.astra-mc-diag-status.critical { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+.astra-mc-diag-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.astra-mc-failure-interactive-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.astra-mc-fault-injection-box,
+.astra-mc-recovery-box {
+  background: rgba(7, 18, 32, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.astra-mc-fault-injection-box {
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.astra-mc-recovery-box {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.astra-mc-fault-injection-box h4,
+.astra-mc-recovery-box h4 {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+}
+
+.astra-mc-fault-options,
+.astra-mc-recovery-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.astra-mc-btn-inject-fault {
+  background: #ef4444;
+  border: none;
+  color: #fff;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+}
+
+.astra-mc-btn-execute-recovery {
+  background: #22c55e;
+  border: none;
+  color: #030810;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+}
+
+/* Comparison Audit Grid */
+.astra-mc-comparison-audit-box {
+  background: rgba(4, 12, 22, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.astra-mc-comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.astra-mc-comparison-col {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.astra-mc-comparison-col h5 {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  margin: 0 0 8px 0;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+/* Incident Report */
+.astra-mc-incident-report-box {
+  background: rgba(6, 16, 28, 0.8);
+  border-left: 3px solid #f59e0b;
+  border-radius: 0 6px 6px 0;
+  padding: 16px 20px;
+}
+
+.astra-mc-report-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.astra-mc-report-finding {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #cbd5e1;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  padding: 10px 14px;
+  border-radius: 4px;
+}
+
+@media (max-width: 960px) {
+  .astra-mc-failure-grid {
+    grid-template-columns: 1fr;
+  }
+  .astra-mc-failure-subsystems-col {
+    grid-template-columns: 1fr;
+  }
+}

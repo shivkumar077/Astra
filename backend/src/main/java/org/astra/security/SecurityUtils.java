@@ -28,4 +28,11 @@ public final class SecurityUtils {
         }
         return Optional.of(name);
     }
+
+    /**
+     * Alias for getCurrentOperatorUsername.
+     */
+    public static Optional<String> getCurrentUsername() {
+        return getCurrentOperatorUsername();
+    }
 }

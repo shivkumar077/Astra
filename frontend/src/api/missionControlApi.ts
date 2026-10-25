@@ -15,6 +15,8 @@ import {
   FaultRecord,
   SubsystemsHealth,
   SimulationEvent,
+  MissionResponse,
+  MissionRun,
 } from '../types/missionControl';
 
 export function getApiBaseUrl(): string {
@@ -291,3 +293,72 @@ export async function getEvents(
   if (spacecraftId) params.set('spacecraftId', spacecraftId);
   return request<SimulationEvent[]>(`/events?${params.toString()}`);
 }
+
+// --- Mission Universe & Simulation Execution ---
+
+export interface MissionFilters {
+  destination?: string;
+  category?: string;
+  difficulty?: string;
+  status?: string;
+}
+
+export async function listMissions(filters?: MissionFilters): Promise<MissionResponse[]> {
+  const params = new URLSearchParams();
+  if (filters?.destination) params.set('destination', filters.destination);
+  if (filters?.category) params.set('category', filters.category);
+  if (filters?.difficulty) params.set('difficulty', filters.difficulty);
+  if (filters?.status) params.set('status', filters.status);
+  const query = params.toString();
+  return request<MissionResponse[]>(`/missions${query ? `?${query}` : ''}`);
+}
+
+export async function getMissionBriefing(id: string): Promise<MissionResponse> {
+  return request<MissionResponse>(`/missions/${encodeURIComponent(id)}`);
+}
+
+export async function startMission(
+  id: string,
+  creds: OperatorCredentials = DEFAULT_OPERATOR_CREDENTIALS
+): Promise<MissionRun> {
+  return request<MissionRun>(`/missions/${encodeURIComponent(id)}/start`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(creds),
+    },
+  });
+}
+
+export async function completeMissionRun(
+  runId: string,
+  creds: OperatorCredentials = DEFAULT_OPERATOR_CREDENTIALS
+): Promise<MissionRun> {
+  return request<MissionRun>(`/missions/runs/${encodeURIComponent(runId)}/complete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(creds),
+    },
+  });
+}
+
+export async function abortMissionRun(
+  runId: string,
+  reason: string = 'Aborted by operator command',
+  creds: OperatorCredentials = DEFAULT_OPERATOR_CREDENTIALS
+): Promise<MissionRun> {
+  return request<MissionRun>(`/missions/runs/${encodeURIComponent(runId)}/abort`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader(creds),
+    },
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function getMissionHistory(): Promise<MissionRun[]> {
+  return request<MissionRun[]>('/missions/history');
+}
+

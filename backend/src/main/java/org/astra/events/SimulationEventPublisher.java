@@ -30,4 +30,16 @@ public interface SimulationEventPublisher {
         publish(event);
         return event;
     }
+
+    /**
+     * Helper to construct and publish an event using default empty details map.
+     */
+    default SimulationEvent publish(
+            SimulationEventType type,
+            Instant simulationEpoch,
+            String spacecraftId,
+            String summary
+    ) {
+        return publish(type, simulationEpoch, spacecraftId, summary, Map.of());
+    }
 }

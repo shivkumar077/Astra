@@ -418,4 +418,31 @@ describe('ASTRA Mission Control Operations Console', () => {
     fireEvent.click(returnBtn);
     expect(handleReturn).toHaveBeenCalledTimes(1);
   });
+
+  it('toggles Target Camera between TARGET_LOCK and FREE repeatedly without crashing', () => {
+    render(
+      <OrbitalStage3D
+        spacecraftList={MOCK_FLEET_DETAILS}
+        selectedSpacecraftId="AURA-1"
+        onSelectSpacecraft={vi.fn()}
+      />
+    );
+
+    const toggleBtn = screen.getByTestId('toggle-target-camera-btn');
+    expect(toggleBtn).toBeInTheDocument();
+    expect(toggleBtn).toHaveTextContent(/TARGET_LOCK/i);
+
+    // Toggle to FREE
+    fireEvent.click(toggleBtn);
+    expect(toggleBtn).toHaveTextContent(/FREE/i);
+
+    // Toggle back to TARGET_LOCK
+    fireEvent.click(toggleBtn);
+    expect(toggleBtn).toHaveTextContent(/TARGET_LOCK/i);
+
+    // Toggle to FREE again
+    fireEvent.click(toggleBtn);
+    expect(toggleBtn).toHaveTextContent(/FREE/i);
+  });
 });
+

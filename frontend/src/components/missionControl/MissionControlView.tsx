@@ -18,13 +18,15 @@ import {
   getSubsystemsHealth,
 } from '../../api/missionControlApi';
 import { getMissionControlStompClient } from '../../api/stompClient';
-import { MissionControlHeader } from './MissionControlHeader';
+import { MissionControlHeader, OperationalModeView } from './MissionControlHeader';
 import { FleetSelectorBar } from './FleetSelectorBar';
 import { OrbitalStage3D } from './OrbitalStage3D';
 import { TelemetryWorkspace } from './TelemetryWorkspace';
 import { CommandConsole } from './CommandConsole';
 import { FailureLabDrawer } from './FailureLabDrawer';
 import { EventLogFeed } from './EventLogFeed';
+import { MissionUniverseHub } from './MissionUniverseHub';
+import { FailureLabSuite } from './FailureLabSuite';
 import { Activity, Terminal, ShieldAlert, Layers } from 'lucide-react';
 import '../../styles/missionControl.css';
 
@@ -46,6 +48,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [commandHistory, setCommandHistory] = useState<CommandRecord[]>([]);
   const [events, setEvents] = useState<SimulationEvent[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('telemetry');
+  const [activeModeView, setActiveModeView] = useState<OperationalModeView>('cockpit');
   const [loading, setLoading] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<StompConnectionStatus>('connecting');
 
@@ -197,115 +200,146 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         simulationStatus={simulationStatus}
         connectionStatus={connectionStatus}
         onSimulationUpdated={loadInitialData}
+        activeModeView={activeModeView}
+        onSelectModeView={setActiveModeView}
       />
 
-      {/* 2. Main Tri-Chamber Workspace */}
-      <main className="astra-mc-main-workspace">
-        {/* Left: Multi-Craft Fleet Selector & Live Roster */}
-        <FleetSelectorBar
-          spacecraftList={spacecraftList}
-          selectedSpacecraftId={selectedSpacecraftId}
-          onSelectSpacecraft={(id) => {
-            setSelectedSpacecraftId(id);
-          }}
-          loading={loading}
-        />
+      {/* 2. Operational Views */}
+      {activeModeView === 'cockpit' && (
+        <main className="astra-mc-main-workspace">
+          {/* Left: Multi-Craft Fleet Selector & Live Roster */}
+          <FleetSelectorBar
+            spacecraftList={spacecraftList}
+            selectedSpacecraftId={selectedSpacecraftId}
+            onSelectSpacecraft={(id) => {
+              setSelectedSpacecraftId(id);
+            }}
+            loading={loading}
+          />
 
-        {/* Center: Interactive 3D Orbital Visualization Stage */}
-        <OrbitalStage3D
-          spacecraftList={spacecraftList}
-          selectedSpacecraftId={selectedSpacecraftId}
-          onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
-          reducedMotion={reducedMotion}
-        />
+          {/* Center: Interactive 3D Orbital Visualization Stage */}
+          <OrbitalStage3D
+            spacecraftList={spacecraftList}
+            selectedSpacecraftId={selectedSpacecraftId}
+            onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
+            reducedMotion={reducedMotion}
+          />
 
-        {/* Right: Operations & Subsystems Console */}
-        <section className="astra-mc-ops-panel" data-testid="operations-console-panel">
-          {/* Navigation Tabs */}
-          <div className="astra-mc-nav-tabs" role="tablist">
-            <button
-              onClick={() => setActiveTab('telemetry')}
-              className={`astra-mc-tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'telemetry'}
-              data-testid="tab-telemetry"
-            >
-              <Layers size={12} />
-              <span>TELEMETRY</span>
-            </button>
+          {/* Right: Operations & Subsystems Console */}
+          <section className="astra-mc-ops-panel" data-testid="operations-console-panel">
+            {/* Navigation Tabs */}
+            <div className="astra-mc-nav-tabs" role="tablist">
+              <button
+                onClick={() => setActiveTab('telemetry')}
+                className={`astra-mc-tab-btn ${activeTab === 'telemetry' ? 'active' : ''}`}
+                role="tab"
+                aria-selected={activeTab === 'telemetry'}
+                data-testid="tab-telemetry"
+              >
+                <Layers size={12} />
+                <span>TELEMETRY</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('commands')}
-              className={`astra-mc-tab-btn ${activeTab === 'commands' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'commands'}
-              data-testid="tab-commands"
-            >
-              <Terminal size={12} />
-              <span>COMMANDS</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('commands')}
+                className={`astra-mc-tab-btn ${activeTab === 'commands' ? 'active' : ''}`}
+                role="tab"
+                aria-selected={activeTab === 'commands'}
+                data-testid="tab-commands"
+              >
+                <Terminal size={12} />
+                <span>COMMANDS</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('failure-lab')}
-              className={`astra-mc-tab-btn ${activeTab === 'failure-lab' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'failure-lab'}
-              data-testid="tab-failure-lab"
-            >
-              <ShieldAlert size={12} />
-              <span>FAILURE LAB</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('failure-lab')}
+                className={`astra-mc-tab-btn ${activeTab === 'failure-lab' ? 'active' : ''}`}
+                role="tab"
+                aria-selected={activeTab === 'failure-lab'}
+                data-testid="tab-failure-lab"
+              >
+                <ShieldAlert size={12} />
+                <span>FAILURE LAB</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('events')}
-              className={`astra-mc-tab-btn ${activeTab === 'events' ? 'active' : ''}`}
-              role="tab"
-              aria-selected={activeTab === 'events'}
-              data-testid="tab-events"
-            >
-              <Activity size={12} />
-              <span>EVENTS</span>
-            </button>
-          </div>
+              <button
+                onClick={() => setActiveTab('events')}
+                className={`astra-mc-tab-btn ${activeTab === 'events' ? 'active' : ''}`}
+                role="tab"
+                aria-selected={activeTab === 'events'}
+                data-testid="tab-events"
+              >
+                <Activity size={12} />
+                <span>EVENTS</span>
+              </button>
+            </div>
 
-          {/* Active Tab Chamber */}
-          <div className="astra-mc-tab-content-area">
-            {activeTab === 'telemetry' && (
-              <TelemetryWorkspace
-                spacecraft={selectedCraft}
-                subsystemsHealth={subsystemsHealth}
-                loading={loading}
-              />
-            )}
+            {/* Active Tab Chamber */}
+            <div className="astra-mc-tab-content-area">
+              {activeTab === 'telemetry' && (
+                <TelemetryWorkspace
+                  spacecraft={selectedCraft}
+                  subsystemsHealth={subsystemsHealth}
+                  loading={loading}
+                />
+              )}
 
-            {activeTab === 'commands' && (
-              <CommandConsole
-                selectedSpacecraft={selectedCraft}
-                commandHistory={commandHistory}
-                onCommandDispatched={handleRefreshCommands}
-              />
-            )}
+              {activeTab === 'commands' && (
+                <CommandConsole
+                  selectedSpacecraft={selectedCraft}
+                  commandHistory={commandHistory}
+                  onCommandDispatched={handleRefreshCommands}
+                />
+              )}
 
-            {activeTab === 'failure-lab' && (
-              <FailureLabDrawer
-                selectedSpacecraft={selectedCraft}
-                onFaultsChanged={async () => {
-                  loadSubsystems();
-                  handleRefreshCommands();
-                }}
-              />
-            )}
+              {activeTab === 'failure-lab' && (
+                <FailureLabDrawer
+                  selectedSpacecraft={selectedCraft}
+                  onFaultsChanged={async () => {
+                    loadSubsystems();
+                    handleRefreshCommands();
+                  }}
+                />
+              )}
 
-            {activeTab === 'events' && (
-              <EventLogFeed
-                events={events}
-                selectedSpacecraftId={selectedSpacecraftId}
-                loading={loading}
-              />
-            )}
-          </div>
-        </section>
-      </main>
+              {activeTab === 'events' && (
+                <EventLogFeed
+                  events={events}
+                  selectedSpacecraftId={selectedSpacecraftId}
+                  loading={loading}
+                />
+              )}
+            </div>
+          </section>
+        </main>
+      )}
+
+      {activeModeView === 'universe' && (
+        <main className="astra-mc-fullscreen-workspace">
+          <MissionUniverseHub
+            spacecraftList={spacecraftList}
+            onSelectSpacecraft={(id) => {
+              setSelectedSpacecraftId(id);
+              setActiveModeView('cockpit');
+            }}
+            onNavigateToConsole={() => setActiveModeView('cockpit')}
+          />
+        </main>
+      )}
+
+      {activeModeView === 'diagnostics' && (
+        <main className="astra-mc-fullscreen-workspace">
+          <FailureLabSuite
+            spacecraftList={spacecraftList}
+            selectedSpacecraftId={selectedSpacecraftId}
+            onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
+            onFaultsChanged={async () => {
+              loadSubsystems();
+              handleRefreshCommands();
+            }}
+          />
+        </main>
+      )}
     </div>
   );
 };
