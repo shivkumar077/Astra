@@ -10,6 +10,7 @@ export interface FleetSelectorBarProps {
   onSelectSpacecraft: (id: string) => void;
   loading?: boolean;
   error?: string | null;
+  onDestinationChange?: (destination: DestinationFilter) => void;
 }
 
 export type DestinationFilter = 'ALL' | 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR' | 'DEEP_SPACE';
@@ -37,6 +38,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
   onSelectSpacecraft,
   loading = false,
   error = null,
+  onDestinationChange,
 }) => {
   const [destFilter, setDestFilter] = useState<DestinationFilter>('ALL');
   const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -123,6 +125,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       setDestFilter(DESTINATION_OPTIONS[index].id);
+      onDestinationChange?.(DESTINATION_OPTIONS[index].id);
       setIsOpen(false);
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -208,6 +211,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
                   aria-selected={isSelected}
                   onClick={() => {
                     setDestFilter(opt.id);
+                    onDestinationChange?.(opt.id);
                     setIsOpen(false);
                   }}
                   onKeyDown={(e) => handleOptionKeyDown(e, index)}
