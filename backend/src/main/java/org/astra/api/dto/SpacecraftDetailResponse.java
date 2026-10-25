@@ -29,8 +29,39 @@ public record SpacecraftDetailResponse(
         double batterySocPercent,
         double solarArrayWatts,
         KeplerianElements elements,
-        SpacecraftSubsystems subsystems
+        SpacecraftSubsystems subsystems,
+        String destination,
+        String destinationGroup
 ) {
+
+    public SpacecraftDetailResponse(
+            String id,
+            String callSign,
+            String name,
+            String modelType,
+            double dryMassKg,
+            double propellantMassKg,
+            double totalMassKg,
+            Instant epoch,
+            Vector3D positionKm,
+            Vector3D velocityKmS,
+            double altitudeKm,
+            double speedKmS,
+            boolean inEclipse,
+            OperationalMode operationalMode,
+            SpacecraftStatus operationalStatus,
+            double batterySocPercent,
+            double solarArrayWatts,
+            KeplerianElements elements,
+            SpacecraftSubsystems subsystems
+    ) {
+        this(
+                id, callSign, name, modelType, dryMassKg, propellantMassKg, totalMassKg,
+                epoch, positionKm, velocityKmS, altitudeKm, speedKmS, inEclipse,
+                operationalMode, operationalStatus, batterySocPercent, solarArrayWatts,
+                elements, subsystems, "Earth Orbit", "Earth"
+        );
+    }
 
     public SpacecraftDetailResponse(
             String id,
@@ -55,7 +86,8 @@ public record SpacecraftDetailResponse(
         this(
                 id, callSign, name, modelType, dryMassKg, propellantMassKg, totalMassKg,
                 epoch, positionKm, velocityKmS, altitudeKm, speedKmS, inEclipse,
-                operationalMode, operationalStatus, batterySocPercent, solarArrayWatts, elements, null
+                operationalMode, operationalStatus, batterySocPercent, solarArrayWatts,
+                elements, null, "Earth Orbit", "Earth"
         );
     }
 
@@ -80,7 +112,9 @@ public record SpacecraftDetailResponse(
                 sc.getBatterySocPercent(),
                 sc.getSolarArrayWatts(),
                 orbit.elements(),
-                sc.getSubsystems()
+                sc.getSubsystems(),
+                sc.getDestination(),
+                sc.getDestinationGroup()
         );
     }
 }

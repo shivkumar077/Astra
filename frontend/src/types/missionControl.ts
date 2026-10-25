@@ -119,6 +119,8 @@ export interface SpacecraftSummary {
   operationalStatus: SpacecraftStatus;
   inEclipse: boolean;
   batterySocPercent: number;
+  destination?: string;
+  destinationGroup?: string;
 }
 
 export interface SpacecraftDetail extends SpacecraftSummary {

@@ -70,6 +70,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [activeMission, setActiveMission] = useState<MissionResponse | null>(null);
   const userSelectedMissionRef = useRef<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fleetError, setFleetError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<StompConnectionStatus>('connecting');
   const [timeAdvanceNotice, setTimeAdvanceNotice] = useState<TimeAdvanceNotice | null>(null);
   const timeAdvanceTimeoutRef = useRef<number | null>(null);
@@ -113,7 +114,16 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
     setLoading(true);
     try {
       const [crafts, simStatus, history, evts, missions, activeMsn] = await Promise.all([
-        listSpacecraft().catch(() => DEFAULT_SOLAR_SYSTEM_FLEET),
+        listSpacecraft()
+          .then((res) => {
+            setFleetError(null);
+            return res;
+          })
+          .catch((err) => {
+            console.warn('Failed to load fleet from server, using fallback catalog', err);
+            setFleetError('Unable to reach telemetry server. Showing offline cached catalog.');
+            return DEFAULT_SOLAR_SYSTEM_FLEET;
+          }),
         getSimulationStatus().catch(() => null),
         getCommandHistory().catch(() => []),
         getEvents().catch(() => []),
@@ -333,6 +343,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
               setSelectedSpacecraftId(id);
             }}
             loading={loading}
+            error={fleetError}
           />
 
           {/* Center: Interactive 3D Orbital Visualization Stage */}

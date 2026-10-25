@@ -549,7 +549,9 @@ public class SimulationEngine {
                         elements.inclinationDeg(),
                         elements.raanDeg(),
                         elements.argOfPeriapsisDeg(),
-                        elements.trueAnomalyDeg()
+                        elements.trueAnomalyDeg(),
+                        spacecraft.getDestination(),
+                        spacecraft.getDestinationGroup()
                 );
                 spacecraftRepository.save(entity);
             } catch (Exception e) {

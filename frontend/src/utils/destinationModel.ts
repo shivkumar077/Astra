@@ -116,6 +116,12 @@ export function resolveDestinationBody(
     craft = craftOrGroup;
   }
 
+  // If craft has authoritative destination fields, populate grp and dst if not already set
+  if (craft && !dst && !grp) {
+    if (craft.destinationGroup) grp = craft.destinationGroup.trim().toLowerCase();
+    if (craft.destination) dst = craft.destination.trim().toLowerCase();
+  }
+
   // 1. Authoritative Destination String / Mission Resolution
   if (dst || grp) {
     // 1A. Explicit Solar Destination Group: When group is explicitly Solar (and not an Earth Sun-Synchronous mission)

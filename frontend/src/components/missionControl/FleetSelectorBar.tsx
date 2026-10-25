@@ -1,27 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { SpacecraftDetail, SpacecraftStatus } from '../../types/missionControl';
 import { Spacecraft as SpacecraftIcon } from '../common/CelestialIcons';
-
+import { ChevronDown, AlertCircle, RefreshCw } from 'lucide-react';
 import { resolveDestinationBody } from '../../utils/destinationModel';
 
-interface FleetSelectorBarProps {
+export interface FleetSelectorBarProps {
   spacecraftList: SpacecraftDetail[];
   selectedSpacecraftId: string;
   onSelectSpacecraft: (id: string) => void;
   loading?: boolean;
+  error?: string | null;
 }
 
-type DestinationFilter = 'ALL' | 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR';
+export type DestinationFilter = 'ALL' | 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR';
+
+export interface DestinationOption {
+  id: DestinationFilter;
+  label: string;
+  shortLabel: string;
+  description: string;
+}
+
+export const DESTINATION_OPTIONS: DestinationOption[] = [
+  { id: 'ALL', label: 'ALL DESTINATIONS', shortLabel: 'ALL', description: 'Complete solar system operational fleet' },
+  { id: 'EARTH', label: 'EARTH ORBIT', shortLabel: 'EARTH', description: 'LEO, SSO, HEO, and GEO constellation' },
+  { id: 'LUNAR', label: 'LUNAR', shortLabel: 'LUNAR', description: 'Lunar mapping, landers, and polar survey' },
+  { id: 'MARS', label: 'MARS', shortLabel: 'MARS', description: 'Areocentric orbiters and rover relays' },
+  { id: 'OUTER', label: 'OUTER PLANETS', shortLabel: 'OUTER', description: 'Jovian, Saturnian ring, and ice giants' },
+  { id: 'SOLAR', label: 'SOLAR & DEEP SPACE', shortLabel: 'SOLAR', description: 'Coronal monitors and deep-space probes' },
+];
 
 export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
   spacecraftList,
   selectedSpacecraftId,
   onSelectSpacecraft,
   loading = false,
+  error = null,
 }) => {
   const [destFilter, setDestFilter] = useState<DestinationFilter>('ALL');
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const getCraftCategory = (craft: SpacecraftDetail): 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR' => {
+  const getCraftCategory = (craft: SpacecraftDetail): DestinationFilter => {
+    if (craft.destinationGroup) {
+      const g = craft.destinationGroup.toUpperCase();
+      if (g.includes('EARTH')) return 'EARTH';
+      if (g.includes('LUNAR') || g.includes('MOON')) return 'LUNAR';
+      if (g.includes('MARS')) return 'MARS';
+      if (g.includes('OUTER') || g.includes('JUPITER') || g.includes('SATURN') || g.includes('URANUS') || g.includes('NEPTUNE')) return 'OUTER';
+      if (g.includes('SOLAR') || g.includes('DEEP')) return 'SOLAR';
+    }
     const dest = resolveDestinationBody(null, craft);
     switch (dest) {
       case 'mars':
@@ -41,26 +70,62 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
     }
   };
 
-  const counts = React.useMemo(() => {
-    const res: Record<DestinationFilter, number> = {
-      ALL: spacecraftList.length,
-      EARTH: 0,
-      LUNAR: 0,
-      MARS: 0,
-      OUTER: 0,
-      SOLAR: 0,
-    };
-    for (const craft of spacecraftList) {
-      const cat = getCraftCategory(craft);
-      res[cat] = (res[cat] || 0) + 1;
-    }
-    return res;
-  }, [spacecraftList]);
-
   const filteredCrafts = spacecraftList.filter((craft) => {
     if (destFilter === 'ALL') return true;
     return getCraftCategory(craft) === destFilter;
   });
+
+  const selectedOption = DESTINATION_OPTIONS.find((opt) => opt.id === destFilter) || DESTINATION_OPTIONS[0];
+
+  // Outside click & escape listener to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
+  const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setIsOpen(true);
+      const currentIndex = DESTINATION_OPTIONS.findIndex((opt) => opt.id === destFilter);
+      optionRefs.current[currentIndex >= 0 ? currentIndex : 0]?.focus();
+    }
+  };
+
+  const handleOptionKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      const nextIndex = (index + 1) % DESTINATION_OPTIONS.length;
+      optionRefs.current[nextIndex]?.focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      const prevIndex = (index - 1 + DESTINATION_OPTIONS.length) % DESTINATION_OPTIONS.length;
+      optionRefs.current[prevIndex]?.focus();
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setDestFilter(DESTINATION_OPTIONS[index].id);
+      setIsOpen(false);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
+    }
+  };
 
   const getStatusClass = (status: SpacecraftStatus) => {
     switch (status) {
@@ -76,8 +141,14 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
     }
   };
 
+  const getPropagationLabel = (cat: DestinationFilter) => {
+    if (cat === 'EARTH') return 'KEPLERIAN TWO-BODY (ECI)';
+    return 'REGISTERED TELEMETRY NODE';
+  };
+
   return (
     <aside className="astra-mc-fleet-panel" data-testid="fleet-selector-bar">
+      {/* Clean Header: No count numbers displayed */}
       <div className="astra-mc-panel-header">
         <div className="astra-mc-panel-title">
           <SpacecraftIcon size={14} color="var(--color-earth-cyan)" />
@@ -85,52 +156,107 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
         </div>
       </div>
 
-      {/* Destination Filter Tabs for 28-craft Solar System Fleet */}
-      <div
-        className="astra-mc-fleet-filters"
-        style={{
-          display: 'flex',
-          gap: '4px',
-          padding: '6px 12px',
-          overflowX: 'auto',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(5, 10, 20, 0.6)',
-        }}
-      >
-        {(['ALL', 'EARTH', 'LUNAR', 'MARS', 'OUTER', 'SOLAR'] as DestinationFilter[]).map((filter) => (
+      {/* Top-Down Compact Destination Selector with Vertical Menu */}
+      <div className="astra-mc-destination-selector-container">
+        <div className="astra-mc-destination-label-row">
+          <label className="astra-mc-destination-label" id="fleet-destination-label">
+            DESTINATION
+          </label>
+        </div>
+
+        <div className="astra-mc-destination-dropdown-wrap" ref={dropdownRef}>
           <button
-            key={filter}
             type="button"
-            onClick={() => setDestFilter(filter)}
-            className={`astra-mc-filter-btn ${destFilter === filter ? 'active' : ''}`}
-            style={{
-              padding: '3px 8px',
-              fontSize: '10px',
-              fontFamily: 'var(--font-mono)',
-              border: destFilter === filter ? '1px solid var(--color-earth-cyan)' : '1px solid rgba(255,255,255,0.1)',
-              background: destFilter === filter ? 'rgba(0, 229, 255, 0.15)' : 'transparent',
-              color: destFilter === filter ? 'var(--color-earth-cyan)' : 'var(--color-text-dim)',
-              borderRadius: '2px',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-            data-testid={`fleet-filter-${filter.toLowerCase()}`}
+            id="destination-selector-trigger"
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+            aria-labelledby="fleet-destination-label"
+            onClick={() => setIsOpen((prev) => !prev)}
+            onKeyDown={handleTriggerKeyDown}
+            className={`astra-mc-destination-trigger ${isOpen ? 'open' : ''}`}
+            data-testid="destination-selector-trigger"
           >
-            {filter} ({counts[filter]})
+            <div className="astra-mc-destination-trigger-content">
+              <span className="astra-mc-destination-trigger-dot" />
+              <span className="astra-mc-destination-trigger-text">{selectedOption.label}</span>
+            </div>
+            <ChevronDown
+              size={13}
+              className={`astra-mc-destination-chevron ${isOpen ? 'rotated' : ''}`}
+            />
           </button>
-        ))}
+
+          {/* Vertically Arranged Destination Options List */}
+          <div
+            className={`astra-mc-destination-menu ${isOpen ? 'open' : ''}`}
+            role="listbox"
+            aria-labelledby="fleet-destination-label"
+            style={{ display: isOpen ? 'flex' : 'none' }}
+            data-testid="destination-dropdown-menu"
+          >
+            {DESTINATION_OPTIONS.map((opt, index) => {
+              const isSelected = destFilter === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  ref={(el) => { optionRefs.current[index] = el; }}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  onClick={() => {
+                    setDestFilter(opt.id);
+                    setIsOpen(false);
+                  }}
+                  onKeyDown={(e) => handleOptionKeyDown(e, index)}
+                  className={`astra-mc-destination-menu-item ${isSelected ? 'selected' : ''}`}
+                  data-testid={`fleet-filter-${opt.id.toLowerCase()}`}
+                >
+                  <div className="astra-mc-destination-item-main">
+                    <span className={`astra-mc-destination-bullet ${isSelected ? 'active' : ''}`} />
+                    <span className="astra-mc-destination-item-text">{opt.label}</span>
+                  </div>
+                  {isSelected && (
+                    <span className="astra-mc-destination-item-check" aria-hidden="true">✓</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
-      <div className="astra-mc-craft-list">
+      {/* Fleet Craft List */}
+      <div className="astra-mc-craft-list" data-testid="fleet-roster-list">
+        {/* Loading State */}
         {loading && spacecraftList.length === 0 && (
-          <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--color-text-ghost)', fontFamily: 'var(--font-mono)', fontSize: '11px' }}>
-            SCANNING FLEET TELEMETRY CHANNELS...
+          <div className="astra-mc-fleet-state astra-mc-fleet-loading" data-testid="fleet-roster-loading">
+            <RefreshCw size={14} className="astra-mc-spin" style={{ marginBottom: '8px' }} />
+            <div>SCANNING FLEET TELEMETRY CHANNELS...</div>
           </div>
         )}
 
+        {/* Error State */}
+        {error && (
+          <div className="astra-mc-fleet-state astra-mc-fleet-error" data-testid="fleet-roster-error">
+            <AlertCircle size={16} color="var(--color-critical)" style={{ marginBottom: '8px' }} />
+            <div style={{ color: 'var(--color-critical)', fontWeight: 600 }}>FLEET TELEMETRY OFFLINE</div>
+            <div style={{ fontSize: '10px', marginTop: '4px', color: 'var(--color-text-dim)' }}>{error}</div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && filteredCrafts.length === 0 && (
+          <div className="astra-mc-fleet-state astra-mc-fleet-empty" data-testid="fleet-roster-empty">
+            <div>NO SPACECRAFT REGISTERED FOR THIS DESTINATION</div>
+          </div>
+        )}
+
+        {/* Spacecraft Cards */}
         {filteredCrafts.map((craft) => {
           const isSelected = craft.id === selectedSpacecraftId;
           const statusClass = getStatusClass(craft.operationalStatus);
+          const craftCat = getCraftCategory(craft);
+          const propagationNote = getPropagationLabel(craftCat);
 
           return (
             <button
@@ -161,9 +287,18 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
                 </div>
 
                 <div className="astra-mc-craft-metric">
+                  <span className="astra-mc-metric-k">PROPAGATION</span>
+                  <span className="astra-mc-metric-v" style={{ fontSize: '9px', color: craftCat === 'EARTH' ? 'var(--color-nominal)' : 'var(--color-text-dim)' }}>
+                    {propagationNote}
+                  </span>
+                </div>
+
+                <div className="astra-mc-craft-metric">
                   <span className="astra-mc-metric-k">ALTITUDE</span>
                   <span className="astra-mc-metric-v">
-                    {(craft.altitudeKm ?? 0).toFixed(1)} km
+                    {(craft.altitudeKm ?? 0) >= 1000000
+                      ? `${((craft.altitudeKm ?? 0) / 1000000).toFixed(1)}M km`
+                      : `${(craft.altitudeKm ?? 0).toFixed(1)} km`}
                   </span>
                 </div>
 
@@ -171,16 +306,6 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
                   <span className="astra-mc-metric-k">BATTERY SOC</span>
                   <span className="astra-mc-metric-v">
                     {(craft.batterySocPercent ?? 0).toFixed(1)}%
-                  </span>
-                </div>
-
-                <div className="astra-mc-craft-metric">
-                  <span className="astra-mc-metric-k">SUN EXPOSURE</span>
-                  <span
-                    className="astra-mc-metric-v"
-                    style={{ color: craft.inEclipse ? 'var(--color-advisory)' : 'var(--color-nominal)' }}
-                  >
-                    {craft.inEclipse ? 'ECLIPSE' : 'SOLAR LOCKED'}
                   </span>
                 </div>
               </div>

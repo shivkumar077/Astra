@@ -1410,7 +1410,7 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(prev3.viewMode).toBe('landing');
     });
 
-    it('FleetSelectorBar filters 28 spacecraft by destination category', () => {
+    it('FleetSelectorBar filters 28 spacecraft by destination category with vertical top-down selector', () => {
       const mockSelect = vi.fn();
       const sampleFleet = [
         { ...MOCK_DETAIL, id: 'AURA-1', callSign: 'AURA-1', name: 'AURA-1', modelType: 'Earth Observation (SSO)' },
@@ -1428,22 +1428,100 @@ describe('ASTRA Mission Control Operations Console', () => {
         />
       );
 
-      // Verify destination filter pills are rendered
-      expect(screen.getByTestId('fleet-filter-all')).toBeInTheDocument();
-      expect(screen.getByTestId('fleet-filter-mars')).toBeInTheDocument();
-      expect(screen.getByTestId('fleet-filter-lunar')).toBeInTheDocument();
-      expect(screen.getByTestId('fleet-filter-outer')).toBeInTheDocument();
-      expect(screen.getByTestId('fleet-filter-solar')).toBeInTheDocument();
+      // Verify top-down destination selector trigger is present and labelled
+      const trigger = screen.getByTestId('destination-selector-trigger');
+      expect(trigger).toBeInTheDocument();
+      expect(trigger.textContent).toContain('ALL DESTINATIONS');
 
-      // Click MARS filter
-      fireEvent.click(screen.getByTestId('fleet-filter-mars'));
+      // Verify no counts displayed in trigger
+      expect(trigger.textContent).not.toMatch(/\(\d+\)/);
+
+      // Open dropdown via trigger
+      fireEvent.click(trigger);
+      const menu = screen.getByTestId('destination-dropdown-menu');
+      expect(menu).toBeInTheDocument();
+
+      // Verify destination filter options are rendered vertically and contain NO counts
+      const filterAll = screen.getByTestId('fleet-filter-all');
+      const filterEarth = screen.getByTestId('fleet-filter-earth');
+      const filterLunar = screen.getByTestId('fleet-filter-lunar');
+      const filterMars = screen.getByTestId('fleet-filter-mars');
+      const filterOuter = screen.getByTestId('fleet-filter-outer');
+      const filterSolar = screen.getByTestId('fleet-filter-solar');
+
+      expect(filterAll).toBeInTheDocument();
+      expect(filterEarth).toBeInTheDocument();
+      expect(filterLunar).toBeInTheDocument();
+      expect(filterMars).toBeInTheDocument();
+      expect(filterOuter).toBeInTheDocument();
+      expect(filterSolar).toBeInTheDocument();
+
+      // Ensure NO counts are appended to any filter labels
+      [filterAll, filterEarth, filterLunar, filterMars, filterOuter, filterSolar].forEach((btn) => {
+        expect(btn.textContent).not.toMatch(/\(\d+\)/);
+      });
+
+      // Filter by MARS
+      fireEvent.click(filterMars);
       expect(screen.getByTestId('fleet-card-ARES-ORBITER')).toBeInTheDocument();
       expect(screen.queryByTestId('fleet-card-AURA-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-CHANDRA-ORB')).not.toBeInTheDocument();
 
-      // Click ALL filter
-      fireEvent.click(screen.getByTestId('fleet-filter-all'));
+      // Filter by LUNAR
+      fireEvent.click(screen.getByTestId('destination-selector-trigger'));
+      fireEvent.click(filterLunar);
+      expect(screen.getByTestId('fleet-card-CHANDRA-ORB')).toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-ARES-ORBITER')).not.toBeInTheDocument();
+
+      // Filter by OUTER
+      fireEvent.click(screen.getByTestId('destination-selector-trigger'));
+      fireEvent.click(filterOuter);
+      expect(screen.getByTestId('fleet-card-EUROPA-CLIPPER-S')).toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-CHANDRA-ORB')).not.toBeInTheDocument();
+
+      // Filter by SOLAR
+      fireEvent.click(screen.getByTestId('destination-selector-trigger'));
+      fireEvent.click(filterSolar);
+      expect(screen.getByTestId('fleet-card-HELIOS-CORONA')).toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-EUROPA-CLIPPER-S')).not.toBeInTheDocument();
+
+      // Filter by ALL
+      fireEvent.click(screen.getByTestId('destination-selector-trigger'));
+      fireEvent.click(filterAll);
       expect(screen.getByTestId('fleet-card-AURA-1')).toBeInTheDocument();
       expect(screen.getByTestId('fleet-card-ARES-ORBITER')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-CHANDRA-ORB')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-EUROPA-CLIPPER-S')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-HELIOS-CORONA')).toBeInTheDocument();
+    });
+
+    it('FleetSelectorBar displays distinct error and empty states', () => {
+      // 1. Error state
+      const { rerender } = render(
+        <FleetSelectorBar
+          spacecraftList={[]}
+          selectedSpacecraftId=""
+          onSelectSpacecraft={vi.fn()}
+          error="Network connection failure to telemetry cluster"
+        />
+      );
+      expect(screen.getByTestId('fleet-roster-error')).toBeInTheDocument();
+      expect(screen.getByText(/FLEET TELEMETRY OFFLINE/i)).toBeInTheDocument();
+
+      // 2. Empty state when filter matches nothing
+      rerender(
+        <FleetSelectorBar
+          spacecraftList={[
+            { ...MOCK_DETAIL, id: 'AURA-1', modelType: 'Earth Observation (SSO)' },
+          ]}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={vi.fn()}
+        />
+      );
+      // Switch to MARS when only Earth craft is present
+      fireEvent.click(screen.getByTestId('destination-selector-trigger'));
+      fireEvent.click(screen.getByTestId('fleet-filter-mars'));
+      expect(screen.getByTestId('fleet-roster-empty')).toBeInTheDocument();
     });
 
     it('OrbitalStage3D renders Mars destination environment immediately for Mars spacecraft', () => {

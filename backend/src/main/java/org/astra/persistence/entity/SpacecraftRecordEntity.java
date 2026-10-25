@@ -59,6 +59,12 @@ public class SpacecraftRecordEntity {
     @Column(name = "true_anomaly_deg", nullable = false)
     private double trueAnomalyDeg;
 
+    @Column(name = "destination", length = 255)
+    private String destination;
+
+    @Column(name = "destination_group", length = 64)
+    private String destinationGroup;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
@@ -86,6 +92,34 @@ public class SpacecraftRecordEntity {
             double argOfPerigeeDeg,
             double trueAnomalyDeg
     ) {
+        this(
+                id, callSign, name, modelType, dryMassKg, propellantMassKg,
+                operationalMode, operationalStatus, batterySocPercent, solarArrayWatts,
+                semiMajorAxisKm, eccentricity, inclinationDeg, raanDeg,
+                argOfPerigeeDeg, trueAnomalyDeg, null, null
+        );
+    }
+
+    public SpacecraftRecordEntity(
+            String id,
+            String callSign,
+            String name,
+            String modelType,
+            double dryMassKg,
+            double propellantMassKg,
+            String operationalMode,
+            String operationalStatus,
+            double batterySocPercent,
+            double solarArrayWatts,
+            double semiMajorAxisKm,
+            double eccentricity,
+            double inclinationDeg,
+            double raanDeg,
+            double argOfPerigeeDeg,
+            double trueAnomalyDeg,
+            String destination,
+            String destinationGroup
+    ) {
         this.id = id;
         this.callSign = callSign;
         this.name = name;
@@ -102,6 +136,8 @@ public class SpacecraftRecordEntity {
         this.raanDeg = raanDeg;
         this.argOfPerigeeDeg = argOfPerigeeDeg;
         this.trueAnomalyDeg = trueAnomalyDeg;
+        this.destination = destination;
+        this.destinationGroup = destinationGroup;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
@@ -165,4 +201,10 @@ public class SpacecraftRecordEntity {
 
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getDestination() { return destination; }
+    public void setDestination(String destination) { this.destination = destination; }
+
+    public String getDestinationGroup() { return destinationGroup; }
+    public void setDestinationGroup(String destinationGroup) { this.destinationGroup = destinationGroup; }
 }

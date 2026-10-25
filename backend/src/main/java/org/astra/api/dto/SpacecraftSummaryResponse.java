@@ -14,8 +14,25 @@ public record SpacecraftSummaryResponse(
         OperationalMode operationalMode,
         SpacecraftStatus operationalStatus,
         boolean inEclipse,
-        double batterySocPercent
+        double batterySocPercent,
+        String destination,
+        String destinationGroup
 ) {
+
+    public SpacecraftSummaryResponse(
+            String id,
+            String callSign,
+            String name,
+            String modelType,
+            double altitudeKm,
+            double speedKmS,
+            OperationalMode operationalMode,
+            SpacecraftStatus operationalStatus,
+            boolean inEclipse,
+            double batterySocPercent
+    ) {
+        this(id, callSign, name, modelType, altitudeKm, speedKmS, operationalMode, operationalStatus, inEclipse, batterySocPercent, "Earth Orbit", "Earth");
+    }
 
     public static SpacecraftSummaryResponse fromSpacecraft(Spacecraft sc) {
         var orbit = sc.getCurrentOrbitState();
@@ -29,7 +46,9 @@ public record SpacecraftSummaryResponse(
                 sc.getOperationalMode(),
                 sc.getOperationalStatus(),
                 orbit.inEclipse(),
-                sc.getBatterySocPercent()
+                sc.getBatterySocPercent(),
+                sc.getDestination(),
+                sc.getDestinationGroup()
         );
     }
 }
