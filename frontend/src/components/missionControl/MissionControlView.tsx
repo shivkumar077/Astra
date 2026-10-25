@@ -52,10 +52,8 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [spacecraftList, setSpacecraftList] = useState<SpacecraftDetail[]>(
     DEFAULT_SOLAR_SYSTEM_FLEET
   );
-  const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>(
-    navLocation?.selectedSpacecraftId || 'AURA-1'
-  );
-  const [activeFleetDestination, setActiveFleetDestination] = useState<DestinationFilter>('ALL');
+  const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>('AURA-1');
+  const [activeFleetDestination, setActiveFleetDestination] = useState<DestinationFilter>('EARTH');
   const [simulationStatus, setSimulationStatus] = useState<SimulationStatus | null>(null);
   const [subsystemsHealth, setSubsystemsHealth] = useState<SubsystemsHealth | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandRecord[]>([]);
@@ -90,6 +88,14 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const operationalFleet = activeFleetDestination === 'ALL'
     ? spacecraftList
     : spacecraftList.filter((craft) => getFleetDestination(craft) === activeFleetDestination);
+
+  // Keep the active target inside the selected destination. Mission history or a
+  // restored navigation state must never silently pull another planet's craft in.
+  useEffect(() => {
+    if (activeFleetDestination === 'ALL') return;
+    if (operationalFleet.some((craft) => craft.id === selectedSpacecraftId)) return;
+    if (operationalFleet.length > 0) setSelectedSpacecraftId(operationalFleet[0].id);
+  }, [activeFleetDestination, operationalFleet, selectedSpacecraftId]);
   const selectedCraft =
     spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
 
@@ -359,10 +365,10 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             spacecraftList={spacecraftList}
             onDestinationChange={(destination) => {
               setActiveFleetDestination(destination);
-              if (destination !== 'ALL') {
-                const firstCraft = spacecraftList.find((craft) => getFleetDestination(craft) === destination);
-                if (firstCraft) setSelectedSpacecraftId(firstCraft.id);
-              }
+              const firstCraft = destination === 'ALL'
+                ? spacecraftList[0]
+                : spacecraftList.find((craft) => getFleetDestination(craft) === destination);
+              if (firstCraft) setSelectedSpacecraftId(firstCraft.id);
             }}
             selectedSpacecraftId={selectedSpacecraftId}
             onSelectSpacecraft={(id) => {
