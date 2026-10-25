@@ -103,9 +103,9 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
         <button
           onClick={onReturnHome}
           className="astra-mc-return-btn"
-          aria-label="Return to landing page"
+          aria-label="Go back"
           data-testid="return-to-landing"
-          title="Return to landing page [Esc]"
+          title="Go back [Esc]"
         >
           <ArrowLeft size={16} aria-hidden="true" />
         </button>

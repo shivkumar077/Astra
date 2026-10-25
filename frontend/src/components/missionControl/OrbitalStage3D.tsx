@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { SpacecraftDetail, KeplerianElements, MissionResponse } from '../../types/missionControl';
-import { getProceduralPlanetTexture } from '../imagery/PlanetTextureGenerator';
+import { getProceduralPlanetTexture, getProceduralRingTexture } from '../imagery/PlanetTextureGenerator';
 import {
   computeKeplerianCartesian,
   clampObserverDistance,
@@ -26,33 +26,77 @@ interface OrbitalStage3DProps {
   timeAdvanceNotice?: TimeAdvanceNotice | null;
 }
 
-// Authoritative orbital elements fallback if elements have not arrived via REST yet
+// Authoritative orbital elements fallback for the full 28-vehicle solar operations fleet
 const DEFAULT_ELEMENTS: Record<string, KeplerianElements> = {
-  'AURA-1': {
-    semiMajorAxisKm: 7078.1,
-    eccentricity: 0.0012,
-    inclinationDeg: 98.2,
-    raanDeg: 45.0,
-    argOfPerigeeDeg: 60.0,
-    trueAnomalyDeg: 142.5,
-  },
-  'TERRA-OBS': {
-    semiMajorAxisKm: 6878.0,
-    eccentricity: 0.0008,
-    inclinationDeg: 51.6,
-    raanDeg: 110.0,
-    argOfPerigeeDeg: 30.0,
-    trueAnomalyDeg: 84.0,
-  },
-  'SOLIS-RELAY': {
-    semiMajorAxisKm: 14200.0,
-    eccentricity: 0.35,
-    inclinationDeg: 28.5,
-    raanDeg: 200.0,
-    argOfPerigeeDeg: 120.0,
-    trueAnomalyDeg: 210.0,
-  },
+  // Earth Orbit
+  'AURA-1': { semiMajorAxisKm: 7080.0, eccentricity: 0.0012, inclinationDeg: 98.2, raanDeg: 25.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 0.0 },
+  'TERRA-OBS': { semiMajorAxisKm: 6880.0, eccentricity: 0.0008, inclinationDeg: 51.6, raanDeg: 120.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 60.0 },
+  'SOLIS-RELAY': { semiMajorAxisKm: 24370.0, eccentricity: 0.72, inclinationDeg: 28.5, raanDeg: 200.0, argOfPerigeeDeg: 270.0, trueAnomalyDeg: 0.0 },
+  'GEO-COM-4': { semiMajorAxisKm: 42164.0, eccentricity: 0.0002, inclinationDeg: 0.05, raanDeg: 110.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
+  'NAV-STAR-09': { semiMajorAxisKm: 26560.0, eccentricity: 0.012, inclinationDeg: 55.0, raanDeg: 140.0, argOfPerigeeDeg: 60.0, trueAnomalyDeg: 90.0 },
+  'DEBRIS-TRAC-2': { semiMajorAxisKm: 7150.0, eccentricity: 0.002, inclinationDeg: 97.8, raanDeg: 45.0, argOfPerigeeDeg: 120.0, trueAnomalyDeg: 210.0 },
+
+  // Lunar Operations
+  'CHANDRA-ORB': { semiMajorAxisKm: 68400.0, eccentricity: 0.04, inclinationDeg: 88.5, raanDeg: 10.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 45.0 },
+  'LUNAR-HALO-1': { semiMajorAxisKm: 65000.0, eccentricity: 0.18, inclinationDeg: 14.5, raanDeg: 30.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 120.0 },
+  'SELENA-MAPPER': { semiMajorAxisKm: 72000.0, eccentricity: 0.02, inclinationDeg: 86.2, raanDeg: 75.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 15.0 },
+  'ARTEMIS-RELAY': { semiMajorAxisKm: 54000.0, eccentricity: 0.15, inclinationDeg: 54.7, raanDeg: 210.0, argOfPerigeeDeg: 270.0, trueAnomalyDeg: 0.0 },
+  'LUNAR-RECON-X': { semiMajorAxisKm: 62000.0, eccentricity: 0.05, inclinationDeg: 89.5, raanDeg: 15.0, argOfPerigeeDeg: 30.0, trueAnomalyDeg: 240.0 },
+  'MOON-NAV-01': { semiMajorAxisKm: 75000.0, eccentricity: 0.015, inclinationDeg: 45.0, raanDeg: 180.0, argOfPerigeeDeg: 120.0, trueAnomalyDeg: 60.0 },
+
+  // Mars Operations
+  'ARES-ORBITER': { semiMajorAxisKm: 37900.0, eccentricity: 0.003, inclinationDeg: 93.0, raanDeg: 50.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 0.0 },
+  'MARS-RELAY-1': { semiMajorAxisKm: 20428.0, eccentricity: 0.0005, inclinationDeg: 1.2, raanDeg: 160.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
+  'PHOBOS-SCOUT': { semiMajorAxisKm: 9376.0, eccentricity: 0.015, inclinationDeg: 1.08, raanDeg: 90.0, argOfPerigeeDeg: 30.0, trueAnomalyDeg: 45.0 },
+  'DEIMOS-OBS': { semiMajorAxisKm: 23460.0, eccentricity: 0.0002, inclinationDeg: 1.79, raanDeg: 210.0, argOfPerigeeDeg: 150.0, trueAnomalyDeg: 90.0 },
+  'MARS-ATMOS-4': { semiMajorAxisKm: 18650.0, eccentricity: 0.045, inclinationDeg: 74.5, raanDeg: 115.0, argOfPerigeeDeg: 270.0, trueAnomalyDeg: 30.0 },
+  'AERO-MAP-02': { semiMajorAxisKm: 19820.0, eccentricity: 0.002, inclinationDeg: 92.8, raanDeg: 30.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 150.0 },
+
+  // Outer Planets
+  'JOVIAN-RADIATION': { semiMajorAxisKm: 1850000.0, eccentricity: 0.78, inclinationDeg: 4.2, raanDeg: 45.0, argOfPerigeeDeg: 180.0, trueAnomalyDeg: 0.0 },
+  'EUROPA-CLIPPER-S': { semiMajorAxisKm: 670900.0, eccentricity: 0.009, inclinationDeg: 1.8, raanDeg: 130.0, argOfPerigeeDeg: 60.0, trueAnomalyDeg: 45.0 },
+  'CALLISTO-SURVEY': { semiMajorAxisKm: 1883000.0, eccentricity: 0.007, inclinationDeg: 0.5, raanDeg: 80.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 110.0 },
+  'CHRONOS-SATURN': { semiMajorAxisKm: 185000.0, eccentricity: 0.001, inclinationDeg: 26.7, raanDeg: 240.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 90.0 },
+  'TITAN-RELAY': { semiMajorAxisKm: 1222000.0, eccentricity: 0.028, inclinationDeg: 0.35, raanDeg: 15.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 180.0 },
+
+  // Solar & Deep Space
+  'HELIOS-CORONA': { semiMajorAxisKm: 48000000.0, eccentricity: 0.68, inclinationDeg: 3.4, raanDeg: 10.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
+  'SOLAR-STORM-01': { semiMajorAxisKm: 1500000.0, eccentricity: 0.05, inclinationDeg: 0.2, raanDeg: 0.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 0.0 },
+  'ASTEROID-SCOUT': { semiMajorAxisKm: 160000000.0, eccentricity: 0.21, inclinationDeg: 7.1, raanDeg: 85.0, argOfPerigeeDeg: 140.0, trueAnomalyDeg: 60.0 },
+  'DEEP-NAV-ALPHA': { semiMajorAxisKm: 220000000.0, eccentricity: 0.15, inclinationDeg: 1.8, raanDeg: 190.0, argOfPerigeeDeg: 30.0, trueAnomalyDeg: 110.0 },
+  'VOYAGER-EXP': { semiMajorAxisKm: 350000000.0, eccentricity: 0.42, inclinationDeg: 12.0, raanDeg: 310.0, argOfPerigeeDeg: 80.0, trueAnomalyDeg: 20.0 },
 };
+
+export type TargetDestination = 'earth' | 'mars' | 'lunar' | 'jupiter' | 'saturn' | 'ice_giant' | 'solar' | 'deep_space';
+
+export function resolveDestination(
+  mission?: MissionResponse | null,
+  craft?: SpacecraftDetail | null
+): TargetDestination {
+  if (mission) {
+    const grp = (mission.destinationGroup || '').toLowerCase();
+    const dst = (mission.destination || '').toLowerCase();
+    if (grp.includes('mars') || dst.includes('mars') || dst.includes('phobos') || dst.includes('deimos') || dst.includes('jezero')) return 'mars';
+    if (grp.includes('lunar') || dst.includes('moon') || dst.includes('lunar') || dst.includes('shackleton')) return 'lunar';
+    if (dst.includes('saturn') || dst.includes('titan')) return 'saturn';
+    if (dst.includes('jupiter') || dst.includes('europa') || dst.includes('callisto')) return 'jupiter';
+    if (dst.includes('uranus') || dst.includes('neptune')) return 'ice_giant';
+    if (grp.includes('solar') || dst.includes('sun') || dst.includes('solar') || dst.includes('corona')) return 'solar';
+    if (dst.includes('deep space') || dst.includes('asteroid') || dst.includes('interplanetary') || grp.includes('deep space')) return 'deep_space';
+    if (grp.includes('outer')) return 'jupiter';
+  }
+  if (craft) {
+    const id = (craft.id || '').toUpperCase();
+    const role = (craft.modelType || '').toLowerCase();
+    if (id.startsWith('ARES') || id.startsWith('MARS') || id.startsWith('PHOBOS') || id.startsWith('DEIMOS') || id.startsWith('AERO') || role.includes('mars')) return 'mars';
+    if (id.startsWith('CHANDRA') || id.startsWith('LUNAR') || id.startsWith('SELENA') || id.startsWith('ARTEMIS') || id.startsWith('MOON') || role.includes('lunar')) return 'lunar';
+    if (id.startsWith('CHRONOS') || id.startsWith('TITAN') || role.includes('saturn')) return 'saturn';
+    if (id.startsWith('JOVIAN') || id.startsWith('EUROPA') || id.startsWith('CALLISTO') || role.includes('jupiter')) return 'jupiter';
+    if (id.startsWith('HELIOS') || id.startsWith('SOLAR') || role.includes('solar') || role.includes('corona')) return 'solar';
+    if (id.startsWith('ASTEROID') || id.startsWith('DEEP') || id.startsWith('VOYAGER') || role.includes('asteroid') || role.includes('deep-space') || role.includes('heliopause')) return 'deep_space';
+  }
+  return 'earth';
+}
 
 export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   spacecraftList = [],
@@ -64,23 +108,30 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   
-  // Destination-aware default reference frame
-  const destGroup = (activeMission?.destinationGroup || '').toLowerCase();
-  const destName = (activeMission?.destination || '').toLowerCase();
-  const isMars = destGroup.includes('mars') || destName.includes('mars') || destName.includes('phobos');
-  const isLunar = destGroup.includes('lunar') || destGroup.includes('deep space') || destName.includes('moon');
-  const isOuter = destGroup.includes('outer') || destName.includes('jupiter') || destName.includes('saturn');
-  const isSolar = destGroup.includes('solar') || destName.includes('sun');
+  const craftList = spacecraftList || [];
+  const selectedCraft =
+    craftList.find((s) => s.id === selectedSpacecraftId) || craftList[0] || null;
 
-  const defaultFrame = isMars
-    ? 'MCI_J2000'
-    : isLunar
-    ? 'LCI_J2000'
-    : isOuter
-    ? 'JOVIAN_CENTRIC'
-    : isSolar
-    ? 'HELIOCENTRIC'
-    : 'ECI_J2000';
+  // Resolve target celestial destination based on authoritative mission AND selected craft
+  const resolvedDest = resolveDestination(activeMission, selectedCraft);
+
+  // Destination-aware default reference frame
+  const defaultFrame =
+    resolvedDest === 'mars'
+      ? 'MCI_J2000'
+      : resolvedDest === 'lunar'
+      ? 'LCI_J2000'
+      : resolvedDest === 'saturn'
+      ? 'SATURNIAN_CENTRIC'
+      : resolvedDest === 'jupiter'
+      ? 'JOVIAN_CENTRIC'
+      : resolvedDest === 'ice_giant'
+      ? 'URANIAN_CENTRIC'
+      : resolvedDest === 'solar'
+      ? 'HELIOCENTRIC'
+      : resolvedDest === 'deep_space'
+      ? 'BARYCENTRIC_INERTIAL'
+      : 'ECI_J2000';
 
   const [referenceFrame, setReferenceFrame] = useState<string>(defaultFrame);
   const [trackingMode, setTrackingMode] = useState<'FREE' | 'TARGET_LOCK'>('TARGET_LOCK');
@@ -91,6 +142,9 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
   const selectedSpacecraftIdRef = useRef<string>(selectedSpacecraftId);
   selectedSpacecraftIdRef.current = selectedSpacecraftId;
+
+  const selectedCraftRef = useRef<SpacecraftDetail | null>(selectedCraft);
+  selectedCraftRef.current = selectedCraft;
 
   const spacecraftListRef = useRef<SpacecraftDetail[]>(spacecraftList);
   spacecraftListRef.current = spacecraftList;
@@ -104,17 +158,13 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const updateOrbitsRef = useRef<() => void>(() => {});
   const updateCelestialBodyRef = useRef<() => void>(() => {});
 
-  const craftList = spacecraftList || [];
-  const selectedCraft =
-    craftList.find((s) => s.id === selectedSpacecraftId) || craftList[0] || null;
-
-  // Auto-switch reference frame when active mission destination changes
+  // Auto-switch reference frame and celestial system when active mission or spacecraft changes
   useEffect(() => {
     setReferenceFrame(defaultFrame);
     if (updateCelestialBodyRef.current) {
       updateCelestialBodyRef.current();
     }
-  }, [defaultFrame, activeMission]);
+  }, [defaultFrame, activeMission, selectedSpacecraftId]);
 
   // Orbit update effect: runs only when spacecraft data changes, WITHOUT recreating canvas or WebGLRenderer
   useEffect(() => {
@@ -454,19 +504,173 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     );
     jupiterGroup.add(jupiterGridMesh);
 
-    // Dynamic Celestial Body Target Synchronizer
-    const updateCelestialBody = () => {
-      const mission = activeMissionRef.current;
-      const grp = (mission?.destinationGroup || '').toLowerCase();
-      const dst = (mission?.destination || '').toLowerCase();
-      const isMarsDest = grp.includes('mars') || dst.includes('mars') || dst.includes('phobos');
-      const isLunarDest = grp.includes('lunar') || grp.includes('deep space') || dst.includes('moon');
-      const isOuterDest = grp.includes('outer') || dst.includes('jupiter') || dst.includes('saturn') || dst.includes('titan');
+    // --- 4E. Saturn System (Planet Sphere + Procedural Ring System) ---
+    const saturnGroup = new THREE.Group();
+    saturnGroup.rotation.z = THREE.MathUtils.degToRad(-26.73); // Saturn axial tilt
+    celestialHost.add(saturnGroup);
 
-      earthGroup.visible = !isMarsDest && !isLunarDest && !isOuterDest;
-      marsGroup.visible = isMarsDest;
-      lunarGroup.visible = isLunarDest;
-      jupiterGroup.visible = isOuterDest;
+    const saturnTexture = getProceduralPlanetTexture('saturn');
+    if (saturnTexture) saturnTexture.colorSpace = THREE.SRGBColorSpace;
+    const saturnGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 0.96, 64, 64);
+    const saturnMaterial = new THREE.MeshStandardMaterial({
+      map: saturnTexture,
+      roughness: 0.82,
+      metalness: 0.02,
+    });
+    const saturnMesh = new THREE.Mesh(saturnGeometry, saturnMaterial);
+    saturnGroup.add(saturnMesh);
+
+    const saturnRingTexture = getProceduralRingTexture('saturn');
+    if (saturnRingTexture) saturnRingTexture.colorSpace = THREE.SRGBColorSpace;
+    const saturnRingGeometry = new THREE.RingGeometry(EARTH_RADIUS_UNITS * 1.25, EARTH_RADIUS_UNITS * 2.35, 64);
+    // Align ring horizontally in Saturn equatorial plane
+    const saturnRingMaterial = new THREE.MeshStandardMaterial({
+      map: saturnRingTexture,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.9,
+      roughness: 0.8,
+      metalness: 0.05,
+      depthWrite: false,
+    });
+    const saturnRingMesh = new THREE.Mesh(saturnRingGeometry, saturnRingMaterial);
+    saturnRingMesh.rotation.x = Math.PI / 2;
+    saturnGroup.add(saturnRingMesh);
+
+    // --- 4F. Ice Giant System (Uranus / Neptune Cyan/Azure Atmosphere) ---
+    const iceGiantGroup = new THREE.Group();
+    iceGiantGroup.rotation.z = THREE.MathUtils.degToRad(-97.77);
+    celestialHost.add(iceGiantGroup);
+
+    const uranusTexture = getProceduralPlanetTexture('uranus');
+    if (uranusTexture) uranusTexture.colorSpace = THREE.SRGBColorSpace;
+    const iceGiantGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 0.92, 64, 64);
+    const iceGiantMaterial = new THREE.MeshStandardMaterial({
+      map: uranusTexture,
+      roughness: 0.65,
+      metalness: 0.05,
+    });
+    const iceGiantMesh = new THREE.Mesh(iceGiantGeometry, iceGiantMaterial);
+    iceGiantGroup.add(iceGiantMesh);
+
+    const iceGiantAtmosMaterial = new THREE.ShaderMaterial({
+      vertexShader: atmosphereMaterial.vertexShader,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        uniform vec3 uSunDir;
+        void main() {
+          vec3 viewDir = normalize(-vPosition);
+          float fresnel = 1.0 - max(dot(vNormal, viewDir), 0.0);
+          float intensity = pow(fresnel, 3.5);
+          vec3 atmosColor = mix(vec3(0.15, 0.62, 0.75), vec3(0.35, 0.85, 0.95), fresnel);
+          gl_FragColor = vec4(atmosColor, intensity * 0.7);
+        }
+      `,
+      uniforms: { uSunDir: { value: sunDirection } },
+      blending: THREE.AdditiveBlending,
+      side: THREE.FrontSide,
+      transparent: true,
+      depthWrite: false,
+    });
+    const iceGiantAtmosMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 0.92 + 0.02, 64, 64),
+      iceGiantAtmosMaterial
+    );
+    iceGiantGroup.add(iceGiantAtmosMesh);
+
+    // --- 4G. Solar Environment (The Sun Radiant Emissive Body + Coronal Plasma) ---
+    const solarGroup = new THREE.Group();
+    celestialHost.add(solarGroup);
+
+    const sunGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.12, 64, 64);
+    const sunMaterial = new THREE.MeshBasicMaterial({
+      color: 0xfff0b3,
+    });
+    const sunMesh = new THREE.Mesh(sunGeometry, sunMaterial);
+    solarGroup.add(sunMesh);
+
+    const coronaGeometry = new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 1.38, 64, 64);
+    const coronaMaterial = new THREE.ShaderMaterial({
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        varying vec3 vNormal;
+        varying vec3 vPosition;
+        void main() {
+          vec3 viewDir = normalize(-vPosition);
+          float fresnel = 1.0 - max(dot(vNormal, viewDir), 0.0);
+          float corona = pow(fresnel, 2.2);
+          vec3 coronaColor = mix(vec3(1.0, 0.55, 0.05), vec3(1.0, 0.88, 0.4), fresnel);
+          gl_FragColor = vec4(coronaColor, corona * 0.85);
+        }
+      `,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+    });
+    const coronaMesh = new THREE.Mesh(coronaGeometry, coronaMaterial);
+    solarGroup.add(coronaMesh);
+
+    // --- 4H. Deep-Space Environment (Irregular 3D Asteroid + Cosmic Void Backdrop) ---
+    const deepSpaceGroup = new THREE.Group();
+    celestialHost.add(deepSpaceGroup);
+
+    // Procedural irregular rocky asteroid geometry
+    const asteroidGeometry = new THREE.DodecahedronGeometry(EARTH_RADIUS_UNITS * 0.75, 2);
+    const posAttr = asteroidGeometry.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+      const vx = posAttr.getX(i);
+      const vy = posAttr.getY(i);
+      const vz = posAttr.getZ(i);
+      const r = Math.sqrt(vx * vx + vy * vy + vz * vz);
+      const noise = 1.0 + 0.16 * Math.sin(vx * 4.2) * Math.cos(vy * 3.8 + vz * 2.1);
+      posAttr.setXYZ(i, (vx / r) * r * noise, (vy / r) * r * noise, (vz / r) * r * noise);
+    }
+    asteroidGeometry.computeVertexNormals();
+
+    const asteroidMaterial = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      roughness: 0.94,
+      metalness: 0.06,
+      wireframe: false,
+    });
+    const asteroidMesh = new THREE.Mesh(asteroidGeometry, asteroidMaterial);
+    deepSpaceGroup.add(asteroidMesh);
+
+    // Deep-space wireframe reference grid
+    const deepSpaceGridMaterial = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.08,
+    });
+    const deepSpaceGridMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(EARTH_RADIUS_UNITS * 0.85, 24, 12),
+      deepSpaceGridMaterial
+    );
+    deepSpaceGroup.add(deepSpaceGridMesh);
+
+    // Authoritative Destination-Aware Celestial Body Synchronizer
+    const updateCelestialBody = () => {
+      const dest = resolveDestination(activeMissionRef.current, selectedCraftRef.current);
+
+      earthGroup.visible = dest === 'earth';
+      marsGroup.visible = dest === 'mars';
+      lunarGroup.visible = dest === 'lunar';
+      jupiterGroup.visible = dest === 'jupiter';
+      saturnGroup.visible = dest === 'saturn';
+      iceGiantGroup.visible = dest === 'ice_giant';
+      solarGroup.visible = dest === 'solar';
+      deepSpaceGroup.visible = dest === 'deep_space';
 
       if (!isDisposed) renderer.render(scene, camera);
     };
@@ -726,17 +930,55 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
               : (selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform')}
           </span>
           <span className="astra-mc-hud-target-regime" data-testid="hud-scientific-regime">
-            TARGET: {activeMission ? activeMission.destination.toUpperCase() : 'EARTH (TERRA)'} // REGIME: {isMars ? 'AREOCENTRIC (MARS KEPLERIAN TWO-BODY APPROXIMATION)' : isLunar ? 'SELENOCENTRIC TWO-BODY REGIME' : isOuter ? 'JOVIAN BARYCENTRIC REGIME' : 'ECI J2000 TWO-BODY KEPLERIAN'}
+            TARGET: {activeMission ? activeMission.destination.toUpperCase() : (
+              resolvedDest === 'mars' ? 'MARS (ARES)' :
+              resolvedDest === 'lunar' ? 'MOON (LUNA)' :
+              resolvedDest === 'saturn' ? 'SATURN & RINGS' :
+              resolvedDest === 'jupiter' ? 'JUPITER SYSTEM' :
+              resolvedDest === 'ice_giant' ? 'ICE GIANT SYSTEM' :
+              resolvedDest === 'solar' ? 'THE SUN (HELIOS)' :
+              resolvedDest === 'deep_space' ? 'DEEP SPACE VOID' : 'EARTH (TERRA)'
+            )} // REGIME: {
+              resolvedDest === 'mars' ? 'AREOCENTRIC (MARS KEPLERIAN TWO-BODY APPROXIMATION)' :
+              resolvedDest === 'lunar' ? 'SELENOCENTRIC TWO-BODY REGIME' :
+              resolvedDest === 'saturn' ? 'SATURNIAN EQUATORIAL RING PLANE SYSTEM' :
+              resolvedDest === 'jupiter' ? 'JOVIAN BARYCENTRIC RADIATION REGIME' :
+              resolvedDest === 'ice_giant' ? 'OUTER SOLAR SYSTEM (URANIAN/NEPTUNIAN SYSTEM)' :
+              resolvedDest === 'solar' ? 'HELIOCENTRIC INNER CORONAL DYNAMICS' :
+              resolvedDest === 'deep_space' ? 'INTERPLANETARY / DEEP SPACE (SCIENTIFIC VISUALIZATION)' :
+              'ECI J2000 TWO-BODY KEPLERIAN'
+            }
           </span>
+          {resolvedDest === 'deep_space' && (
+            <span
+              style={{
+                display: 'inline-block',
+                marginTop: '4px',
+                fontSize: '10px',
+                color: 'var(--color-earth-cyan)',
+                fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.04em',
+              }}
+              data-testid="deep-space-scientific-label"
+            >
+              [SCIENTIFIC VISUALIZATION // DEEP-SPACE ENVIRONMENT // NASA ARCHIVAL SURVEY]
+            </span>
+          )}
         </div>
 
         <div className="astra-mc-hud-controls">
           <button
             onClick={() => {
-              if (isMars) {
+              if (resolvedDest === 'mars') {
                 setReferenceFrame((f) => (f === 'MCI_J2000' ? 'AREOCENTRIC' : 'MCI_J2000'));
-              } else if (isLunar) {
+              } else if (resolvedDest === 'lunar') {
                 setReferenceFrame((f) => (f === 'LCI_J2000' ? 'SELENOCENTRIC' : 'LCI_J2000'));
+              } else if (resolvedDest === 'saturn') {
+                setReferenceFrame((f) => (f === 'SATURNIAN_CENTRIC' ? 'RING_PLANE' : 'SATURNIAN_CENTRIC'));
+              } else if (resolvedDest === 'solar') {
+                setReferenceFrame((f) => (f === 'HELIOCENTRIC' ? 'CORONAL_BODY' : 'HELIOCENTRIC'));
+              } else if (resolvedDest === 'deep_space') {
+                setReferenceFrame((f) => (f === 'BARYCENTRIC_INERTIAL' ? 'HELIOCENTRIC_CRUISE' : 'BARYCENTRIC_INERTIAL'));
               } else {
                 setReferenceFrame((f) => (f === 'ECI_J2000' ? 'LVLH' : 'ECI_J2000'));
               }

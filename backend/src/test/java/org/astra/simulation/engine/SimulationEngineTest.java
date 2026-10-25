@@ -38,11 +38,15 @@ class SimulationEngineTest {
         assertEquals(0.0, engine.getElapsedSeconds());
 
         List<Spacecraft> fleet = engine.getAllSpacecraft();
-        assertEquals(3, fleet.size(), "Default fleet must contain exactly 3 operational spacecraft");
+        assertEquals(28, fleet.size(), "Default fleet must contain exactly 28 operational spacecraft");
 
         assertTrue(engine.getSpacecraft("AURA-1").isPresent());
         assertTrue(engine.getSpacecraft("TERRA-OBS").isPresent());
         assertTrue(engine.getSpacecraft("SOLIS-RELAY").isPresent());
+        assertTrue(engine.getSpacecraft("ARES-ORBITER").isPresent());
+        assertTrue(engine.getSpacecraft("CHANDRA-ORB").isPresent());
+        assertTrue(engine.getSpacecraft("EUROPA-CLIPPER-S").isPresent());
+        assertTrue(engine.getSpacecraft("HELIOS-CORONA").isPresent());
 
         // Each spacecraft should already have initial telemetry snapshot recorded
         for (Spacecraft sc : fleet) {

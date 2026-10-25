@@ -168,7 +168,7 @@ describe('ASTRA Mission Control Operations Console', () => {
     // Verify arrow-only return button with accessible label
     const returnBtn = screen.getByTestId('return-to-landing');
     expect(returnBtn).toBeInTheDocument();
-    expect(returnBtn).toHaveAttribute('aria-label', 'Return to landing page');
+    expect(returnBtn).toHaveAttribute('aria-label', expect.stringMatching(/Go back|Return to landing page/i));
 
     // Verify operations navigation tabs
     expect(screen.getByRole('tab', { name: /cockpit/i })).toBeInTheDocument();
@@ -1365,6 +1365,112 @@ describe('ASTRA Mission Control Operations Console', () => {
     expect(overlay).toBeInTheDocument();
     expect(overlay).toHaveTextContent(/SIMULATION ADVANCED/i);
     expect(overlay).toHaveTextContent(/\+60 SECONDS/i);
+  });
+
+  describe('Universal Navigation & Cockpit Destination Switching Regression Suite', () => {
+    it('navigationHistory maintains stack and calculates logical parent fallbacks', async () => {
+      const { navigationHistory } = await import('../utils/navigationHistory');
+      navigationHistory.clear();
+
+      expect(navigationHistory.getCurrent().viewMode).toBe('landing');
+
+      // 1. Landing -> Mission Control
+      navigationHistory.push({ viewMode: 'mission-control', mcModeView: 'cockpit' });
+      expect(navigationHistory.getCurrent().viewMode).toBe('mission-control');
+      expect(navigationHistory.getCurrent().mcModeView).toBe('cockpit');
+
+      // 2. Cockpit -> Missions catalogue
+      navigationHistory.push({ viewMode: 'mission-control', mcModeView: 'universe', universeTab: 'catalogue' });
+      expect(navigationHistory.getCurrent().universeTab).toBe('catalogue');
+
+      // 3. Catalogue -> Mission briefing (Mars Recon)
+      navigationHistory.push({
+        viewMode: 'mission-control',
+        mcModeView: 'universe',
+        universeTab: 'briefing',
+        selectedMissionId: 'MARS-RECON-01',
+      });
+      expect(navigationHistory.getCurrent().selectedMissionId).toBe('MARS-RECON-01');
+
+      // 4. Go Back: should return to catalogue, not landing
+      const prev1 = navigationHistory.goBack();
+      expect(prev1.universeTab).toBe('catalogue');
+      expect(prev1.viewMode).toBe('mission-control');
+
+      // 5. Go Back: should return to cockpit
+      const prev2 = navigationHistory.goBack();
+      expect(prev2.mcModeView).toBe('cockpit');
+
+      // 6. Go Back: should return to landing
+      const prev3 = navigationHistory.goBack();
+      expect(prev3.viewMode).toBe('landing');
+    });
+
+    it('FleetSelectorBar filters 28 spacecraft by destination category', () => {
+      const mockSelect = vi.fn();
+      const sampleFleet = [
+        { ...MOCK_DETAIL, id: 'AURA-1', callSign: 'AURA-1', name: 'AURA-1', modelType: 'Earth Observation (SSO)' },
+        { ...MOCK_DETAIL, id: 'ARES-ORBITER', callSign: 'ARES-ORB', name: 'ARES-ORBITER', modelType: 'Mars Reconnaissance Orbiter' },
+        { ...MOCK_DETAIL, id: 'CHANDRA-ORB', callSign: 'CHANDRA', name: 'CHANDRA-ORB', modelType: 'Lunar Polar Mapper' },
+        { ...MOCK_DETAIL, id: 'EUROPA-CLIPPER-S', callSign: 'EUROPA', name: 'EUROPA-CLIPPER-S', modelType: 'Jovian Icy Moons Explorer' },
+        { ...MOCK_DETAIL, id: 'HELIOS-CORONA', callSign: 'HELIOS', name: 'HELIOS-CORONA', modelType: 'Solar Corona Explorer' },
+      ];
+
+      render(
+        <FleetSelectorBar
+          spacecraftList={sampleFleet}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={mockSelect}
+        />
+      );
+
+      // Verify destination filter pills are rendered
+      expect(screen.getByTestId('fleet-filter-all')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-filter-mars')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-filter-lunar')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-filter-outer')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-filter-solar')).toBeInTheDocument();
+
+      // Click MARS filter
+      fireEvent.click(screen.getByTestId('fleet-filter-mars'));
+      expect(screen.getByTestId('fleet-card-ARES-ORBITER')).toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-AURA-1')).not.toBeInTheDocument();
+
+      // Click ALL filter
+      fireEvent.click(screen.getByTestId('fleet-filter-all'));
+      expect(screen.getByTestId('fleet-card-AURA-1')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-ARES-ORBITER')).toBeInTheDocument();
+    });
+
+    it('OrbitalStage3D renders Mars destination environment immediately for Mars spacecraft', () => {
+      const marsCraft = {
+        ...MOCK_DETAIL,
+        id: 'ARES-ORBITER',
+        name: 'ARES-ORBITER',
+        modelType: 'Mars Reconnaissance Orbiter',
+        elements: {
+          semiMajorAxisKm: 20424.0,
+          eccentricity: 0.05,
+          inclinationDeg: 92.8,
+          raanDeg: 45.0,
+          argOfPerigeeDeg: 120.0,
+          trueAnomalyDeg: 0.0,
+        },
+      };
+
+      render(
+        <OrbitalStage3D
+          spacecraftList={[marsCraft]}
+          selectedSpacecraftId="ARES-ORBITER"
+          onSelectSpacecraft={vi.fn()}
+        />
+      );
+
+      // Verify the HUD indicates Mars destination and MCI_J2000 inertial frame
+      expect(screen.getByText(/TARGET: MARS/i)).toBeInTheDocument();
+      expect(screen.getByText(/MCI_J2000/i)).toBeInTheDocument();
+      expect(screen.getByText('ARES-ORBITER')).toBeInTheDocument();
+    });
   });
 });
 

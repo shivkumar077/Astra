@@ -6,22 +6,23 @@ import { EarthCanvas } from './components/earth/EarthCanvas';
 import { EntryModal, DestinationType } from './components/ui/EntryModal';
 import { SpaceImageryView } from './components/imagery/SpaceImageryView';
 import { MissionControlView } from './components/missionControl/MissionControlView';
+import { navigationHistory, NavigationLocation } from './utils/navigationHistory';
 
 export const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'landing' | 'space-imagery' | 'mission-control'>(() => {
-    if (typeof window !== 'undefined') {
-      if (window.location.hash === '#space-imagery') {
-        return 'space-imagery';
-      }
-      if (window.location.hash === '#mission-control') {
-        return 'mission-control';
-      }
-    }
-    return 'landing';
+  const [navLocation, setNavLocation] = useState<NavigationLocation>(() => {
+    return navigationHistory.parseUrlHash();
   });
   const [missionControlModalOpen, setMissionControlModalOpen] = useState<boolean>(false);
   const [reducedMotion, setReducedMotion] = useState<boolean>(false);
   const [scrollProgress, setScrollProgress] = useState<number>(0);
+
+  useEffect(() => {
+    navigationHistory.init(navigationHistory.parseUrlHash());
+    const unsubscribe = navigationHistory.subscribe((loc) => {
+      setNavLocation(loc);
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     // Detect operating-system reduced motion preference silently for accessibility
@@ -36,24 +37,6 @@ export const App: React.FC = () => {
       mediaQuery.addEventListener?.('change', handleChange);
       return () => mediaQuery.removeEventListener?.('change', handleChange);
     }
-  }, []);
-
-  useEffect(() => {
-    // Synchronize browser history and hash changes for deep linking
-    const handleHashChange = () => {
-      if (typeof window !== 'undefined') {
-        if (window.location.hash === '#space-imagery') {
-          setViewMode('space-imagery');
-        } else if (window.location.hash === '#mission-control') {
-          setViewMode('mission-control');
-        } else {
-          setViewMode('landing');
-        }
-      }
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   useEffect(() => {
@@ -79,28 +62,19 @@ export const App: React.FC = () => {
 
   const handleSelectDestination = (dest: DestinationType) => {
     if (dest === 'space-imagery') {
-      setViewMode('space-imagery');
-      if (typeof window !== 'undefined') {
-        window.location.hash = 'space-imagery';
-      }
+      navigationHistory.push({ viewMode: 'space-imagery' });
     } else if (dest === 'mission-control') {
-      setViewMode('mission-control');
-      if (typeof window !== 'undefined') {
-        window.location.hash = 'mission-control';
-      }
+      navigationHistory.push({ viewMode: 'mission-control', mcModeView: 'cockpit' });
     } else {
       setMissionControlModalOpen(true);
     }
   };
 
   const handleReturnHome = () => {
-    setViewMode('landing');
-    if (typeof window !== 'undefined' && window.location.hash) {
-      window.history.pushState(null, '', window.location.pathname);
-    }
+    navigationHistory.push({ viewMode: 'landing' });
   };
 
-  if (viewMode === 'space-imagery') {
+  if (navLocation.viewMode === 'space-imagery') {
     return (
       <SpaceImageryView
         onReturnHome={handleReturnHome}
@@ -109,11 +83,12 @@ export const App: React.FC = () => {
     );
   }
 
-  if (viewMode === 'mission-control') {
+  if (navLocation.viewMode === 'mission-control') {
     return (
       <MissionControlView
         onReturnHome={handleReturnHome}
         reducedMotion={reducedMotion}
+        navLocation={navLocation}
       />
     );
   }

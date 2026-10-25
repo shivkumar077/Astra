@@ -233,7 +233,7 @@ public class MissionService {
                 "Mars",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.CHALLENGING,
-                "TERRA-OBS",
+                "ARES-ORBITER",
                 90,
                 "HIGH",
                 "Simulated high-altitude surface imaging campaign over Martian volcanic and canyon formations. Model atmospheric dust scattering corrections and autonomous navigation under communication latency.",
@@ -261,7 +261,7 @@ public class MissionService {
                 "Mars",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.STANDARD,
-                "AURA-1",
+                "MARS-ATMOS-4",
                 60,
                 "MODERATE",
                 "Conceptual simulation of infrared occultation sounding to measure carbon dioxide sublimation cycles and trace water vapor concentrations in the Martian upper atmosphere.",
@@ -288,7 +288,7 @@ public class MissionService {
                 "Mars",
                 MissionCategory.COMMUNICATIONS_RECOVERY,
                 MissionDifficulty.CRITICAL,
-                "SOLIS-RELAY",
+                "MARS-RELAY-1",
                 75,
                 "SEVERE",
                 "A Mars surface rover data relay satellite exhibits sudden thermal radiator degradation and communication carrier lock loss during solar occultation. Conduct deep diagnostics and execute emergency recovery.",
@@ -319,7 +319,7 @@ public class MissionService {
                 "Lunar & Deep Space",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.CHALLENGING,
-                "AURA-1",
+                "CHANDRA-ORB",
                 50,
                 "HIGH",
                 "Simulate polar orbital SAR mapping over permanently shadowed craters at the Lunar South Pole to quantify regolith volatile concentrations and potential water ice reservoirs.",
@@ -347,7 +347,7 @@ public class MissionService {
                 "Lunar & Deep Space",
                 MissionCategory.DEEP_SPACE_SURVIVAL,
                 MissionDifficulty.CRITICAL,
-                "SOLIS-RELAY",
+                "DEEP-NAV-ALPHA",
                 120,
                 "SEVERE",
                 "Long-duration survival scenario testing power management, autonomous fault recovery, and battery longevity under diminished solar flux at interplanetary distances.",
@@ -378,7 +378,7 @@ public class MissionService {
                 "Outer Planets",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.CRITICAL,
-                "TERRA-OBS",
+                "EUROPA-CLIPPER-S",
                 100,
                 "SEVERE",
                 "Advanced simulation concept: evaluate spacecraft electronics endurance inside Jupiter's harsh radiation belts during close Europa flybys, measuring surface plume activity.",
@@ -405,7 +405,7 @@ public class MissionService {
                 "Solar",
                 MissionCategory.THERMAL_MANAGEMENT,
                 MissionDifficulty.CRITICAL,
-                "AURA-1",
+                "HELIOS-CORONA",
                 80,
                 "SEVERE",
                 "Simulated ultra-close solar flyby testing extreme thermal heat-shield alignment, radiator shadowing, and solar array feathering to prevent photovoltaic thermal degradation.",
@@ -432,7 +432,7 @@ public class MissionService {
                 "Mars",
                 MissionCategory.COMMUNICATIONS_RECOVERY,
                 MissionDifficulty.CHALLENGING,
-                "TERRA-OBS",
+                "MARS-RELAY-1",
                 40,
                 "MODERATE",
                 "Align steerable X-band antenna with Jezero Crater surface rover coordinates during overhead pass. Establish bidirectional UHF/X-band relay, buffer multispectral science caches, and downlink to Earth.",
@@ -459,7 +459,7 @@ public class MissionService {
                 "Mars",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.STANDARD,
-                "AURA-1",
+                "AERO-MAP-02",
                 60,
                 "MODERATE",
                 "Ground-penetrating synthetic aperture radar survey over Mars Planum Boreum. Measure dielectric permittivity of seasonal CO2 ice blankets and map sub-surface water-ice basal topography.",
@@ -486,7 +486,7 @@ public class MissionService {
                 "Lunar & Deep Space",
                 MissionCategory.COMMUNICATIONS_RECOVERY,
                 MissionDifficulty.CHALLENGING,
-                "SOLIS-RELAY",
+                "LUNAR-HALO-1",
                 90,
                 "HIGH",
                 "Operate far-side lunar communications bridge in a southern Earth-Moon L2 quasi-halo orbit. Perform precision delta-v station-keeping maneuvers to counteract solar radiation pressure perturbations.",
@@ -513,7 +513,7 @@ public class MissionService {
                 "Lunar & Deep Space",
                 MissionCategory.PLANETARY_RECONNAISSANCE,
                 MissionDifficulty.STANDARD,
-                "TERRA-OBS",
+                "LUNAR-RECON-X",
                 55,
                 "MODERATE",
                 "Simulated lunar prospector run: calibrate epithermal neutron spectrometer over permanently shadowed craters to map volatile hydrogen concentrations and potential cryogenic deposits.",
@@ -540,7 +540,7 @@ public class MissionService {
                 "Outer Planets",
                 MissionCategory.DEEP_SPACE_SURVIVAL,
                 MissionDifficulty.CRITICAL,
-                "SOLIS-RELAY",
+                "JOVIAN-RADIATION",
                 110,
                 "SEVERE",
                 "Transit the inner Jovian radiation torus while measuring relativistic electron flux. Execute boom-mounted fluxgate magnetometer roll calibration and evaluate radiation-hardened OBC EDAC counters.",
@@ -567,7 +567,7 @@ public class MissionService {
                 "Solar",
                 MissionCategory.EARTH_OBSERVATION,
                 MissionDifficulty.CHALLENGING,
-                "AURA-1",
+                "SOLAR-STORM-01",
                 50,
                 "HIGH",
                 "Positioned at Sun-Earth Lagrange L1: detect energetic solar flare particle arrival, measure interplanetary magnetic field Bz southward deflection, and synthesize geomagnetic storm early warnings.",
@@ -583,6 +583,60 @@ public class MissionService {
                 ),
                 List.of(
                         "High solar energetic particle (SEP) flux induces sensor noise"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "SATURN-RING-01",
+                "Saturn Rings & Titan Atmospheric Ingress Profiling",
+                "Saturn (Equatorial Ring Plane, 185,000 km)",
+                "Outer Planets",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CRITICAL,
+                "CHRONOS-SATURN",
+                95,
+                "SEVERE",
+                "Conduct ring-plane crossing spectroscopy and radar occultation of Saturn's ring structure, followed by telemetry relay during Titan upper-atmosphere proximity skim.",
+                List.of(
+                        "Execute ring-plane particle density sensor sweep",
+                        "Perform radio occultation scan through the Cassini Division",
+                        "Calibrate Titan atmosphere infrared transmission profile",
+                        "Preserve radioisotope thermoelectric generator bus voltage"
+                ),
+                List.of(
+                        "Ring particle collision rate within safe micrometeoroid tolerance",
+                        "Titan atmospheric sounding frames successfully cached"
+                ),
+                List.of(
+                        "Extreme distance imposes 80-minute one-way speed-of-light delay"
+                ),
+                true
+        ));
+
+        registerMission(new MissionDefinition(
+                "ASTEROID-INTERCEPT-01",
+                "Near-Earth Asteroid High-Speed Flyby & Mass Spectrometry",
+                "Deep Space (Heliocentric Asteroid Belt, 2.3 AU)",
+                "Lunar & Deep Space",
+                MissionCategory.PLANETARY_RECONNAISSANCE,
+                MissionDifficulty.CHALLENGING,
+                "ASTEROID-SCOUT",
+                70,
+                "HIGH",
+                "Autonomous hyperbolic flyby past carbonaceous C-type asteroid. Deploy optical navigation tracking to guide high-speed camera boresight and trigger dust impact mass spectrometer.",
+                List.of(
+                        "Acquire optical navigation lock on asteroid nucleus 48 hours prior to encounter",
+                        "Execute autonomous trajectory trim burn with cold-gas RCS",
+                        "Capture 120 multispectral framing images during 20 km closest approach",
+                        "Measure organic composition of ejected impact debris"
+                ),
+                List.of(
+                        "Closest approach achieved within ±500 meters of target vector",
+                        "Spectrometer mass spectrum resolution >= 5000 m/Δm"
+                ),
+                List.of(
+                        "Hyperbolic relative encounter velocity exceeds 14.2 km/s"
                 ),
                 true
         ));

@@ -21,6 +21,7 @@ import org.springframework.web.socket.messaging.WebSocketStompClient;
 
 import java.lang.reflect.Type;
 import java.time.Duration;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +42,12 @@ class WebSocketTelemetryIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        stompClient = new WebSocketStompClient(new StandardWebSocketClient());
+        jakarta.websocket.WebSocketContainer container = jakarta.websocket.ContainerProvider.getWebSocketContainer();
+        container.setDefaultMaxTextMessageBufferSize(1024 * 1024);
+        container.setDefaultMaxBinaryMessageBufferSize(1024 * 1024);
+        StandardWebSocketClient wsClient = new StandardWebSocketClient(container);
+        stompClient = new WebSocketStompClient(wsClient);
+        stompClient.setInboundMessageSizeLimit(1024 * 1024);
         com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
         objectMapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         objectMapper.disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
@@ -94,9 +100,9 @@ class WebSocketTelemetryIntegrationTest {
         SimulationSnapshotMessage snapshot = snapshotFuture.get(5, TimeUnit.SECONDS);
         assertNotNull(snapshot);
         assertNotNull(snapshot.currentEpoch());
-        assertEquals(3, snapshot.spacecraftCount());
+        assertEquals(28, snapshot.spacecraftCount());
         assertNotNull(snapshot.fleet());
-        assertEquals(3, snapshot.fleet().size());
+        assertEquals(28, snapshot.fleet().size());
     }
 
     @Test
@@ -118,7 +124,7 @@ class WebSocketTelemetryIntegrationTest {
 
         FleetTelemetryFrame initialFrame = initialFrameFuture.get(5, TimeUnit.SECONDS);
         assertNotNull(initialFrame);
-        assertEquals(3, initialFrame.spacecraftCount());
+        assertEquals(28, initialFrame.spacecraftCount());
         assertNotNull(initialFrame.telemetry());
 
         // Verify that all telemetry in this frame has the exact same simulation epoch (zero time skew)

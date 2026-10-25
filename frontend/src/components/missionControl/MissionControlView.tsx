@@ -31,12 +31,14 @@ import { FailureLabDrawer } from './FailureLabDrawer';
 import { EventLogFeed } from './EventLogFeed';
 import { MissionUniverseHub } from './MissionUniverseHub';
 import { FailureLabSuite } from './FailureLabSuite';
+import { navigationHistory, NavigationLocation } from '../../utils/navigationHistory';
 import { Activity, Terminal, ShieldAlert, Layers } from 'lucide-react';
 import '../../styles/missionControl.css';
 
 interface MissionControlViewProps {
   onReturnHome: () => void;
   reducedMotion?: boolean;
+  navLocation?: NavigationLocation;
 }
 
 type ActiveTab = 'telemetry' | 'commands' | 'failure-lab' | 'events';
@@ -44,15 +46,24 @@ type ActiveTab = 'telemetry' | 'commands' | 'failure-lab' | 'events';
 export const MissionControlView: React.FC<MissionControlViewProps> = ({
   onReturnHome,
   reducedMotion = false,
+  navLocation,
 }) => {
   const [spacecraftList, setSpacecraftList] = useState<SpacecraftDetail[]>([]);
-  const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>('AURA-1');
+  const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>(
+    navLocation?.selectedSpacecraftId || 'AURA-1'
+  );
   const [simulationStatus, setSimulationStatus] = useState<SimulationStatus | null>(null);
   const [subsystemsHealth, setSubsystemsHealth] = useState<SubsystemsHealth | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandRecord[]>([]);
   const [events, setEvents] = useState<SimulationEvent[]>([]);
   const [activeTab, setActiveTab] = useState<ActiveTab>('telemetry');
-  const [activeModeView, setActiveModeView] = useState<OperationalModeView>('cockpit');
+  const [activeModeView, setActiveModeView] = useState<OperationalModeView>(
+    navLocation?.mcModeView || 'cockpit'
+  );
+  const [universeTab, setUniverseTab] = useState<'catalogue' | 'briefing' | 'history'>(
+    navLocation?.universeTab || 'catalogue'
+  );
+  const [universeBackSignal, setUniverseBackSignal] = useState<number>(0);
   const [activeMission, setActiveMission] = useState<MissionResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [connectionStatus, setConnectionStatus] = useState<StompConnectionStatus>('connecting');
@@ -221,16 +232,56 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
     };
   }, []);
 
-  // Global Escape key returns home
+  // Universal Back Navigation Handler
+  const handleHeaderBack = useCallback(() => {
+    if (activeModeView === 'universe') {
+      if (universeTab !== 'catalogue') {
+        // Step back logically from briefing/history to catalogue view
+        setUniverseBackSignal((s) => s + 1);
+        return;
+      }
+      navigationHistory.goBack();
+      return;
+    }
+    if (activeModeView === 'diagnostics') {
+      navigationHistory.goBack();
+      return;
+    }
+    // In cockpit mode:
+    const prev = navigationHistory.goBack();
+    if (prev.viewMode === 'landing') {
+      onReturnHome();
+    }
+  }, [activeModeView, universeTab, onReturnHome]);
+
+  // Synchronize state with universal navigation history
+  useEffect(() => {
+    const unsub = navigationHistory.subscribe((loc) => {
+      if (loc.viewMode === 'mission-control') {
+        if (loc.mcModeView && loc.mcModeView !== activeModeView) {
+          setActiveModeView(loc.mcModeView);
+        }
+        if (loc.universeTab && loc.universeTab !== universeTab) {
+          setUniverseTab(loc.universeTab);
+        }
+        if (loc.selectedSpacecraftId && loc.selectedSpacecraftId !== selectedSpacecraftId) {
+          setSelectedSpacecraftId(loc.selectedSpacecraftId);
+        }
+      }
+    });
+    return unsub;
+  }, [activeModeView, universeTab, selectedSpacecraftId]);
+
+  // Global Escape key invokes universal back
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onReturnHome();
+        handleHeaderBack();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onReturnHome]);
+  }, [handleHeaderBack]);
 
   const handleRefreshCommands = async () => {
     try {
@@ -247,12 +298,21 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
     <div className="astra-mc-root" data-testid="mission-control-view">
       {/* 1. Tactical Command Header & Live Timekeeper */}
       <MissionControlHeader
-        onReturnHome={onReturnHome}
+        onReturnHome={handleHeaderBack}
         simulationStatus={simulationStatus}
         connectionStatus={connectionStatus}
         onSimulationUpdated={loadInitialData}
         activeModeView={activeModeView}
-        onSelectModeView={setActiveModeView}
+        onSelectModeView={(mode) => {
+          if (mode === activeModeView) return;
+          setActiveModeView(mode);
+          navigationHistory.push({
+            viewMode: 'mission-control',
+            mcModeView: mode,
+            selectedSpacecraftId,
+            selectedMissionId: activeMission?.id || null,
+          });
+        }}
         activeMission={activeMission}
         onAdvanceSimulation={handleAdvanceSimulation}
       />
@@ -377,6 +437,12 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             onSelectSpacecraft={(id) => {
               setSelectedSpacecraftId(id);
               setActiveModeView('cockpit');
+              navigationHistory.push({
+                viewMode: 'mission-control',
+                mcModeView: 'cockpit',
+                selectedSpacecraftId: id,
+                selectedMissionId: activeMission?.id || null,
+              });
             }}
             onStartMissionSuccess={(mission, run) => {
               setActiveMission(mission);
@@ -384,9 +450,40 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
                 setSelectedSpacecraftId(run.spacecraftId);
               }
               setActiveModeView('cockpit');
+              navigationHistory.push({
+                viewMode: 'mission-control',
+                mcModeView: 'cockpit',
+                selectedSpacecraftId: run.spacecraftId || selectedSpacecraftId,
+                selectedMissionId: mission.id,
+              });
             }}
             onMissionStatusChanged={loadInitialData}
-            onNavigateToConsole={() => setActiveModeView('cockpit')}
+            onNavigateToConsole={(mission) => {
+              if (mission) {
+                setActiveMission(mission);
+                if (mission.spacecraftId) {
+                  setSelectedSpacecraftId(mission.spacecraftId);
+                }
+              }
+              setActiveModeView('cockpit');
+              navigationHistory.push({
+                viewMode: 'mission-control',
+                mcModeView: 'cockpit',
+                selectedSpacecraftId: mission?.spacecraftId || selectedSpacecraftId,
+                selectedMissionId: mission?.id || activeMission?.id || null,
+              });
+            }}
+            backSignal={universeBackSignal}
+            onTabChanged={(tab) => {
+              setUniverseTab(tab);
+              navigationHistory.push({
+                viewMode: 'mission-control',
+                mcModeView: 'universe',
+                universeTab: tab,
+                selectedSpacecraftId,
+                selectedMissionId: activeMission?.id || null,
+              });
+            }}
           />
         </main>
       )}

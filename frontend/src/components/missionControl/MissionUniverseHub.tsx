@@ -46,7 +46,9 @@ interface MissionUniverseHubProps {
   onSelectSpacecraft?: (id: string) => void;
   onStartMissionSuccess?: (mission: MissionResponse, run: MissionRun) => void;
   onMissionStatusChanged?: () => void;
-  onNavigateToConsole?: () => void;
+  onNavigateToConsole?: (mission?: MissionResponse) => void;
+  backSignal?: number;
+  onTabChanged?: (tab: 'catalogue' | 'briefing' | 'history', missionId?: string | null) => void;
 }
 
 const DESTINATION_TABS = [
@@ -65,6 +67,8 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   onStartMissionSuccess,
   onMissionStatusChanged,
   onNavigateToConsole,
+  backSignal = 0,
+  onTabChanged,
 }) => {
   const [missions, setMissions] = useState<MissionResponse[]>([]);
   const [history, setHistory] = useState<MissionRun[]>([]);
@@ -83,6 +87,16 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
   const [expandedHistoryRunId, setExpandedHistoryRunId] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  // Handle universal back navigation signal from top header
+  useEffect(() => {
+    if (backSignal > 0) {
+      if (activeTab === 'briefing' || activeTab === 'history') {
+        setActiveTab('catalogue');
+        if (onTabChanged) onTabChanged('catalogue');
+      }
+    }
+  }, [backSignal, activeTab, onTabChanged]);
 
   const formatDuration = (startEpoch: string, endEpoch?: string | null): string => {
     const start = new Date(startEpoch).getTime();
@@ -826,6 +840,32 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       {/* Briefing Tab */}
       {activeTab === 'briefing' && selectedMission && (
         <div className="astra-mc-briefing-view" data-testid="mission-briefing-view">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab('catalogue');
+              if (onTabChanged) onTabChanged('catalogue');
+            }}
+            className="astra-mc-filter-btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              marginBottom: '14px',
+              padding: '6px 14px',
+              fontSize: '11px',
+              fontFamily: 'var(--font-mono)',
+              color: 'var(--color-earth-cyan)',
+              border: '1px solid rgba(0, 229, 255, 0.3)',
+              background: 'rgba(0, 229, 255, 0.08)',
+              borderRadius: '2px',
+              cursor: 'pointer',
+            }}
+            data-testid="briefing-back-to-catalogue-btn"
+            aria-label="Return to missions catalogue"
+          >
+            ← RETURN TO MISSIONS CATALOGUE
+          </button>
           <div className="astra-mc-briefing-card">
             <div className="astra-mc-briefing-header">
               <div>
@@ -939,9 +979,10 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                   </div>
                   {onNavigateToConsole && (
                     <button
-                      onClick={onNavigateToConsole}
+                      onClick={() => onNavigateToConsole(selectedMission)}
                       className="astra-mc-btn-jump-cockpit"
                       style={{ marginTop: '12px' }}
+                      data-testid="jump-to-cockpit-btn"
                     >
                       <ExternalLink size={12} />
                       <span>JUMP TO 3D COCKPIT & TELEMETRY</span>
