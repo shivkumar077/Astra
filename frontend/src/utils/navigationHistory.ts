@@ -4,6 +4,8 @@
  * filter preservation, and active-mission protection across the entire web application.
  */
 
+import { DestinationFilter } from './destinationModel';
+
 export type AppViewMode = 'landing' | 'space-imagery' | 'mission-control';
 export type McModeView = 'cockpit' | 'universe' | 'diagnostics';
 export type UniverseTab = 'catalogue' | 'briefing' | 'history';
@@ -22,6 +24,7 @@ export interface NavigationLocation {
   universeTab?: UniverseTab;
   selectedMissionId?: string | null;
   selectedSpacecraftId?: string;
+  destinationFilter?: DestinationFilter;
   catalogueFilters?: CatalogueFilterState;
   imageryDestinationId?: string;
   imageryDrawerOpen?: boolean;
@@ -184,6 +187,7 @@ class NavigationHistoryManager {
       a.universeTab === b.universeTab &&
       a.selectedMissionId === b.selectedMissionId &&
       a.selectedSpacecraftId === b.selectedSpacecraftId &&
+      a.destinationFilter === b.destinationFilter &&
       a.imageryDestinationId === b.imageryDestinationId &&
       a.imageryDrawerOpen === b.imageryDrawerOpen &&
       a.imageryModalOpen === b.imageryModalOpen
@@ -216,6 +220,9 @@ class NavigationHistoryManager {
       }
       if (location.selectedSpacecraftId) {
         params.set('craft', location.selectedSpacecraftId);
+      }
+      if (location.destinationFilter) {
+        params.set('dest', location.destinationFilter);
       }
     }
 
@@ -256,6 +263,7 @@ class NavigationHistoryManager {
       const tab = (params.get('tab') as UniverseTab) || 'catalogue';
       const mission = params.get('mission') || null;
       const craft = params.get('craft') || undefined;
+      const dest = (params.get('dest') as DestinationFilter) || undefined;
 
       return {
         viewMode: 'mission-control',
@@ -263,6 +271,7 @@ class NavigationHistoryManager {
         universeTab: tab,
         selectedMissionId: mission,
         selectedSpacecraftId: craft,
+        destinationFilter: dest,
       };
     }
 

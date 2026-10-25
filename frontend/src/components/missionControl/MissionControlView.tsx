@@ -33,6 +33,12 @@ import { MissionUniverseHub } from './MissionUniverseHub';
 import { FailureLabSuite } from './FailureLabSuite';
 import { navigationHistory, NavigationLocation } from '../../utils/navigationHistory';
 import { DEFAULT_SOLAR_SYSTEM_FLEET } from '../../utils/fleetCatalog';
+import {
+  DestinationFilter,
+  getSpacecraftDestinationGroup,
+  getMissionDestinationGroup,
+  isSpacecraftCompatibleWithDestination,
+} from '../../utils/destinationModel';
 import { Activity, Terminal, ShieldAlert, Layers } from 'lucide-react';
 import '../../styles/missionControl.css';
 
@@ -52,6 +58,13 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [spacecraftList, setSpacecraftList] = useState<SpacecraftDetail[]>(
     DEFAULT_SOLAR_SYSTEM_FLEET
   );
+  // Authoritative: Default to EARTH ORBIT unless explicitly specified by navigation
+  const [destinationFilter, setDestinationFilter] = useState<DestinationFilter>(
+    navLocation?.destinationFilter || 'EARTH'
+  );
+  const userSelectedDestinationRef = useRef<boolean>(!!navLocation?.destinationFilter);
+
+  // Authoritative: Default to AURA-1 (Earth-assigned)
   const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>(
     navLocation?.selectedSpacecraftId || 'AURA-1'
   );
@@ -75,8 +88,48 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [timeAdvanceNotice, setTimeAdvanceNotice] = useState<TimeAdvanceNotice | null>(null);
   const timeAdvanceTimeoutRef = useRef<number | null>(null);
 
+  // Scoped fleet list matching the active destination filter
+  const scopedSpacecraftList = destinationFilter === 'ALL'
+    ? spacecraftList
+    : spacecraftList.filter((craft) => getSpacecraftDestinationGroup(craft) === destinationFilter);
+
   const selectedCraft =
-    spacecraftList.find((s) => s.id === selectedSpacecraftId) || spacecraftList[0] || null;
+    scopedSpacecraftList.find((s) => s.id === selectedSpacecraftId) ||
+    scopedSpacecraftList[0] ||
+    null;
+
+  // Authoritative Destination Switch Handler
+  const handleDestinationChange = useCallback((newDest: DestinationFilter) => {
+    userSelectedDestinationRef.current = true;
+    setDestinationFilter(newDest);
+
+    // Filter spacecraft for the new destination
+    const matching = newDest === 'ALL'
+      ? spacecraftList
+      : spacecraftList.filter((craft) => getSpacecraftDestinationGroup(craft) === newDest);
+
+    let nextCraftId = '';
+    if (matching.length > 0) {
+      const alreadyMatching = matching.some((c) => c.id === selectedSpacecraftId);
+      if (alreadyMatching) {
+        nextCraftId = selectedSpacecraftId;
+      } else if (newDest === 'EARTH' && matching.some((c) => c.id === 'AURA-1')) {
+        nextCraftId = 'AURA-1';
+      } else {
+        nextCraftId = matching[0].id;
+      }
+    }
+    setSelectedSpacecraftId(nextCraftId);
+
+    const currentLoc = navigationHistory.getCurrent();
+    if (currentLoc.viewMode === 'mission-control') {
+      navigationHistory.replace({
+        ...currentLoc,
+        destinationFilter: newDest,
+        selectedSpacecraftId: nextCraftId || undefined,
+      });
+    }
+  }, [spacecraftList, selectedSpacecraftId]);
 
   // Handle +60s advance with viewport-anchored notification
   const handleAdvanceSimulation = async (seconds: number): Promise<boolean> => {
@@ -140,19 +193,42 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         allCrafts.map((craft) => getSpacecraftDetail(craft.id).catch(() => craft as SpacecraftDetail))
       );
       setSpacecraftList(detailedCrafts);
-      if (detailedCrafts.length > 0) {
-        setSelectedSpacecraftId((prev) => (prev && detailedCrafts.some((c) => c.id === prev) ? prev : detailedCrafts[0].id));
-      }
 
-      // Check for active mission run from authoritative active endpoint or catalogue
-      // Do not overwrite an explicit user-selected mission
-      if (!userSelectedMissionRef.current) {
-        const currentActive = activeMsn || (missions ? missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null) : null);
+      // Handle active mission and initial spacecraft / destination selection
+      if (!userSelectedDestinationRef.current && !userSelectedMissionRef.current) {
+        const currentActive =
+          activeMsn ||
+          (missions ? missions.find((m) => m.status === 'ACTIVE' || m.activeRun != null) : null);
         if (currentActive) {
           setActiveMission(currentActive);
-          if (currentActive.activeRun?.spacecraftId) {
-            setSelectedSpacecraftId(currentActive.activeRun.spacecraftId);
+          const mDest = getMissionDestinationGroup(currentActive);
+          setDestinationFilter(mDest);
+          const assignedCraftId = currentActive.activeRun?.spacecraftId || currentActive.spacecraftId;
+          if (assignedCraftId && isSpacecraftCompatibleWithDestination(assignedCraftId, mDest)) {
+            setSelectedSpacecraftId(assignedCraftId);
+          } else {
+            const matching = detailedCrafts.filter((c) => getSpacecraftDestinationGroup(c) === mDest);
+            if (matching.length > 0) setSelectedSpacecraftId(matching[0].id);
           }
+        } else {
+          // No active mission: default to EARTH and select AURA-1
+          setDestinationFilter('EARTH');
+          const earthCrafts = detailedCrafts.filter((c) => getSpacecraftDestinationGroup(c) === 'EARTH');
+          if (earthCrafts.some((c) => c.id === 'AURA-1')) {
+            setSelectedSpacecraftId('AURA-1');
+          } else if (earthCrafts.length > 0) {
+            setSelectedSpacecraftId(earthCrafts[0].id);
+          }
+        }
+      } else {
+        // User already selected destination or mission: preserve destination and ensure craft consistency
+        const matching = destinationFilter === 'ALL'
+          ? detailedCrafts
+          : detailedCrafts.filter((c) => getSpacecraftDestinationGroup(c) === destinationFilter);
+        if (matching.length === 0) {
+          setSelectedSpacecraftId('');
+        } else if (!matching.some((c) => c.id === selectedSpacecraftId)) {
+          setSelectedSpacecraftId(matching[0].id);
         }
       }
 
@@ -166,7 +242,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [destinationFilter, selectedSpacecraftId]);
 
   useEffect(() => {
     loadInitialData();
@@ -286,10 +362,13 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         if (loc.selectedSpacecraftId && loc.selectedSpacecraftId !== selectedSpacecraftId) {
           setSelectedSpacecraftId(loc.selectedSpacecraftId);
         }
+        if (loc.destinationFilter && loc.destinationFilter !== destinationFilter) {
+          setDestinationFilter(loc.destinationFilter);
+        }
       }
     });
     return unsub;
-  }, [activeModeView, universeTab, selectedSpacecraftId]);
+  }, [activeModeView, universeTab, selectedSpacecraftId, destinationFilter]);
 
   // Global Escape key invokes universal back
   useEffect(() => {
@@ -329,6 +408,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             viewMode: 'mission-control',
             mcModeView: mode,
             selectedSpacecraftId,
+            destinationFilter,
             selectedMissionId: activeMission?.id || null,
           });
         }}
@@ -346,18 +426,21 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             onSelectSpacecraft={(id) => {
               setSelectedSpacecraftId(id);
             }}
+            destinationFilter={destinationFilter}
+            onSelectDestination={handleDestinationChange}
             loading={loading}
             error={fleetError}
           />
 
           {/* Center: Interactive 3D Orbital Visualization Stage */}
           <OrbitalStage3D
-            spacecraftList={spacecraftList}
+            spacecraftList={scopedSpacecraftList}
             selectedSpacecraftId={selectedSpacecraftId}
             onSelectSpacecraft={(id) => setSelectedSpacecraftId(id)}
             reducedMotion={reducedMotion}
             activeMission={activeMission}
             timeAdvanceNotice={timeAdvanceNotice}
+            destinationFilter={destinationFilter}
           />
 
           {/* Right: Operations & Subsystems Console */}
@@ -461,11 +544,15 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
                 viewMode: 'mission-control',
                 mcModeView: 'cockpit',
                 selectedSpacecraftId: id,
+                destinationFilter,
                 selectedMissionId: activeMission?.id || null,
               });
             }}
             onStartMissionSuccess={(mission, run) => {
+              userSelectedMissionRef.current = true;
               setActiveMission(mission);
+              const mDest = getMissionDestinationGroup(mission);
+              setDestinationFilter(mDest);
               if (run.spacecraftId) {
                 setSelectedSpacecraftId(run.spacecraftId);
               }
@@ -473,6 +560,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
               navigationHistory.push({
                 viewMode: 'mission-control',
                 mcModeView: 'cockpit',
+                destinationFilter: mDest,
                 selectedSpacecraftId: run.spacecraftId || selectedSpacecraftId,
                 selectedMissionId: mission.id,
               });
@@ -480,7 +568,10 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
             onMissionStatusChanged={loadInitialData}
             onNavigateToConsole={(mission) => {
               if (mission) {
+                userSelectedMissionRef.current = true;
                 setActiveMission(mission);
+                const mDest = getMissionDestinationGroup(mission);
+                setDestinationFilter(mDest);
                 if (mission.spacecraftId) {
                   setSelectedSpacecraftId(mission.spacecraftId);
                 }
@@ -489,6 +580,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
               navigationHistory.push({
                 viewMode: 'mission-control',
                 mcModeView: 'cockpit',
+                destinationFilter: mission ? getMissionDestinationGroup(mission) : destinationFilter,
                 selectedSpacecraftId: mission?.spacecraftId || selectedSpacecraftId,
                 selectedMissionId: mission?.id || activeMission?.id || null,
               });

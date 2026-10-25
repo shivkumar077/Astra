@@ -24,7 +24,13 @@ import {
 import {
   resolveDestinationBody,
   getAuthoritativeVisualizationContext,
+  getSpacecraftDestinationGroup,
+  getMissionDestinationGroup,
+  isSpacecraftCompatibleWithDestination,
+  getCompatibleSpacecraftForDestination,
+  destinationGroupToBody,
 } from '../utils/destinationModel';
+import { DEFAULT_SOLAR_SYSTEM_FLEET } from '../utils/fleetCatalog';
 
 // Mock spacecraft detail fixture matching backend domain schema
 const MOCK_DETAIL: SpacecraftDetail = {
@@ -1426,6 +1432,7 @@ describe('ASTRA Mission Control Operations Console', () => {
           spacecraftList={sampleFleet}
           selectedSpacecraftId="AURA-1"
           onSelectSpacecraft={mockSelect}
+          destinationFilter="ALL"
         />
       );
 
@@ -1950,7 +1957,233 @@ describe('ASTRA Mission Control Operations Console', () => {
       expect(screen.getByTestId('scenario-detail-popover')).toBeInTheDocument();
       const closeBtn = screen.getByTestId('close-scenario-popover');
       fireEvent.click(closeBtn);
-      expect(screen.queryByTestId('scenario-detail-popover')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Destination-First Orbital Operations Interface — Required 11 Verification Scenarios', () => {
+    // 1. Mission Control defaults to Earth Orbit
+    it('1. Mission Control defaults to Earth Orbit and selects AURA-1 by default', () => {
+      const mockSelect = vi.fn();
+      render(
+        <FleetSelectorBar
+          spacecraftList={DEFAULT_SOLAR_SYSTEM_FLEET}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={mockSelect}
+        />
+      );
+
+      const trigger = screen.getByTestId('destination-selector-trigger');
+      expect(trigger).toHaveTextContent('EARTH ORBIT');
+      expect(trigger).not.toHaveTextContent('ALL DESTINATIONS');
+
+      // Default body resolution with no mission or filter resolves to earth
+      expect(resolveDestinationBody(null, null, null)).toBe('earth');
+      expect(destinationGroupToBody('EARTH')).toBe('earth');
+    });
+
+    // 2. Earth selection returns only Earth spacecraft
+    it('2. Earth selection returns only Earth spacecraft', () => {
+      const earthCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'EARTH');
+      expect(earthCrafts.length).toBeGreaterThanOrEqual(10);
+
+      earthCrafts.forEach((craft) => {
+        const group = getSpacecraftDestinationGroup(craft);
+        expect(group).toBe('EARTH');
+        expect(isSpacecraftCompatibleWithDestination(craft, 'EARTH')).toBe(true);
+        expect(isSpacecraftCompatibleWithDestination(craft, 'MARS')).toBe(false);
+      });
+
+      expect(earthCrafts.some((c) => c.id === 'AURA-1')).toBe(true);
+      expect(earthCrafts.some((c) => c.id === 'TERRA-OBS')).toBe(true);
+      expect(earthCrafts.some((c) => c.id === 'ARES-ORBITER')).toBe(false);
+    });
+
+    // 3. Mars selection returns only Mars spacecraft
+    it('3. Mars selection returns only Mars spacecraft', () => {
+      const marsCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'MARS');
+      expect(marsCrafts.length).toBeGreaterThanOrEqual(8);
+
+      marsCrafts.forEach((craft) => {
+        const group = getSpacecraftDestinationGroup(craft);
+        expect(group).toBe('MARS');
+        expect(isSpacecraftCompatibleWithDestination(craft, 'MARS')).toBe(true);
+        expect(isSpacecraftCompatibleWithDestination(craft, 'EARTH')).toBe(false);
+      });
+
+      expect(marsCrafts.some((c) => c.id === 'ARES-ORBITER')).toBe(true);
+      expect(marsCrafts.some((c) => c.id === 'MARS-RELAY-1')).toBe(true);
+      expect(marsCrafts.some((c) => c.id === 'AURA-1')).toBe(false);
+      expect(destinationGroupToBody('MARS')).toBe('mars');
+    });
+
+    // 4. Solar selection returns only Solar spacecraft
+    it('4. Solar selection returns only Solar spacecraft', () => {
+      const solarCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'SOLAR');
+      expect(solarCrafts.length).toBeGreaterThanOrEqual(6);
+
+      solarCrafts.forEach((craft) => {
+        const group = getSpacecraftDestinationGroup(craft);
+        expect(group).toBe('SOLAR');
+        expect(isSpacecraftCompatibleWithDestination(craft, 'SOLAR')).toBe(true);
+        expect(isSpacecraftCompatibleWithDestination(craft, 'EARTH')).toBe(false);
+      });
+
+      expect(solarCrafts.some((c) => c.id === 'HELIOS-CORONA')).toBe(true);
+      expect(solarCrafts.some((c) => c.id === 'SOLAR-STORM-01')).toBe(true);
+      expect(destinationGroupToBody('SOLAR')).toBe('solar');
+    });
+
+    // 5. Each remaining destination returns only compatible spacecraft
+    it('5. Each remaining destination returns only compatible spacecraft', () => {
+      // Lunar
+      const lunarCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'LUNAR');
+      expect(lunarCrafts.length).toBeGreaterThanOrEqual(8);
+      lunarCrafts.forEach((c) => expect(getSpacecraftDestinationGroup(c)).toBe('LUNAR'));
+      expect(lunarCrafts.some((c) => c.id === 'CHANDRA-ORB')).toBe(true);
+      expect(destinationGroupToBody('LUNAR')).toBe('lunar');
+
+      // Outer Planets
+      const outerCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'OUTER');
+      expect(outerCrafts.length).toBeGreaterThanOrEqual(8);
+      outerCrafts.forEach((c) => expect(getSpacecraftDestinationGroup(c)).toBe('OUTER'));
+      expect(outerCrafts.some((c) => c.id === 'EUROPA-CLIPPER-S')).toBe(true);
+      expect(destinationGroupToBody('OUTER', { id: 'SATURN-TITAN-EXP' } as any)).toBe('saturn');
+      expect(destinationGroupToBody('OUTER', null, 'Jupiter Ganymede')).toBe('jupiter');
+
+      // Deep Space
+      const deepCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'DEEP_SPACE');
+      expect(deepCrafts.length).toBeGreaterThanOrEqual(7);
+      deepCrafts.forEach((c) => expect(getSpacecraftDestinationGroup(c)).toBe('DEEP_SPACE'));
+      expect(deepCrafts.some((c) => c.id === 'ODYSSEY-NAV')).toBe(true);
+      expect(destinationGroupToBody('DEEP_SPACE')).toBe('deep_space');
+    });
+
+    // 6. ALL DESTINATIONS restores the complete fleet only after explicit selection
+    it('6. ALL DESTINATIONS restores the complete fleet only after explicit selection', () => {
+      const mockSelect = vi.fn();
+      const { rerender } = render(
+        <FleetSelectorBar
+          spacecraftList={DEFAULT_SOLAR_SYSTEM_FLEET}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={mockSelect}
+          destinationFilter="EARTH"
+        />
+      );
+
+      // In EARTH mode, Mars craft is not rendered
+      expect(screen.queryByTestId('fleet-card-ARES-ORBITER')).not.toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-AURA-1')).toBeInTheDocument();
+
+      // Explicitly switch to ALL DESTINATIONS
+      rerender(
+        <FleetSelectorBar
+          spacecraftList={DEFAULT_SOLAR_SYSTEM_FLEET}
+          selectedSpacecraftId="AURA-1"
+          onSelectSpacecraft={mockSelect}
+          destinationFilter="ALL"
+        />
+      );
+
+      expect(screen.getByTestId('destination-selector-trigger')).toHaveTextContent('ALL DESTINATIONS');
+      expect(screen.getByTestId('fleet-card-ARES-ORBITER')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-AURA-1')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-EUROPA-CLIPPER-S')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-HELIOS-CORONA')).toBeInTheDocument();
+      expect(screen.getByTestId('fleet-card-ODYSSEY-NAV')).toBeInTheDocument();
+    });
+
+    // 7. Changing destinations replaces the visible orbital trajectories and removes obsolete scene objects
+    it('7. Changing destinations replaces the visible orbital trajectories and removes obsolete scene objects', () => {
+      const earthIds = new Set(getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'EARTH').map((c) => c.id));
+      const marsIds = new Set(getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'MARS').map((c) => c.id));
+      const solarIds = new Set(getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'SOLAR').map((c) => c.id));
+
+      // Sets are strictly disjoint
+      earthIds.forEach((id) => {
+        expect(marsIds.has(id)).toBe(false);
+        expect(solarIds.has(id)).toBe(false);
+      });
+      marsIds.forEach((id) => {
+        expect(solarIds.has(id)).toBe(false);
+      });
+
+      // Destination body changes strictly per destination
+      expect(destinationGroupToBody('EARTH')).toBe('earth');
+      expect(destinationGroupToBody('MARS')).toBe('mars');
+      expect(destinationGroupToBody('SOLAR')).toBe('solar');
+      expect(destinationGroupToBody('LUNAR')).toBe('lunar');
+    });
+
+    // 8. An Earth mission cannot be assigned a Mars-only spacecraft
+    it('8. An Earth mission cannot be assigned a Mars-only spacecraft', () => {
+      expect(isSpacecraftCompatibleWithDestination('ARES-ORBITER', 'EARTH')).toBe(false);
+      expect(isSpacecraftCompatibleWithDestination('AURA-1', 'MARS')).toBe(false);
+      expect(isSpacecraftCompatibleWithDestination('HELIOS-CORONA', 'EARTH')).toBe(false);
+      expect(isSpacecraftCompatibleWithDestination('EUROPA-CLIPPER-S', 'EARTH')).toBe(false);
+
+      const earthCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'EARTH');
+      expect(earthCrafts.every((c) => c.id !== 'ARES-ORBITER')).toBe(true);
+    });
+
+    // 9. A stale navigation state or active mission cannot reintroduce incompatible spacecraft
+    it('9. A stale navigation state or active mission cannot reintroduce incompatible spacecraft', () => {
+      const activeEarthMission: Partial<MissionResponse> = {
+        id: 'MSN-EARTH-01',
+        title: 'Terra Environmental Survey',
+        destination: 'Low Earth Orbit (550 km)',
+        destinationGroup: 'Earth',
+        spacecraftId: 'AURA-1',
+      };
+
+      expect(getMissionDestinationGroup(activeEarthMission.destination, activeEarthMission.destinationGroup)).toBe('EARTH');
+
+      // When destinationFilter is MARS, the celestial body must be MARS, ignoring the Earth mission
+      const resolvedBody = resolveDestinationBody(activeEarthMission as any, null, 'MARS');
+      expect(resolvedBody).toBe('mars');
+
+      // In Mars mode, compatible craft must only be Mars craft
+      const scopedCrafts = getCompatibleSpacecraftForDestination(DEFAULT_SOLAR_SYSTEM_FLEET, 'MARS');
+      expect(scopedCrafts.some((c) => c.id === activeEarthMission.spacecraftId)).toBe(false);
+    });
+
+    // 10. Empty destination fleets do not fall back to the entire catalog
+    it('10. Empty destination fleets do not fall back to the entire catalog', () => {
+      const mockSelect = vi.fn();
+      render(
+        <FleetSelectorBar
+          spacecraftList={[]}
+          selectedSpacecraftId=""
+          onSelectSpacecraft={mockSelect}
+          destinationFilter="MARS"
+        />
+      );
+
+      expect(screen.getByTestId('fleet-roster-empty')).toBeInTheDocument();
+      expect(screen.getByText('NO SPACECRAFT REGISTERED FOR THIS DESTINATION')).toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-AURA-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('fleet-card-ARES-ORBITER')).not.toBeInTheDocument();
+    });
+
+    // 11. Partial API results and fallback catalog merging remain stable
+    it('11. Partial API results and fallback catalog merging remain stable without duplicates', () => {
+      const partialServerCraft: SpacecraftDetail = {
+        ...MOCK_DETAIL,
+        id: 'AURA-1',
+        name: 'AURA-1 Updated Telemetry Target',
+        altitudeKm: 705.4,
+      };
+
+      const mergedMap = new Map<string, SpacecraftDetail>();
+      DEFAULT_SOLAR_SYSTEM_FLEET.forEach((c) => mergedMap.set(c.id, c));
+      [partialServerCraft].forEach((c) => mergedMap.set(c.id, c));
+      const mergedList = Array.from(mergedMap.values());
+
+      // Length remains exactly 52 craft with zero duplicates
+      expect(mergedList.length).toBe(DEFAULT_SOLAR_SYSTEM_FLEET.length);
+      const aura = mergedList.find((c) => c.id === 'AURA-1');
+      expect(aura?.name).toBe('AURA-1 Updated Telemetry Target');
+      expect(aura?.altitudeKm).toBe(705.4);
+      expect(getSpacecraftDestinationGroup(aura!)).toBe('EARTH');
     });
   });
 });

@@ -2,17 +2,19 @@ import React, { useState, useRef, useEffect } from 'react';
 import { SpacecraftDetail, SpacecraftStatus } from '../../types/missionControl';
 import { Spacecraft as SpacecraftIcon } from '../common/CelestialIcons';
 import { ChevronDown, AlertCircle, RefreshCw } from 'lucide-react';
-import { resolveDestinationBody } from '../../utils/destinationModel';
+import { DestinationFilter, getSpacecraftDestinationGroup } from '../../utils/destinationModel';
 
 export interface FleetSelectorBarProps {
   spacecraftList: SpacecraftDetail[];
   selectedSpacecraftId: string;
   onSelectSpacecraft: (id: string) => void;
+  destinationFilter?: DestinationFilter;
+  onSelectDestination?: (dest: DestinationFilter) => void;
   loading?: boolean;
   error?: string | null;
 }
 
-export type DestinationFilter = 'ALL' | 'EARTH' | 'LUNAR' | 'MARS' | 'OUTER' | 'SOLAR' | 'DEEP_SPACE';
+export type { DestinationFilter };
 
 export interface DestinationOption {
   id: DestinationFilter;
@@ -35,50 +37,40 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
   spacecraftList,
   selectedSpacecraftId,
   onSelectSpacecraft,
+  destinationFilter,
+  onSelectDestination,
   loading = false,
   error = null,
 }) => {
-  const [destFilter, setDestFilter] = useState<DestinationFilter>('ALL');
+  const [localDestFilter, setLocalDestFilter] = useState<DestinationFilter>(destinationFilter || 'EARTH');
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
-  const getCraftCategory = (craft: SpacecraftDetail): DestinationFilter => {
-    if (craft.destinationGroup) {
-      const g = craft.destinationGroup.toUpperCase();
-      if (g.includes('EARTH')) return 'EARTH';
-      if (g.includes('LUNAR') || g.includes('MOON')) return 'LUNAR';
-      if (g.includes('MARS')) return 'MARS';
-      if (g.includes('OUTER') || g.includes('JUPITER') || g.includes('SATURN') || g.includes('URANUS') || g.includes('NEPTUNE')) return 'OUTER';
-      if (g.includes('DEEP') || g.includes('INTERSTELLAR') || g.includes('ASTEROID')) return 'DEEP_SPACE';
-      if (g.includes('SOLAR') || g.includes('SUN')) return 'SOLAR';
+  useEffect(() => {
+    if (destinationFilter !== undefined) {
+      setLocalDestFilter(destinationFilter);
     }
-    const dest = resolveDestinationBody(null, craft);
-    switch (dest) {
-      case 'mars':
-        return 'MARS';
-      case 'lunar':
-        return 'LUNAR';
-      case 'saturn':
-      case 'jupiter':
-      case 'ice_giant':
-        return 'OUTER';
-      case 'solar':
-        return 'SOLAR';
-      case 'deep_space':
-        return 'DEEP_SPACE';
-      case 'earth':
-      default:
-        return 'EARTH';
+  }, [destinationFilter]);
+
+  const handleSelectFilter = (filter: DestinationFilter) => {
+    setLocalDestFilter(filter);
+    if (onSelectDestination) {
+      onSelectDestination(filter);
     }
   };
 
+  const activeDestFilter = localDestFilter;
+
   const filteredCrafts = spacecraftList.filter((craft) => {
-    if (destFilter === 'ALL') return true;
-    return getCraftCategory(craft) === destFilter;
+    if (activeDestFilter === 'ALL') return true;
+    return getSpacecraftDestinationGroup(craft) === activeDestFilter;
   });
 
-  const selectedOption = DESTINATION_OPTIONS.find((opt) => opt.id === destFilter) || DESTINATION_OPTIONS[0];
+  const selectedOption =
+    DESTINATION_OPTIONS.find((opt) => opt.id === activeDestFilter) ||
+    DESTINATION_OPTIONS.find((opt) => opt.id === 'EARTH') ||
+    DESTINATION_OPTIONS[0];
 
   // Outside click & escape listener to close dropdown
   useEffect(() => {
@@ -106,7 +98,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
     if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       setIsOpen(true);
-      const currentIndex = DESTINATION_OPTIONS.findIndex((opt) => opt.id === destFilter);
+      const currentIndex = DESTINATION_OPTIONS.findIndex((opt) => opt.id === activeDestFilter);
       optionRefs.current[currentIndex >= 0 ? currentIndex : 0]?.focus();
     }
   };
@@ -122,7 +114,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
       optionRefs.current[prevIndex]?.focus();
     } else if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      setDestFilter(DESTINATION_OPTIONS[index].id);
+      handleSelectFilter(DESTINATION_OPTIONS[index].id);
       setIsOpen(false);
     } else if (e.key === 'Escape') {
       e.preventDefault();
@@ -198,7 +190,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
             data-testid="destination-dropdown-menu"
           >
             {DESTINATION_OPTIONS.map((opt, index) => {
-              const isSelected = destFilter === opt.id;
+              const isSelected = activeDestFilter === opt.id;
               return (
                 <button
                   key={opt.id}
@@ -207,7 +199,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => {
-                    setDestFilter(opt.id);
+                    handleSelectFilter(opt.id);
                     setIsOpen(false);
                   }}
                   onKeyDown={(e) => handleOptionKeyDown(e, index)}
@@ -258,7 +250,7 @@ export const FleetSelectorBar: React.FC<FleetSelectorBarProps> = ({
         {filteredCrafts.map((craft) => {
           const isSelected = craft.id === selectedSpacecraftId;
           const statusClass = getStatusClass(craft.operationalStatus);
-          const craftCat = getCraftCategory(craft);
+          const craftCat = getSpacecraftDestinationGroup(craft);
           const propagationNote = getPropagationLabel(craftCat);
 
           return (

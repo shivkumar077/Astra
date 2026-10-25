@@ -24,62 +24,91 @@ interface OrbitalStage3DProps {
   reducedMotion?: boolean;
   activeMission?: MissionResponse | null;
   timeAdvanceNotice?: TimeAdvanceNotice | null;
+  destinationFilter?: DestinationFilter;
 }
 
-// Authoritative orbital elements fallback for the full 28-vehicle solar operations fleet
+// Authoritative orbital elements fallback for the full 52-vehicle solar operations fleet
 const DEFAULT_ELEMENTS: Record<string, KeplerianElements> = {
-  // Earth Orbit
+  // Earth Orbit (10)
   'AURA-1': { semiMajorAxisKm: 7080.0, eccentricity: 0.0012, inclinationDeg: 98.2, raanDeg: 25.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 0.0 },
   'TERRA-OBS': { semiMajorAxisKm: 6880.0, eccentricity: 0.0008, inclinationDeg: 51.6, raanDeg: 120.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 60.0 },
   'SOLIS-RELAY': { semiMajorAxisKm: 24370.0, eccentricity: 0.72, inclinationDeg: 28.5, raanDeg: 200.0, argOfPerigeeDeg: 270.0, trueAnomalyDeg: 0.0 },
   'GEO-COM-4': { semiMajorAxisKm: 42164.0, eccentricity: 0.0002, inclinationDeg: 0.05, raanDeg: 110.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
   'NAV-STAR-09': { semiMajorAxisKm: 26560.0, eccentricity: 0.012, inclinationDeg: 55.0, raanDeg: 140.0, argOfPerigeeDeg: 60.0, trueAnomalyDeg: 90.0 },
   'DEBRIS-TRAC-2': { semiMajorAxisKm: 7150.0, eccentricity: 0.002, inclinationDeg: 97.8, raanDeg: 45.0, argOfPerigeeDeg: 120.0, trueAnomalyDeg: 210.0 },
+  'HELIOS-OBS': { semiMajorAxisKm: 7088.0, eccentricity: 0.0011, inclinationDeg: 98.3, raanDeg: 35.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 45.0 },
+  'MERIDIAN-RELAY': { semiMajorAxisKm: 42164.0, eccentricity: 0.0001, inclinationDeg: 0.05, raanDeg: 115.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 90.0 },
+  'VIGIL-TRACK': { semiMajorAxisKm: 7160.0, eccentricity: 0.0025, inclinationDeg: 97.9, raanDeg: 55.0, argOfPerigeeDeg: 130.0, trueAnomalyDeg: 195.0 },
+  'STRATUS-MET': { semiMajorAxisKm: 6920.0, eccentricity: 0.001, inclinationDeg: 52.0, raanDeg: 130.0, argOfPerigeeDeg: 50.0, trueAnomalyDeg: 75.0 },
 
-  // Lunar Operations
+  // Lunar Operations (10)
   'CHANDRA-ORB': { semiMajorAxisKm: 68400.0, eccentricity: 0.04, inclinationDeg: 88.5, raanDeg: 10.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 45.0 },
   'LUNAR-HALO-1': { semiMajorAxisKm: 65000.0, eccentricity: 0.18, inclinationDeg: 14.5, raanDeg: 30.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 120.0 },
   'SELENA-MAPPER': { semiMajorAxisKm: 72000.0, eccentricity: 0.02, inclinationDeg: 86.2, raanDeg: 75.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 15.0 },
   'ARTEMIS-RELAY': { semiMajorAxisKm: 54000.0, eccentricity: 0.15, inclinationDeg: 54.7, raanDeg: 210.0, argOfPerigeeDeg: 270.0, trueAnomalyDeg: 0.0 },
   'LUNAR-RECON-X': { semiMajorAxisKm: 62000.0, eccentricity: 0.05, inclinationDeg: 89.5, raanDeg: 15.0, argOfPerigeeDeg: 30.0, trueAnomalyDeg: 240.0 },
   'MOON-NAV-01': { semiMajorAxisKm: 75000.0, eccentricity: 0.015, inclinationDeg: 45.0, raanDeg: 180.0, argOfPerigeeDeg: 120.0, trueAnomalyDeg: 60.0 },
+  'SELENE-MAP': { semiMajorAxisKm: 72500.0, eccentricity: 0.022, inclinationDeg: 86.5, raanDeg: 80.0, argOfPerigeeDeg: 50.0, trueAnomalyDeg: 20.0 },
+  'POLARIS-LR': { semiMajorAxisKm: 68900.0, eccentricity: 0.038, inclinationDeg: 88.8, raanDeg: 15.0, argOfPerigeeDeg: 10.0, trueAnomalyDeg: 60.0 },
+  'LUNA-LINK': { semiMajorAxisKm: 65500.0, eccentricity: 0.175, inclinationDeg: 15.0, raanDeg: 35.0, argOfPerigeeDeg: 95.0, trueAnomalyDeg: 135.0 },
+  'ARGUS-LNAV': { semiMajorAxisKm: 75500.0, eccentricity: 0.016, inclinationDeg: 46.0, raanDeg: 185.0, argOfPerigeeDeg: 125.0, trueAnomalyDeg: 70.0 },
 
-  // Mars Operations
+  // Mars Operations (10)
   'ARES-ORBITER': { semiMajorAxisKm: 37900.0, eccentricity: 0.003, inclinationDeg: 93.0, raanDeg: 50.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 0.0 },
   'MARS-RELAY-1': { semiMajorAxisKm: 20428.0, eccentricity: 0.0005, inclinationDeg: 1.2, raanDeg: 160.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
   'PHOBOS-SCOUT': { semiMajorAxisKm: 9376.0, eccentricity: 0.015, inclinationDeg: 1.08, raanDeg: 90.0, argOfPerigeeDeg: 30.0, trueAnomalyDeg: 45.0 },
   'DEIMOS-OBS': { semiMajorAxisKm: 23460.0, eccentricity: 0.0002, inclinationDeg: 1.79, raanDeg: 210.0, argOfPerigeeDeg: 150.0, trueAnomalyDeg: 90.0 },
   'MARS-ATMOS-4': { semiMajorAxisKm: 18650.0, eccentricity: 0.045, inclinationDeg: 74.5, raanDeg: 115.0, argOfPerigeeDeg: 270.0, trueAnomalyDeg: 30.0 },
   'AERO-MAP-02': { semiMajorAxisKm: 19820.0, eccentricity: 0.002, inclinationDeg: 92.8, raanDeg: 30.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 150.0 },
+  'AREION-RECON': { semiMajorAxisKm: 38200.0, eccentricity: 0.0032, inclinationDeg: 93.2, raanDeg: 55.0, argOfPerigeeDeg: 95.0, trueAnomalyDeg: 10.0 },
+  'AETHER-MET': { semiMajorAxisKm: 18750.0, eccentricity: 0.042, inclinationDeg: 75.0, raanDeg: 120.0, argOfPerigeeDeg: 275.0, trueAnomalyDeg: 45.0 },
+  'DEIMOS-RELAY': { semiMajorAxisKm: 23500.0, eccentricity: 0.0003, inclinationDeg: 1.82, raanDeg: 215.0, argOfPerigeeDeg: 155.0, trueAnomalyDeg: 100.0 },
+  'BOREALIS-MAP': { semiMajorAxisKm: 19900.0, eccentricity: 0.0022, inclinationDeg: 93.0, raanDeg: 35.0, argOfPerigeeDeg: 50.0, trueAnomalyDeg: 160.0 },
 
-  // Outer Planets
+  // Outer Planets (9)
   'JOVIAN-RADIATION': { semiMajorAxisKm: 1850000.0, eccentricity: 0.78, inclinationDeg: 4.2, raanDeg: 45.0, argOfPerigeeDeg: 180.0, trueAnomalyDeg: 0.0 },
   'EUROPA-CLIPPER-S': { semiMajorAxisKm: 670900.0, eccentricity: 0.009, inclinationDeg: 1.8, raanDeg: 130.0, argOfPerigeeDeg: 60.0, trueAnomalyDeg: 45.0 },
   'CALLISTO-SURVEY': { semiMajorAxisKm: 1883000.0, eccentricity: 0.007, inclinationDeg: 0.5, raanDeg: 80.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 110.0 },
   'CHRONOS-SATURN': { semiMajorAxisKm: 185000.0, eccentricity: 0.001, inclinationDeg: 26.7, raanDeg: 240.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 90.0 },
   'TITAN-RELAY': { semiMajorAxisKm: 1222000.0, eccentricity: 0.028, inclinationDeg: 0.35, raanDeg: 15.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 180.0 },
+  'JOVE-SCOPE': { semiMajorAxisKm: 1860000.0, eccentricity: 0.76, inclinationDeg: 4.5, raanDeg: 50.0, argOfPerigeeDeg: 185.0, trueAnomalyDeg: 15.0 },
+  'ION-GUARD': { semiMajorAxisKm: 1890000.0, eccentricity: 0.008, inclinationDeg: 0.6, raanDeg: 85.0, argOfPerigeeDeg: 95.0, trueAnomalyDeg: 120.0 },
+  'TITAN-ORBIT': { semiMajorAxisKm: 1228000.0, eccentricity: 0.029, inclinationDeg: 0.38, raanDeg: 20.0, argOfPerigeeDeg: 50.0, trueAnomalyDeg: 190.0 },
+  'RHEA-SURVEY': { semiMajorAxisKm: 527000.0, eccentricity: 0.0012, inclinationDeg: 0.35, raanDeg: 245.0, argOfPerigeeDeg: 10.0, trueAnomalyDeg: 95.0 },
 
-  // Solar & Deep Space
+  // Solar & Deep Space (13)
   'HELIOS-CORONA': { semiMajorAxisKm: 48000000.0, eccentricity: 0.68, inclinationDeg: 3.4, raanDeg: 10.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
   'SOLAR-STORM-01': { semiMajorAxisKm: 1500000.0, eccentricity: 0.05, inclinationDeg: 0.2, raanDeg: 0.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 0.0 },
+  'HELIO-WATCH': { semiMajorAxisKm: 49000000.0, eccentricity: 0.65, inclinationDeg: 3.6, raanDeg: 15.0, argOfPerigeeDeg: 10.0, trueAnomalyDeg: 190.0 },
+  'CORONA-TRACE': { semiMajorAxisKm: 22000000.0, eccentricity: 0.75, inclinationDeg: 5.0, raanDeg: 25.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 180.0 },
+  'STORM-SENTINEL': { semiMajorAxisKm: 1520000.0, eccentricity: 0.048, inclinationDeg: 0.22, raanDeg: 5.0, argOfPerigeeDeg: 0.0, trueAnomalyDeg: 10.0 },
+  'FLARE-ALERT': { semiMajorAxisKm: 35000000.0, eccentricity: 0.55, inclinationDeg: 4.1, raanDeg: 30.0, argOfPerigeeDeg: 45.0, trueAnomalyDeg: 90.0 },
   'ASTEROID-SCOUT': { semiMajorAxisKm: 160000000.0, eccentricity: 0.21, inclinationDeg: 7.1, raanDeg: 85.0, argOfPerigeeDeg: 140.0, trueAnomalyDeg: 60.0 },
   'DEEP-NAV-ALPHA': { semiMajorAxisKm: 220000000.0, eccentricity: 0.15, inclinationDeg: 1.8, raanDeg: 190.0, argOfPerigeeDeg: 30.0, trueAnomalyDeg: 110.0 },
   'VOYAGER-EXP': { semiMajorAxisKm: 350000000.0, eccentricity: 0.42, inclinationDeg: 12.0, raanDeg: 310.0, argOfPerigeeDeg: 80.0, trueAnomalyDeg: 20.0 },
+  'ODYSSEY-NAV': { semiMajorAxisKm: 225000000.0, eccentricity: 0.16, inclinationDeg: 1.9, raanDeg: 195.0, argOfPerigeeDeg: 35.0, trueAnomalyDeg: 115.0 },
+  'VOYAGER-RELAY': { semiMajorAxisKm: 355000000.0, eccentricity: 0.43, inclinationDeg: 12.2, raanDeg: 315.0, argOfPerigeeDeg: 85.0, trueAnomalyDeg: 25.0 },
+  'KEPLER-DRIFT': { semiMajorAxisKm: 165000000.0, eccentricity: 0.22, inclinationDeg: 7.3, raanDeg: 90.0, argOfPerigeeDeg: 145.0, trueAnomalyDeg: 65.0 },
+  'FARPOINT-PROBE': { semiMajorAxisKm: 450000000.0, eccentricity: 0.50, inclinationDeg: 15.0, raanDeg: 330.0, argOfPerigeeDeg: 90.0, trueAnomalyDeg: 30.0 },
 };
 
 import {
   resolveDestinationBody,
   getDefaultCoordinateFrame,
   DestinationBody,
+  DestinationFilter,
+  destinationGroupToBody,
+  getSpacecraftDestinationGroup,
 } from '../../utils/destinationModel';
 
 export type TargetDestination = DestinationBody;
 
 export function resolveDestination(
   mission?: MissionResponse | null,
-  craft?: SpacecraftDetail | null
+  craft?: SpacecraftDetail | null,
+  destinationFilter?: DestinationFilter
 ): TargetDestination {
-  return resolveDestinationBody(mission, craft);
+  return resolveDestinationBody(mission, craft, destinationFilter);
 }
 
 export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
@@ -89,6 +118,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   reducedMotion = false,
   activeMission = null,
   timeAdvanceNotice = null,
+  destinationFilter,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   
@@ -96,8 +126,10 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const selectedCraft =
     craftList.find((s) => s.id === selectedSpacecraftId) || craftList[0] || null;
 
-  // Resolve target celestial destination based on authoritative mission AND selected craft
-  const resolvedDest = resolveDestination(activeMission, selectedCraft);
+  // Resolve target celestial destination based on active destinationFilter, mission, and selected craft
+  const resolvedDest = destinationFilter && destinationFilter !== 'ALL'
+    ? destinationGroupToBody(destinationFilter, selectedCraft)
+    : resolveDestination(activeMission, selectedCraft, destinationFilter);
 
   // Destination-aware default reference frame
   const defaultFrame = getDefaultCoordinateFrame(resolvedDest);
@@ -108,6 +140,9 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   // Tracking state refs to avoid tearing down the WebGL context on UI toggles
   const trackingModeRef = useRef<'FREE' | 'TARGET_LOCK'>(trackingMode);
   trackingModeRef.current = trackingMode;
+
+  const destinationFilterRef = useRef<DestinationFilter>(destinationFilter || 'EARTH');
+  destinationFilterRef.current = destinationFilter || 'EARTH';
 
   const selectedSpacecraftIdRef = useRef<string>(selectedSpacecraftId);
   selectedSpacecraftIdRef.current = selectedSpacecraftId;
@@ -127,18 +162,18 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   const updateOrbitsRef = useRef<() => void>(() => {});
   const updateCelestialBodyRef = useRef<() => void>(() => {});
 
-  // Auto-switch reference frame and celestial system when active mission or spacecraft changes
+  // Auto-switch reference frame and celestial system when destination filter, active mission or spacecraft changes
   useEffect(() => {
     setReferenceFrame(defaultFrame);
     if (updateCelestialBodyRef.current) {
       updateCelestialBodyRef.current();
     }
-  }, [defaultFrame, activeMission, selectedSpacecraftId]);
+  }, [defaultFrame, activeMission, selectedSpacecraftId, destinationFilter]);
 
-  // Orbit update effect: runs only when spacecraft data changes, WITHOUT recreating canvas or WebGLRenderer
+  // Orbit update effect: runs only when spacecraft data or destination filter changes, WITHOUT recreating canvas or WebGLRenderer
   useEffect(() => {
     updateOrbitsRef.current();
-  }, [spacecraftList, selectedSpacecraftId]);
+  }, [spacecraftList, selectedSpacecraftId, destinationFilter]);
 
   // Main 3D Scene Initialization: Runs once on mount
   useEffect(() => {
@@ -630,7 +665,10 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
     // Authoritative Destination-Aware Celestial Body Synchronizer
     const updateCelestialBody = () => {
-      const dest = resolveDestination(activeMissionRef.current, selectedCraftRef.current);
+      const currentFilter = destinationFilterRef.current;
+      const dest = currentFilter && currentFilter !== 'ALL'
+        ? destinationGroupToBody(currentFilter, selectedCraftRef.current)
+        : resolveDestination(activeMissionRef.current, selectedCraftRef.current, currentFilter);
 
       earthGroup.visible = dest === 'earth';
       marsGroup.visible = dest === 'mars';
@@ -654,26 +692,37 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
     const spacecraftMeshes = new Map<string, THREE.Mesh>();
 
     const updateOrbits = () => {
-      // Clear previous trajectories
+      // Clear previous trajectories and thoroughly dispose all child lines, meshes, geometries, and materials
       while (trajectoryGroup.children.length > 0) {
         const obj = trajectoryGroup.children[0];
         trajectoryGroup.remove(obj);
-        if (obj instanceof THREE.Line || obj instanceof THREE.Mesh) {
-          obj.geometry.dispose();
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose());
-          } else {
-            obj.material.dispose();
+        obj.traverse((child) => {
+          if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+            child.geometry?.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose());
+            } else if (child.material) {
+              child.material.dispose();
+            }
           }
-        }
+        });
       }
       spacecraftMeshes.clear();
 
       const list = spacecraftListRef.current;
       const selectedId = selectedSpacecraftIdRef.current;
-      const craftsToRender = list.length > 0
+      const currentFilter = destinationFilterRef.current || 'ALL';
+
+      // Scope spacecraft strictly to the current destination unless ALL is chosen
+      const scopedList = currentFilter === 'ALL'
         ? list
-        : (selectedCraft ? [selectedCraft] : []);
+        : list.filter((craft) => getSpacecraftDestinationGroup(craft) === currentFilter);
+
+      const craftsToRender = scopedList.length > 0
+        ? scopedList
+        : (selectedCraftRef.current && (currentFilter === 'ALL' || getSpacecraftDestinationGroup(selectedCraftRef.current) === currentFilter)
+            ? [selectedCraftRef.current]
+            : []);
 
       craftsToRender.forEach((craft) => {
         const isSelected = craft.id === selectedId;
@@ -847,6 +896,21 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
       container.removeEventListener('wheel', onWheel);
+
+      while (trajectoryGroup.children.length > 0) {
+        const obj = trajectoryGroup.children[0];
+        trajectoryGroup.remove(obj);
+        obj.traverse((child) => {
+          if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
+            child.geometry?.dispose();
+            if (Array.isArray(child.material)) {
+              child.material.forEach((m) => m.dispose());
+            } else if (child.material) {
+              child.material.dispose();
+            }
+          }
+        });
+      }
 
       celestialHost.traverse((child) => {
         if (child instanceof THREE.Mesh) {
