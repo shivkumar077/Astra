@@ -131,12 +131,16 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
         getActiveMission().catch(() => null),
       ]);
 
-      if (crafts && crafts.length > 0) {
-        // Fetch detail for all crafts to ensure elements and mass metrics are present
-        const detailedCrafts = await Promise.all(
-          crafts.map((c) => getSpacecraftDetail(c.id).catch(() => c as SpacecraftDetail))
-        );
-        setSpacecraftList(detailedCrafts);
+      // The API can briefly serve only its legacy seed while a local backend starts.
+      // Merge server records over the complete client catalog so the roster never collapses.
+      const mergedCrafts = new Map(DEFAULT_SOLAR_SYSTEM_FLEET.map((craft) => [craft.id, craft]));
+      (crafts || []).forEach((craft) => mergedCrafts.set(craft.id, craft as SpacecraftDetail));
+      const allCrafts = Array.from(mergedCrafts.values());
+      const detailedCrafts = await Promise.all(
+        allCrafts.map((craft) => getSpacecraftDetail(craft.id).catch(() => craft as SpacecraftDetail))
+      );
+      setSpacecraftList(detailedCrafts);
+      if (detailedCrafts.length > 0) {
         setSelectedSpacecraftId((prev) => (prev && detailedCrafts.some((c) => c.id === prev) ? prev : detailedCrafts[0].id));
       }
 
