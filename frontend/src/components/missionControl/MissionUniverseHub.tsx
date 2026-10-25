@@ -152,6 +152,27 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loadErrorType, setLoadErrorType] = useState<'AUTH' | 'NETWORK' | 'SERVER' | null>(null);
 
+  const deriveDestinationGroup = useCallback((dest: string): string => {
+    const body = resolveDestinationBody(dest);
+    switch (body) {
+      case 'mars':
+        return 'Mars';
+      case 'lunar':
+        return 'Lunar';
+      case 'deep_space':
+        return 'Deep Space';
+      case 'jupiter':
+      case 'saturn':
+      case 'ice_giant':
+        return 'Outer Planets';
+      case 'solar':
+        return 'Solar';
+      case 'earth':
+      default:
+        return 'Earth';
+    }
+  }, []);
+
   const getCraftDestinationGroup = useCallback((craft: SpacecraftDetail): string => {
     const clues = `${craft.destinationGroup || ''} ${craft.modelType || ''} ${craft.id || ''} ${craft.name || ''}`.toLowerCase();
     if (clues.includes('mars') || clues.includes('areocentric') || clues.includes('phobos') || clues.includes('deimos')) return 'Mars';
@@ -173,27 +194,6 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
       setCreateSpacecraftId(availableCraftOptions[0].id);
     }
   }, [createDestination, createSpacecraftId, availableCraftOptions]);
-
-  const deriveDestinationGroup = useCallback((dest: string): string => {
-    const body = resolveDestinationBody(dest);
-    switch (body) {
-      case 'mars':
-        return 'Mars';
-      case 'lunar':
-        return 'Lunar';
-      case 'deep_space':
-        return 'Deep Space';
-      case 'jupiter':
-      case 'saturn':
-      case 'ice_giant':
-        return 'Outer Planets';
-      case 'solar':
-        return 'Solar';
-      case 'earth':
-      default:
-        return 'Earth';
-    }
-  }, []);
 
   const loadMissionsData = useCallback(async () => {
     setIsLoading(true);
