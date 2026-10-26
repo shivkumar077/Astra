@@ -3,6 +3,8 @@
  * Connects directly to backend Spring WebSocket MessageBroker at /ws/simulation.
  */
 
+import { getApiBaseUrl } from './missionControlApi';
+
 export type StompConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'reconnecting' | 'error';
 
 export interface StompMessage<T = unknown> {
@@ -35,9 +37,22 @@ export class AstraStompClient {
       if (envWsUrl && typeof envWsUrl === 'string' && envWsUrl.trim().length > 0) {
         this.url = envWsUrl.trim();
       } else {
-        const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-        const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8080';
-        this.url = `${isHttps ? 'wss:' : 'ws:'}//${host}/ws/simulation`;
+        try {
+          const apiBase = getApiBaseUrl();
+          if (apiBase && (apiBase.startsWith('http://') || apiBase.startsWith('https://'))) {
+            const urlObj = new URL(apiBase);
+            const wsProto = urlObj.protocol === 'https:' ? 'wss:' : 'ws:';
+            this.url = `${wsProto}//${urlObj.host}/ws/simulation`;
+          } else {
+            const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+            const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8080';
+            this.url = `${isHttps ? 'wss:' : 'ws:'}//${host}/ws/simulation`;
+          }
+        } catch {
+          const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+          const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8080';
+          this.url = `${isHttps ? 'wss:' : 'ws:'}//${host}/ws/simulation`;
+        }
       }
     }
   }
