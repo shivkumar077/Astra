@@ -27,14 +27,16 @@ class MissionControllerTest {
     @Autowired
     private org.astra.missions.service.MissionService missionService;
 
+    @Autowired
+    private java.util.Optional<org.astra.persistence.repository.MissionRunRepository> missionRunRepository;
+
     @org.junit.jupiter.api.BeforeEach
     void cleanActiveMissions() {
+        if (missionRunRepository.isPresent()) {
+            missionRunRepository.get().deleteAll();
+        }
         if (missionService != null) {
-            missionService.getActiveRun().ifPresent(run -> {
-                try {
-                    missionService.abortMission(run.runId(), "Test isolation cleanup");
-                } catch (Exception ignored) {}
-            });
+            missionService.clearHistoryForTesting();
         }
     }
 
@@ -112,7 +114,7 @@ class MissionControllerTest {
                     "destinationGroup": "Outer Planets",
                     "category": "PLANETARY_RECONNAISSANCE",
                     "difficulty": "CRITICAL",
-                    "spacecraftId": "AURA-1",
+                    "spacecraftId": "CASSINI-O",
                     "durationMinutes": 60,
                     "riskLevel": "SEVERE",
                     "synopsis": "Descent probe measuring cryovolcanic methane lakes on Titan.",
@@ -130,8 +132,144 @@ class MissionControllerTest {
                 .andExpect(jsonPath("$.id", notNullValue()))
                 .andExpect(jsonPath("$.title", is("Titan Atmospheric Methane Probe")))
                 .andExpect(jsonPath("$.destinationGroup", is("Outer Planets")))
-                .andExpect(jsonPath("$.spacecraftId", is("AURA-1")))
+                .andExpect(jsonPath("$.spacecraftId", is("CASSINI-O")))
                 .andExpect(jsonPath("$.status", is("AVAILABLE")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/missions with incompatible spacecraft returns 400 Bad Request")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testCreateMission_IncompatibleSpacecraft() throws Exception {
+        // Attempting to assign Earth-assigned AURA-1 to Mars destination
+        String payload = """
+                {
+                    "title": "Invalid Mars Weather Monitor",
+                    "destination": "Mars (Valles Marineris Orbit)",
+                    "destinationGroup": "Mars",
+                    "category": "PLANETARY_RECONNAISSANCE",
+                    "difficulty": "STANDARD",
+                    "spacecraftId": "AURA-1",
+                    "durationMinutes": 30,
+                    "synopsis": "Invalid Mars mission attempting Earth spacecraft assignment."
+                }
+                """;
+
+        mockMvc.perform(post("/api/v1/missions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("not compatible with destination")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/missions/{id}/start rejects relaunching an already completed mission")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testRelaunchCompletedMission_Rejected() throws Exception {
+        // 1. Start and complete EARTH-CAL-AURA
+        String startRes = mockMvc.perform(post("/api/v1/missions/EARTH-CAL-AURA/start?abortActive=true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String runId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(startRes).get("runId").asText();
+
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/complete")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("COMPLETED")));
+
+        // 2. Attempting to start the same completed mission must be rejected with 409 Conflict
+        mockMvc.perform(post("/api/v1/missions/EARTH-CAL-AURA/start")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message", containsString("has already been completed")));
+    }
+
+    @Test
+    @DisplayName("POST /api/v1/missions/runs/{runId}/abort and complete reject non-active runs")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testInvalidRunTransitions_Rejected() throws Exception {
+        // 1. Launch a mission
+        String startRes = mockMvc.perform(post("/api/v1/missions/EARTH-DEBRIS-TERRA/start?abortActive=true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String runId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(startRes).get("runId").asText();
+
+        // 2. Abort the mission
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/abort")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"Precautionary test abort\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status", is("ABORTED")));
+
+        // 3. Attempting to abort an already aborted run must be rejected with 400 Bad Request
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/abort")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("cannot be aborted because its status is ABORTED")));
+
+        // 4. Attempting to complete an aborted run must be rejected with 400 Bad Request
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/complete")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("cannot be completed because its status is ABORTED")));
+    }
+
+    @Test
+    @DisplayName("Repeating launch request for same active mission is idempotent and returns existing run")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testIdempotentDuplicateLaunch() throws Exception {
+        // 1. First launch
+        String res1 = mockMvc.perform(post("/api/v1/missions/EARTH-OBS-AURA/start?abortActive=true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String runId1 = new com.fasterxml.jackson.databind.ObjectMapper().readTree(res1).get("runId").asText();
+
+        // 2. Second launch for identical mission
+        String res2 = mockMvc.perform(post("/api/v1/missions/EARTH-OBS-AURA/start")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String runId2 = new com.fasterxml.jackson.databind.ObjectMapper().readTree(res2).get("runId").asText();
+
+        // 3. Verifies both return the exact same run without duplicate run creation
+        org.junit.jupiter.api.Assertions.assertEquals(runId1, runId2);
+
+        // Cleanup
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId1 + "/abort")
+                        .contentType(MediaType.APPLICATION_JSON));
+    }
+
+    @Test
+    @DisplayName("GET /api/v1/missions/runs/{runId} returns individual run and 404 for unknown run")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void testGetRunById() throws Exception {
+        // 1. Unknown run returns 404
+        mockMvc.perform(get("/api/v1/missions/runs/non-existent-run"))
+                .andExpect(status().isNotFound());
+
+        // 2. Launch run and retrieve via GET /runs/{runId}
+        String res = mockMvc.perform(post("/api/v1/missions/EARTH-OBS-AURA/start?abortActive=true")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String runId = new com.fasterxml.jackson.databind.ObjectMapper().readTree(res).get("runId").asText();
+
+        mockMvc.perform(get("/api/v1/missions/runs/" + runId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.runId", is(runId)))
+                .andExpect(jsonPath("$.missionId", is("EARTH-OBS-AURA")))
+                .andExpect(jsonPath("$.status", is("ACTIVE")));
+
+        // Cleanup
+        mockMvc.perform(post("/api/v1/missions/runs/" + runId + "/abort")
+                        .contentType(MediaType.APPLICATION_JSON));
     }
 
     @Test

@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
@@ -1359,6 +1360,7 @@ public class MissionService {
         catalog.put(mission.id(), mission);
     }
 
+    @Transactional
     public synchronized MissionResponse createMission(CreateMissionRequest request) {
         Objects.requireNonNull(request, "CreateMissionRequest cannot be null");
         if (request.title() == null || request.title().isBlank()) {
@@ -1369,6 +1371,15 @@ public class MissionService {
         }
         if (request.spacecraftId() == null || request.spacecraftId().isBlank()) {
             throw new IllegalArgumentException("Mission spacecraftId cannot be blank");
+        }
+
+        // Validate spacecraft destination compatibility before persisting
+        if (!DestinationCompatibilityValidator.isCompatible(request.spacecraftId(), request.destination(), request.destinationGroup())) {
+            String resolvedGroup = DestinationCompatibilityValidator.resolveDestinationGroup(request.destination(), request.destinationGroup());
+            throw new IllegalArgumentException(String.format(
+                    "Spacecraft '%s' is not compatible with destination '%s' (destination group: %s).",
+                    request.spacecraftId(), request.destination(), resolvedGroup
+            ));
         }
 
         String missionId = request.id();
@@ -1384,12 +1395,15 @@ public class MissionService {
 
         String destGroup = request.destinationGroup();
         if (destGroup == null || destGroup.isBlank()) {
-            String lowerDest = request.destination().toLowerCase(Locale.ROOT);
-            if (lowerDest.contains("mars")) destGroup = "Mars";
-            else if (lowerDest.contains("lunar") || lowerDest.contains("moon") || lowerDest.contains("europa") || lowerDest.contains("titan")) destGroup = "Lunar & Deep Space";
-            else if (lowerDest.contains("sun") || lowerDest.contains("solar")) destGroup = "Solar";
-            else if (lowerDest.contains("jupiter") || lowerDest.contains("saturn") || lowerDest.contains("neptune") || lowerDest.contains("uranus")) destGroup = "Outer Planets";
-            else destGroup = "Earth";
+            String canonical = DestinationCompatibilityValidator.resolveDestinationGroup(request.destination(), null);
+            switch (canonical) {
+                case "MARS" -> destGroup = "Mars";
+                case "LUNAR" -> destGroup = "Lunar & Deep Space";
+                case "OUTER" -> destGroup = "Outer Planets";
+                case "SOLAR" -> destGroup = "Solar";
+                case "DEEP_SPACE" -> destGroup = "Deep Space";
+                default -> destGroup = "Earth";
+            }
         }
 
         MissionDefinition def = new MissionDefinition(
@@ -1480,22 +1494,42 @@ public class MissionService {
      * Starts an interactive mission simulation run bound to authoritative simulation engine.
      * Enforces single active mission run policy by default unless abortActive is true.
      */
+    @Transactional
     public synchronized MissionRun startMission(String missionId, String operatorUsername) {
         return startMission(missionId, operatorUsername, false);
     }
 
+    @Transactional
     public synchronized MissionRun startMission(String missionId, String operatorUsername, boolean abortActive) {
         MissionDefinition def = catalog.get(missionId);
         if (def == null) {
             throw new NoSuchElementException("Mission not found in catalogue: " + missionId);
         }
 
-        // Single active mission enforcement across the simulator session
+        // 1. Authoritative compatibility verification
+        if (!DestinationCompatibilityValidator.isCompatible(def.spacecraftId(), def.destination(), def.destinationGroup())) {
+            throw new IllegalArgumentException(String.format(
+                    "Spacecraft '%s' assigned to mission '%s' is not compatible with destination '%s' (%s).",
+                    def.spacecraftId(), def.id(), def.destination(), def.destinationGroup()
+            ));
+        }
+
+        // 2. State machine invariant: A completed mission cannot be launched again
+        boolean alreadyCompleted = missionHistory.stream()
+                .anyMatch(r -> r.missionId().equals(missionId) && r.status() == MissionStatus.COMPLETED);
+        if (alreadyCompleted) {
+            throw new IllegalStateException(String.format(
+                    "Mission '%s' ('%s') has already been completed. Relaunching completed missions is not permitted.",
+                    missionId, def.title()
+            ));
+        }
+
+        // 3. Single active mission enforcement across the simulator session
         Optional<MissionRun> activeRunOpt = getActiveRun();
         if (activeRunOpt.isPresent()) {
             MissionRun existing = activeRunOpt.get();
             if (existing.missionId().equals(missionId)) {
-                // Already running this exact mission - return authoritative active run
+                // Repeating a launch request must not create duplicate active runs
                 log.info("Mission {} already active (runId: {}). Returning existing run.", missionId, existing.runId());
                 return existing;
             }
@@ -1557,6 +1591,7 @@ public class MissionService {
      * Seamlessly transitions the active simulator mission to a new scenario,
      * cleanly aborting and archiving the previous run before activating the new one.
      */
+    @Transactional
     public synchronized MissionRun switchMission(String newMissionId, String operatorUsername, String reason) {
         return startMission(newMissionId, operatorUsername, true);
     }
@@ -1565,13 +1600,21 @@ public class MissionService {
      * Authoritatively evaluates spacecraft physical telemetry, command history, and subsystem states
      * to complete or fail the active mission simulation run.
      */
+    @Transactional
     public synchronized MissionRun evaluateAndComplete(String runId) {
         MissionRun run = runsById.get(runId);
+        if (run == null && missionRunRepository != null) {
+            run = missionRunRepository.findByRunId(runId).map(this::mapToRun).orElse(null);
+            if (run != null) runsById.put(run.runId(), run);
+        }
         if (run == null) {
             throw new NoSuchElementException("Mission run not found: " + runId);
         }
         if (run.status() != MissionStatus.ACTIVE) {
-            return run;
+            throw new IllegalStateException(String.format(
+                    "Mission run '%s' cannot be completed because its status is %s (expected ACTIVE).",
+                    runId, run.status()
+            ));
         }
 
         MissionDefinition def = catalog.get(run.missionId());
@@ -1673,10 +1716,21 @@ public class MissionService {
     /**
      * Aborts an active mission run.
      */
+    @Transactional
     public synchronized MissionRun abortMission(String runId, String reason) {
         MissionRun run = runsById.get(runId);
+        if (run == null && missionRunRepository != null) {
+            run = missionRunRepository.findByRunId(runId).map(this::mapToRun).orElse(null);
+            if (run != null) runsById.put(run.runId(), run);
+        }
         if (run == null) {
             throw new NoSuchElementException("Mission run not found: " + runId);
+        }
+        if (run.status() != MissionStatus.ACTIVE) {
+            throw new IllegalStateException(String.format(
+                    "Mission run '%s' cannot be aborted because its status is %s (expected ACTIVE).",
+                    runId, run.status()
+            ));
         }
 
         Instant now = simulationEngine.getCurrentEpoch();
@@ -1722,6 +1776,29 @@ public class MissionService {
         return Collections.unmodifiableList(missionHistory);
     }
 
+    public void clearHistoryForTesting() {
+        missionHistory.clear();
+        activeRunsByMissionId.clear();
+        runsById.clear();
+    }
+
+    public Optional<MissionRun> getRun(String runId) {
+        if (runId == null || runId.isBlank()) return Optional.empty();
+        MissionRun run = runsById.get(runId);
+        if (run != null) {
+            return Optional.of(run);
+        }
+        if (missionRunRepository != null) {
+            Optional<MissionRunEntity> entity = missionRunRepository.findByRunId(runId);
+            if (entity.isPresent()) {
+                MissionRun loaded = mapToRun(entity.get());
+                runsById.put(loaded.runId(), loaded);
+                return Optional.of(loaded);
+            }
+        }
+        return Optional.empty();
+    }
+
     private void hydrateFromDatabase() {
         if (missionDefinitionRepository != null) {
             try {
@@ -1751,16 +1828,73 @@ public class MissionService {
                 if (runs != null && !runs.isEmpty()) {
                     List<MissionRunEntity> chronological = new ArrayList<>(runs);
                     Collections.reverse(chronological);
+
+                    List<MissionRun> candidateActiveRuns = new ArrayList<>();
+
                     for (MissionRunEntity entity : chronological) {
                         MissionRun run = mapToRun(entity);
                         runsById.put(run.runId(), run);
                         if (run.status() == MissionStatus.ACTIVE) {
-                            activeRunsByMissionId.put(run.missionId(), run);
+                            candidateActiveRuns.add(run);
                         } else {
                             missionHistory.add(run);
                         }
                     }
-                    log.info("Recovered {} durable mission execution runs from database.", runs.size());
+
+                    // Documented Startup Recovery Policy:
+                    // 1. Terminal runs (COMPLETED, FAILED, ABORTED) remain permanently archived in history and cannot re-activate.
+                    // 2. In accordance with the single-active-run policy, at most ONE run can be active.
+                    // 3. If candidate active runs exist:
+                    //    - Sort by startedEpoch descending to find the latest run.
+                    //    - If the assigned spacecraft is available in the simulation engine, restore this run as ACTIVE.
+                    //    - Any duplicate or orphaned active runs (or runs whose spacecraft is missing) are transitioned to ABORTED
+                    //      with documented recovery notes and persisted to the database.
+                    if (!candidateActiveRuns.isEmpty()) {
+                        candidateActiveRuns.sort((a, b) -> b.startedEpoch().compareTo(a.startedEpoch()));
+                        MissionRun latestActive = candidateActiveRuns.get(0);
+
+                        boolean spacecraftAvailable = simulationEngine.getSpacecraft(latestActive.spacecraftId()).isPresent();
+
+                        for (int i = 0; i < candidateActiveRuns.size(); i++) {
+                            MissionRun r = candidateActiveRuns.get(i);
+                            if (i == 0 && spacecraftAvailable) {
+                                activeRunsByMissionId.put(r.missionId(), r);
+                                log.info("RECOVERY POLICY: Authoritatively restored active mission run '{}' (mission: {}, spacecraft: {}). Telemetry stream reconnected.",
+                                        r.runId(), r.missionId(), r.spacecraftId());
+                            } else {
+                                String recoveryReason = (i == 0 && !spacecraftAvailable)
+                                        ? String.format("Terminated by startup recovery supervisor: Assigned spacecraft '%s' unavailable after restart.", r.spacecraftId())
+                                        : String.format("Terminated by startup recovery supervisor: Orphaned active run superseded by latest run '%s'.", latestActive.runId());
+
+                                Instant recoveryNow = simulationEngine.getCurrentEpoch();
+                                MissionRun recoveredAbort = r.withStatus(
+                                        MissionStatus.ABORTED,
+                                        recoveryNow,
+                                        recoveryReason,
+                                        r.objectiveResults(),
+                                        r.telemetrySnapshotsCaptured(),
+                                        r.commandsDispatched()
+                                );
+                                runsById.put(r.runId(), recoveredAbort);
+                                missionHistory.add(recoveredAbort);
+
+                                try {
+                                    Optional<MissionRunEntity> existingEnt = missionRunRepository.findByRunId(r.runId());
+                                    MissionRunEntity entToSave = existingEnt.orElseGet(() -> mapToRunEntity(recoveredAbort));
+                                    entToSave.setStatus(MissionStatus.ABORTED.name());
+                                    entToSave.setCompletedEpoch(recoveryNow);
+                                    entToSave.setOutcomeSummary(recoveryReason);
+                                    missionRunRepository.save(entToSave);
+                                    log.info("RECOVERY POLICY: Cleaned up orphaned active run '{}' -> ABORTED in database.", r.runId());
+                                } catch (Exception ex) {
+                                    log.warn("Failed persisting cleanup for recovered run {}: {}", r.runId(), ex.getMessage());
+                                }
+                            }
+                        }
+                    }
+
+                    log.info("Recovered {} durable mission execution runs from database. Active: {}, History: {}",
+                            runs.size(), activeRunsByMissionId.size(), missionHistory.size());
                 }
             } catch (Exception e) {
                 log.warn("Could not hydrate mission run history from database: {}", e.getMessage());

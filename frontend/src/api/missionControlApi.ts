@@ -411,6 +411,10 @@ export async function getMissionHistory(): Promise<MissionRun[]> {
   return request<MissionRun[]>('/missions/history');
 }
 
+export async function getMissionRun(runId: string): Promise<MissionRun> {
+  return request<MissionRun>(`/missions/runs/${encodeURIComponent(runId)}`);
+}
+
 export interface CreateMissionPayload {
   id?: string;
   title: string;

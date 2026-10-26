@@ -300,7 +300,7 @@ class SecurityAuthorizationIntegrationTest {
                     "destinationGroup": "Lunar & Deep Space",
                     "category": "PLANETARY_RECONNAISSANCE",
                     "difficulty": "STANDARD",
-                    "spacecraftId": "AURA-1",
+                    "spacecraftId": "CHANDRA-ORB",
                     "durationMinutes": 45,
                     "riskLevel": "LOW",
                     "synopsis": "Authorized operator reconnaissance mission creation",
