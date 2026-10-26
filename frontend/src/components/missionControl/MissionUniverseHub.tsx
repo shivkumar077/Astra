@@ -465,10 +465,10 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
     if (searchQuery.trim().length > 0) {
       const q = searchQuery.toLowerCase();
       const match =
-        m.title.toLowerCase().includes(q) ||
-        m.destination.toLowerCase().includes(q) ||
-        m.spacecraftId.toLowerCase().includes(q) ||
-        m.synopsis.toLowerCase().includes(q);
+        (m.title || '').toLowerCase().includes(q) ||
+        (m.destination || '').toLowerCase().includes(q) ||
+        (m.spacecraftId || '').toLowerCase().includes(q) ||
+        (m.synopsis || '').toLowerCase().includes(q);
       if (!match) return false;
     }
     return true;

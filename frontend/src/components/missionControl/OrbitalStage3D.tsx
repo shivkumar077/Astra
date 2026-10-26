@@ -1034,15 +1034,17 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
             {selectedCraft ? selectedCraft.name : 'AURA-1 Earth Observation Platform'}
           </span>
           <span className="astra-mc-hud-target-regime" data-testid="hud-scientific-regime">
-            TARGET: {activeMission ? activeMission.destination.toUpperCase() : (
-              resolvedDest === 'mars' ? 'MARS (ARES)' :
-              resolvedDest === 'lunar' ? 'MOON (LUNA)' :
-              resolvedDest === 'saturn' ? 'SATURN & RINGS' :
-              resolvedDest === 'jupiter' ? 'JUPITER SYSTEM' :
-              resolvedDest === 'ice_giant' ? 'ICE GIANT SYSTEM' :
-              resolvedDest === 'solar' ? 'THE SUN (HELIOS)' :
-              resolvedDest === 'deep_space' ? 'DEEP SPACE VOID' : 'EARTH (TERRA)'
-            )} // REGIME: {
+            TARGET: {(
+              (activeMission && (activeMission.destination || activeMission.destinationGroup)) || (
+                resolvedDest === 'mars' ? 'MARS (ARES)' :
+                resolvedDest === 'lunar' ? 'MOON (LUNA)' :
+                resolvedDest === 'saturn' ? 'SATURN & RINGS' :
+                resolvedDest === 'jupiter' ? 'JUPITER SYSTEM' :
+                resolvedDest === 'ice_giant' ? 'ICE GIANT SYSTEM' :
+                resolvedDest === 'solar' ? 'THE SUN (HELIOS)' :
+                resolvedDest === 'deep_space' ? 'DEEP SPACE VOID' : 'EARTH (TERRA)'
+              )
+            ).toUpperCase()} // REGIME: {
               resolvedDest === 'mars' ? 'AREOCENTRIC (MARS KEPLERIAN TWO-BODY APPROXIMATION)' :
               resolvedDest === 'lunar' ? 'SELENOCENTRIC TWO-BODY REGIME' :
               resolvedDest === 'saturn' ? 'SATURNIAN EQUATORIAL RING PLANE SYSTEM' :

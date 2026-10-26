@@ -228,7 +228,7 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
                   flexShrink: 0,
                 }}
               >
-                // {activeMission.destinationGroup.toUpperCase()}
+                // {(activeMission.destinationGroup || activeMission.destination || 'ORBITAL').toUpperCase()}
               </span>
             </button>
 
@@ -406,12 +406,12 @@ export const MissionControlHeader: React.FC<MissionControlHeaderProps> = ({
 
         {/* Real-Time WebSocket / STOMP Telemetry Indicator */}
         <div
-          className={`astra-mc-gateway-chip status-${connectionStatus}`}
+          className={`astra-mc-gateway-chip status-${connectionStatus || 'CONNECTING'}`}
           data-testid="gateway-status"
-          title={`WebSocket Telemetry Stream: ${connectionStatus.toUpperCase()}`}
+          title={`WebSocket Telemetry Stream: ${(connectionStatus || 'CONNECTING').toUpperCase()}`}
         >
           <span className="astra-mc-pulse-dot" />
-          <span className="astra-mc-stream-label">STREAM: {connectionStatus.toUpperCase()}</span>
+          <span className="astra-mc-stream-label">STREAM: {(connectionStatus || 'CONNECTING').toUpperCase()}</span>
         </div>
       </div>
     </header>

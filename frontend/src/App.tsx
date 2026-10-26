@@ -4,6 +4,7 @@ import { HeroSection } from './components/ui/HeroSection';
 import { Footer } from './components/ui/Footer';
 import { EarthCanvas } from './components/earth/EarthCanvas';
 import { EntryModal, DestinationType } from './components/ui/EntryModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SpaceImageryView } from './components/imagery/SpaceImageryView';
 import { MissionControlView } from './components/missionControl/MissionControlView';
 import { navigationHistory, NavigationLocation } from './utils/navigationHistory';
@@ -76,20 +77,24 @@ export const App: React.FC = () => {
 
   if (navLocation.viewMode === 'space-imagery') {
     return (
-      <SpaceImageryView
-        onReturnHome={handleReturnHome}
-        reducedMotion={reducedMotion}
-      />
+      <ErrorBoundary fallbackTitle="SPACE IMAGERY ARCHIVE ENCOUNTERED AN UNEXPECTED FAULT" onReset={handleReturnHome}>
+        <SpaceImageryView
+          onReturnHome={handleReturnHome}
+          reducedMotion={reducedMotion}
+        />
+      </ErrorBoundary>
     );
   }
 
   if (navLocation.viewMode === 'mission-control') {
     return (
-      <MissionControlView
-        onReturnHome={handleReturnHome}
-        reducedMotion={reducedMotion}
-        navLocation={navLocation}
-      />
+      <ErrorBoundary fallbackTitle="MISSION CONTROL CONSOLE ENCOUNTERED AN UNEXPECTED FAULT" onReset={handleReturnHome}>
+        <MissionControlView
+          onReturnHome={handleReturnHome}
+          reducedMotion={reducedMotion}
+          navLocation={navLocation}
+        />
+      </ErrorBoundary>
     );
   }
 
