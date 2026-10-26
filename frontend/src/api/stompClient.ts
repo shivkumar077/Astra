@@ -31,9 +31,14 @@ export class AstraStompClient {
     if (url) {
       this.url = url;
     } else {
-      const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-      const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8080';
-      this.url = `${isHttps ? 'wss:' : 'ws:'}//${host}/ws/simulation`;
+      const envWsUrl = import.meta.env.VITE_WS_ENDPOINT_URL || import.meta.env.VITE_WS_URL;
+      if (envWsUrl && typeof envWsUrl === 'string' && envWsUrl.trim().length > 0) {
+        this.url = envWsUrl.trim();
+      } else {
+        const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
+        const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8080';
+        this.url = `${isHttps ? 'wss:' : 'ws:'}//${host}/ws/simulation`;
+      }
     }
   }
 

@@ -14,15 +14,24 @@ import org.springframework.web.socket.config.annotation.WebSocketTransportRegist
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    @org.springframework.beans.factory.annotation.Value("${astra.security.cors.allowed-origins:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}")
+    private String allowedOriginsConfig;
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        java.util.List<String> origins = java.util.Arrays.stream(allowedOriginsConfig.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        String[] originPatterns = origins.isEmpty() ? new String[]{"*"} : origins.toArray(new String[0]);
+
         // Standard WebSocket endpoint
         registry.addEndpoint("/ws/simulation")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(originPatterns);
 
         // SockJS fallback endpoint for browsers/proxies lacking direct WebSocket support
         registry.addEndpoint("/ws/simulation")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(originPatterns)
                 .withSockJS();
     }
 

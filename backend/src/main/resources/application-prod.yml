@@ -1,0 +1,101 @@
+# ==============================================================================
+# ASTRA — Production Spring Boot Configuration Profile (application-prod.yml)
+# ==============================================================================
+# Activated via SPRING_PROFILES_ACTIVE=prod or -Dspring.profiles.active=prod
+# Designed for production container environments (Docker, Kubernetes, Cloud PaaS)
+# ==============================================================================
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+
+spring:
+  config:
+    activate:
+      on-profile: prod
+  application:
+    name: astra-backend
+
+  # Database persistence configured via externalized environment variables
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: AstraHikariPool-Prod
+      maximum-pool-size: ${SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE:10}
+      minimum-idle: ${SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE:2}
+      idle-timeout: ${SPRING_DATASOURCE_HIKARI_IDLE_TIMEOUT:30000}
+      connection-timeout: ${SPRING_DATASOURCE_HIKARI_CONNECTION_TIMEOUT:20000}
+      max-lifetime: ${SPRING_DATASOURCE_HIKARI_MAX_LIFETIME:1800000}
+      leak-detection-threshold: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 25
+          order_inserts: true
+          order_updates: true
+
+  # Flyway database schema migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    clean-disabled: true # Production safeguard: prohibit dropping schema
+    table: astra_migrations
+    locations: classpath:db/migration
+
+# Actuator operational health and observability
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+
+# ASTRA Domain Configuration
+astra:
+  security:
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+    users:
+      viewer:
+        username: ${ASTRA_SECURITY_VIEWER_USERNAME:viewer}
+        password: ${ASTRA_SECURITY_VIEWER_PASSWORD:viewer123}
+      operator:
+        username: ${ASTRA_SECURITY_OPERATOR_USERNAME:operator}
+        password: ${ASTRA_SECURITY_OPERATOR_PASSWORD:operator123}
+      flight-director:
+        username: ${ASTRA_SECURITY_DIRECTOR_USERNAME:director}
+        password: ${ASTRA_SECURITY_DIRECTOR_PASSWORD:director123}
+      admin:
+        username: ${ASTRA_SECURITY_ADMIN_USERNAME:admin}
+        password: ${ASTRA_SECURITY_ADMIN_PASSWORD:admin123}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    root: INFO
+    org.astra: INFO
+    org.hibernate: WARN
+    org.flywaydb: INFO
+    org.springframework.web: INFO
+    org.springframework.security: WARN
