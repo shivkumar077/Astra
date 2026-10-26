@@ -70,13 +70,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, status);
     }
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiErrorResponse> handleGeneralException(Exception ex, HttpServletRequest request) {
+        log.error("Unhandled operational exception during request to {}", request.getRequestURI(), ex);
         HttpStatus status = HttpStatus.INTERNAL_SERVER_ERROR;
         ApiErrorResponse body = ApiErrorResponse.of(
                 status.value(),
                 status.getReasonPhrase(),
-                "Internal server error: " + ex.getMessage(),
+                "An unexpected internal error occurred while processing the operational request.",
                 request.getRequestURI()
         );
         return new ResponseEntity<>(body, status);

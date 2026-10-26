@@ -13,6 +13,12 @@ COPY package.json package-lock.json* ./
 
 RUN npm ci --prefer-offline --no-audit
 
+# Optional build arguments for split-host deployment
+ARG VITE_API_BASE_URL=""
+ARG VITE_WS_ENDPOINT_URL=""
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \
+    VITE_WS_ENDPOINT_URL=$VITE_WS_ENDPOINT_URL
+
 # Copy application source code
 COPY . .
 

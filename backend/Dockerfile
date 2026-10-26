@@ -37,11 +37,8 @@ RUN apk add --no-cache curl
 RUN addgroup -S astra && adduser -S astrasvc -G astra
 USER astrasvc:astra
 
-# Copy extracted layers from builder
-COPY --from=builder --chown=astrasvc:astra /workspace/target/extracted/dependencies/ ./
-COPY --from=builder --chown=astrasvc:astra /workspace/target/extracted/spring-boot-loader/ ./
-COPY --from=builder --chown=astrasvc:astra /workspace/target/extracted/snapshot-dependencies/ ./
-COPY --from=builder --chown=astrasvc:astra /workspace/target/extracted/application/ ./
+# Copy executable jar from builder
+COPY --from=builder --chown=astrasvc:astra /workspace/target/*.jar /app/app.jar
 
 # Container runtime environment
 ENV SPRING_PROFILES_ACTIVE=prod \
@@ -53,4 +50,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=25s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
