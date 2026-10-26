@@ -17,7 +17,6 @@ COPY .mvn .mvn
 COPY pom.xml .
 
 RUN dos2unix mvnw && chmod +x mvnw
-RUN ./mvnw dependency:go-offline -B
 
 # Copy source code and build production artifact
 COPY src src
