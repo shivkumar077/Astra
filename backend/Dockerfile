@@ -23,9 +23,6 @@ RUN ./mvnw dependency:go-offline -B
 COPY src src
 RUN ./mvnw clean package -DskipTests -B
 
-# Extract Spring Boot layered jar for optimal Docker layer caching
-RUN java -Djarmode=layertools -jar target/*.jar extract --destination target/extracted
-
 # Stage 2: Production JRE runtime
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
@@ -40,14 +37,13 @@ USER astrasvc:astra
 # Copy executable jar from builder
 COPY --from=builder --chown=astrasvc:astra /workspace/target/*.jar /app/app.jar
 
-# Container runtime environment
+# Container runtime environment (defaults to port 8080, overrides via host-provided PORT on Render)
 ENV SPRING_PROFILES_ACTIVE=prod \
-    SERVER_PORT=8080 \
     JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=25s --retries=3 \
-  CMD curl -f http://localhost:8080/actuator/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8080}/actuator/health || exit 1
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/app.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
