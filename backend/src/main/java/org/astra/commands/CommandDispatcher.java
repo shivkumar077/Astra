@@ -28,17 +28,30 @@ public class CommandDispatcher {
     private final AnomalyManager anomalyManager;
     private final SimulationEventPublisher eventPublisher;
 
+    private final org.astra.missions.service.MissionService missionService;
+
     @Autowired
+    public CommandDispatcher(
+            SimulationEngine simulationEngine,
+            CommandHistoryService commandHistoryService,
+            AnomalyManager anomalyManager,
+            SimulationEventPublisher eventPublisher,
+            Optional<org.astra.missions.service.MissionService> missionService
+    ) {
+        this.simulationEngine = Objects.requireNonNull(simulationEngine, "simulationEngine must not be null");
+        this.commandHistoryService = Objects.requireNonNull(commandHistoryService, "commandHistoryService must not be null");
+        this.anomalyManager = Objects.requireNonNull(anomalyManager, "anomalyManager must not be null");
+        this.eventPublisher = Objects.requireNonNull(eventPublisher, "eventPublisher must not be null");
+        this.missionService = missionService != null ? missionService.orElse(null) : null;
+    }
+
     public CommandDispatcher(
             SimulationEngine simulationEngine,
             CommandHistoryService commandHistoryService,
             AnomalyManager anomalyManager,
             SimulationEventPublisher eventPublisher
     ) {
-        this.simulationEngine = Objects.requireNonNull(simulationEngine, "simulationEngine must not be null");
-        this.commandHistoryService = Objects.requireNonNull(commandHistoryService, "commandHistoryService must not be null");
-        this.anomalyManager = Objects.requireNonNull(anomalyManager, "anomalyManager must not be null");
-        this.eventPublisher = Objects.requireNonNull(eventPublisher, "eventPublisher must not be null");
+        this(simulationEngine, commandHistoryService, anomalyManager, eventPublisher, Optional.empty());
     }
 
     /**
@@ -49,7 +62,8 @@ public class CommandDispatcher {
                 simulationEngine,
                 new CommandHistoryService(),
                 new AnomalyManager(event -> {}),
-                event -> {}
+                event -> {},
+                Optional.empty()
         );
     }
 
@@ -100,7 +114,29 @@ public class CommandDispatcher {
             }
         }
 
-        // 3. Staging and execution
+        // 3. Terminal mission run guard: verify that targeted mission run is not terminal
+        String targetRunId = request.parameters().get("runId");
+        if (targetRunId != null && !targetRunId.isBlank() && missionService != null) {
+            Optional<org.astra.missions.domain.MissionRun> runOpt = missionService.getRun(targetRunId);
+            if (runOpt.isPresent()) {
+                org.astra.missions.domain.MissionStatus runStatus = runOpt.get().status();
+                if (runStatus == org.astra.missions.domain.MissionStatus.COMPLETED
+                        || runStatus == org.astra.missions.domain.MissionStatus.FAILED
+                        || runStatus == org.astra.missions.domain.MissionStatus.ABORTED) {
+                    CommandResult rejected = CommandResult.rejected(
+                            request.commandId(),
+                            request.spacecraftId(),
+                            request.type(),
+                            "Command rejected: Mission run " + targetRunId + " is in terminal state (" + runStatus + ") and cannot receive mutations",
+                            currentEpoch
+                    );
+                    recordAndPublish(request, rejected);
+                    return rejected;
+                }
+            }
+        }
+
+        // 4. Staging and execution
         CommandResult result;
         try {
             result = switch (request.type()) {
@@ -196,6 +232,8 @@ public class CommandDispatcher {
             sc.setOperationalStatus(SpacecraftStatus.NOMINAL);
         }
 
+        simulationEngine.syncSpacecraftTelemetry(sc);
+
         return CommandResult.executed(
                 request.commandId(),
                 sc.getId(),
@@ -222,6 +260,7 @@ public class CommandDispatcher {
         Spacecraft sc = scOpt.get();
         sc.setOperationalMode(OperationalMode.SAFE_MODE);
         sc.setOperationalStatus(SpacecraftStatus.DEGRADED);
+        simulationEngine.syncSpacecraftTelemetry(sc);
 
         String reason = request.parameters().getOrDefault("reason", "Operator contingency command");
 

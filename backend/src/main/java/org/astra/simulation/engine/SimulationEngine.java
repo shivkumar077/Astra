@@ -777,6 +777,10 @@ public class SimulationEngine {
                 telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
                         lifecycle, baseEpoch, baseEpoch, 0.0, fleet.size()
                 ));
+                List<TelemetrySnapshot> initialSnaps = fleet.values().stream()
+                        .map(TelemetrySnapshot::fromSpacecraft)
+                        .toList();
+                telemetryBroadcaster.broadcastFleetTelemetry(baseEpoch, 0.0, lifecycle, initialSnaps);
             }
         } finally {
             rwLock.writeLock().unlock();
@@ -1000,6 +1004,36 @@ public class SimulationEngine {
                 telemetryBroadcaster.broadcastSimulationStatus(new org.astra.api.dto.SimulationStatusResponse(
                         lifecycle, clock.getCurrentEpoch(), baseEpoch, clock.getElapsedSeconds(), fleet.size()
                 ));
+            }
+        } finally {
+            rwLock.writeLock().unlock();
+        }
+    }
+
+    /**
+     * Atomically synchronizes a single spacecraft's current authoritative state with the telemetry buffer,
+     * samples telemetry archive, and broadcasts live updates over STOMP/WebSocket topics.
+     *
+     * @param spacecraft Spacecraft whose state was mutated (e.g. by telecommand or failure lab event)
+     */
+    public void syncSpacecraftTelemetry(Spacecraft spacecraft) {
+        Objects.requireNonNull(spacecraft, "spacecraft must not be null");
+        rwLock.writeLock().lock();
+        try {
+            TelemetrySnapshot snapshot = TelemetrySnapshot.fromSpacecraft(spacecraft);
+            telemetryService.recordSnapshot(snapshot);
+
+            if (telemetryArchiveService != null) {
+                telemetryArchiveService.sampleAndArchive(spacecraft, clock.getCurrentEpoch());
+            }
+
+            if (telemetryBroadcaster != null) {
+                telemetryBroadcaster.broadcastFleetTelemetry(
+                        clock.getCurrentEpoch(),
+                        clock.getElapsedSeconds(),
+                        lifecycle,
+                        List.of(snapshot)
+                );
             }
         } finally {
             rwLock.writeLock().unlock();

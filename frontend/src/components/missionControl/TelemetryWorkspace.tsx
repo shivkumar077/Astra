@@ -1,16 +1,26 @@
 import React from 'react';
-import { SpacecraftDetail, SubsystemsHealth } from '../../types/missionControl';
+import {
+  SpacecraftDetail,
+  SubsystemsHealth,
+  StompConnectionStatus,
+  SimulationStatus,
+  TelemetryFreshness,
+} from '../../types/missionControl';
 import { Compass, Layers } from 'lucide-react';
 
 interface TelemetryWorkspaceProps {
   spacecraft: SpacecraftDetail | null;
   subsystemsHealth: SubsystemsHealth | null;
+  connectionStatus?: StompConnectionStatus;
+  simulationStatus?: SimulationStatus | null;
   loading?: boolean;
 }
 
 export const TelemetryWorkspace: React.FC<TelemetryWorkspaceProps> = ({
   spacecraft,
   subsystemsHealth,
+  connectionStatus = 'connected',
+  simulationStatus = null,
   loading = false,
 }) => {
   if (!spacecraft) {
@@ -24,8 +34,129 @@ export const TelemetryWorkspace: React.FC<TelemetryWorkspaceProps> = ({
   const subs = subsystemsHealth?.subsystems || spacecraft.subsystems;
   const elem = spacecraft.elements;
 
+  // Determine authoritative telemetry freshness
+  const isTransportConnected = connectionStatus === 'connected';
+  let freshness: TelemetryFreshness = 'LIVE';
+  if (!isTransportConnected) {
+    freshness = 'DISCONNECTED';
+  } else if (!spacecraft.epoch && !spacecraft.positionKm) {
+    freshness = 'MISSING';
+  } else if (simulationStatus?.currentEpoch && spacecraft.epoch) {
+    const simMs = new Date(simulationStatus.currentEpoch).getTime();
+    const craftMs = new Date(spacecraft.epoch).getTime();
+    if (!isNaN(simMs) && !isNaN(craftMs) && Math.abs(simMs - craftMs) > 120000) {
+      freshness = 'STALE';
+    }
+  }
+
   return (
     <div className="astra-mc-telemetry-section" data-testid="telemetry-workspace">
+      {/* Authoritative Telemetry Quality & Freshness Monitor */}
+      <div
+        className="astra-mc-telemetry-freshness-bar"
+        data-testid="telemetry-freshness-bar"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 12px',
+          marginBottom: '10px',
+          borderRadius: 'var(--radius-xs)',
+          background: freshness === 'LIVE'
+            ? 'rgba(0, 229, 255, 0.08)'
+            : freshness === 'STALE'
+            ? 'rgba(234, 179, 8, 0.10)'
+            : freshness === 'DISCONNECTED'
+            ? 'rgba(239, 68, 68, 0.12)'
+            : 'rgba(255, 255, 255, 0.05)',
+          border: `1px solid ${
+            freshness === 'LIVE'
+              ? 'rgba(0, 229, 255, 0.35)'
+              : freshness === 'STALE'
+              ? 'rgba(234, 179, 8, 0.40)'
+              : freshness === 'DISCONNECTED'
+              ? 'rgba(239, 68, 68, 0.45)'
+              : 'rgba(255, 255, 255, 0.12)'
+          }`,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: freshness === 'LIVE'
+                ? 'var(--color-nominal)'
+                : freshness === 'STALE'
+                ? 'var(--color-advisory)'
+                : 'var(--color-critical)',
+              display: 'inline-block',
+              boxShadow: freshness === 'LIVE' ? '0 0 8px var(--color-nominal)' : 'none',
+            }}
+          />
+          <span
+            data-testid="telemetry-freshness-badge"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              color: freshness === 'LIVE'
+                ? 'var(--color-earth-cyan)'
+                : freshness === 'STALE'
+                ? 'var(--color-advisory)'
+                : 'var(--color-critical)',
+            }}
+          >
+            {freshness === 'LIVE' && 'LIVE TELEMETRY // SYNCHRONIZED'}
+            {freshness === 'STALE' && 'STALE TELEMETRY // PENDING REFRESH'}
+            {freshness === 'DISCONNECTED' && 'STREAM DISCONNECTED // LAST KNOWN STATE'}
+            {freshness === 'MISSING' && 'NO TELEMETRY // OFFLINE'}
+          </span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span
+            data-testid="spacecraft-operational-status"
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              padding: '2px 6px',
+              borderRadius: '2px',
+              background: spacecraft.operationalStatus === 'NOMINAL'
+                ? 'rgba(16, 185, 129, 0.15)'
+                : spacecraft.operationalStatus === 'DEGRADED'
+                ? 'rgba(245, 158, 11, 0.18)'
+                : 'rgba(239, 68, 68, 0.20)',
+              color: spacecraft.operationalStatus === 'NOMINAL'
+                ? 'var(--color-nominal)'
+                : spacecraft.operationalStatus === 'DEGRADED'
+                ? 'var(--color-advisory)'
+                : 'var(--color-critical)',
+              border: `1px solid ${
+                spacecraft.operationalStatus === 'NOMINAL'
+                  ? 'rgba(16, 185, 129, 0.4)'
+                  : spacecraft.operationalStatus === 'DEGRADED'
+                  ? 'rgba(245, 158, 11, 0.4)'
+                  : 'rgba(239, 68, 68, 0.5)'
+              }`,
+            }}
+          >
+            BUS: {spacecraft.operationalStatus}
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '10px',
+              color: 'var(--color-text-ghost)',
+            }}
+          >
+            {spacecraft.epoch ? `EPOCH: ${spacecraft.epoch.replace('T', ' ').substring(0, 19)}Z` : 'EPOCH: BASELINE'}
+          </span>
+        </div>
+      </div>
+
       {/* 1. Kinematics & Real-Time Orbital Vectors */}
       <div className="astra-mc-section-legend">
         <Compass size={12} color="var(--color-earth-cyan)" />

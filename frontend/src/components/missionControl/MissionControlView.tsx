@@ -68,6 +68,8 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   const [selectedSpacecraftId, setSelectedSpacecraftId] = useState<string>(
     navLocation?.selectedSpacecraftId || 'AURA-1'
   );
+  const selectedSpacecraftIdRef = useRef<string>(selectedSpacecraftId);
+  selectedSpacecraftIdRef.current = selectedSpacecraftId;
   const [simulationStatus, setSimulationStatus] = useState<SimulationStatus | null>(null);
   const [subsystemsHealth, setSubsystemsHealth] = useState<SubsystemsHealth | null>(null);
   const [commandHistory, setCommandHistory] = useState<CommandRecord[]>([]);
@@ -260,15 +262,24 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
   }, [selectedSpacecraftId]);
 
   useEffect(() => {
+    // Prevent carrying over previous craft's telemetry metrics across craft switch
+    setSubsystemsHealth(null);
     loadSubsystems();
-  }, [loadSubsystems]);
+  }, [selectedSpacecraftId, loadSubsystems]);
 
   // 3. Connect Real-Time WebSocket & STOMP Protocol Stream
   useEffect(() => {
     const stomp = getMissionControlStompClient();
+    let prevStatus = stomp.getStatus();
 
     const unsubStatus = stomp.onStatusChange((status) => {
       setConnectionStatus(status);
+      if (prevStatus !== 'connected' && status === 'connected') {
+        // Authoritative reconnect recovery: fetch latest snapshot via REST to reconcile missed frames
+        loadInitialData();
+        loadSubsystems();
+      }
+      prevStatus = status;
     });
 
     stomp.connect();
@@ -280,21 +291,48 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
           prev.map((existing) => {
             const update = frame.fleet.find((f) => f.spacecraftId === existing.id);
             if (!update) return existing;
+
+            // Authoritative out-of-order rejection:
+            // If existing craft has an epoch and incoming frame timestamp is strictly older, reject out-of-order update
+            if (existing.epoch && update.timestamp) {
+              const existingMs = new Date(existing.epoch).getTime();
+              const incomingMs = new Date(update.timestamp).getTime();
+              if (!isNaN(existingMs) && !isNaN(incomingMs) && incomingMs < existingMs) {
+                return existing;
+              }
+            }
+
             return {
               ...existing,
-              positionKm: update.positionKm,
-              velocityKmS: update.velocityKmS,
-              altitudeKm: update.altitudeKm,
-              speedKmS: update.speedKmS,
-              inEclipse: update.inEclipse,
-              operationalMode: update.operationalMode,
-              operationalStatus: update.operationalStatus,
-              batterySocPercent: update.batterySocPercent,
-              solarArrayWatts: update.solarArrayWatts,
+              epoch: update.timestamp || existing.epoch,
+              positionKm: update.positionKm || existing.positionKm,
+              velocityKmS: update.velocityKmS || existing.velocityKmS,
+              altitudeKm: update.altitudeKm ?? existing.altitudeKm,
+              speedKmS: update.speedKmS ?? existing.speedKmS,
+              inEclipse: update.inEclipse ?? existing.inEclipse,
+              operationalMode: update.operationalMode || existing.operationalMode,
+              operationalStatus: update.operationalStatus || existing.operationalStatus,
+              batterySocPercent: update.batterySocPercent ?? existing.batterySocPercent,
+              solarArrayWatts: update.solarArrayWatts ?? existing.solarArrayWatts,
               elements: update.elements || existing.elements,
+              subsystems: update.subsystems || existing.subsystems,
             };
           })
         );
+
+        // Immediate authoritative live update for currently selected spacecraft subsystems
+        const activeUpdate = frame.fleet.find((f) => f.spacecraftId === selectedSpacecraftIdRef.current);
+        if (activeUpdate && activeUpdate.subsystems) {
+          setSubsystemsHealth((prev) => ({
+            spacecraftId: activeUpdate.spacecraftId,
+            callSign: activeUpdate.callSign,
+            epoch: activeUpdate.timestamp,
+            overallStatus: activeUpdate.operationalStatus,
+            subsystems: activeUpdate.subsystems!,
+            activeFaultIds: prev?.activeFaultIds || [],
+            activeFaultCount: prev?.activeFaultCount || 0,
+          }));
+        }
       }
     });
 
@@ -325,7 +363,7 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
       unsubEvents();
       stomp.disconnect();
     };
-  }, []);
+  }, [loadInitialData, loadSubsystems]);
 
   // Universal Back Navigation Handler
   const handleHeaderBack = useCallback(() => {
@@ -498,6 +536,8 @@ export const MissionControlView: React.FC<MissionControlViewProps> = ({
                 <TelemetryWorkspace
                   spacecraft={selectedCraft}
                   subsystemsHealth={subsystemsHealth}
+                  connectionStatus={connectionStatus}
+                  simulationStatus={simulationStatus}
                   loading={loading}
                 />
               )}

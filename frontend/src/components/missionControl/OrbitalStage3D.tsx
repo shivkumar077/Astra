@@ -691,23 +691,17 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
 
     const spacecraftMeshes = new Map<string, THREE.Mesh>();
 
+    interface CraftRenderNode {
+      craftGroup: THREE.Group;
+      coreMesh: THREE.Mesh;
+      haloMesh?: THREE.Mesh;
+      trajLine: THREE.Line;
+      elementsKey: string;
+      isSelected: boolean;
+    }
+    const craftRenderNodes = new Map<string, CraftRenderNode>();
+
     const updateOrbits = () => {
-      // Clear previous trajectories and thoroughly dispose all child lines, meshes, geometries, and materials
-      while (trajectoryGroup.children.length > 0) {
-        const obj = trajectoryGroup.children[0];
-        trajectoryGroup.remove(obj);
-        obj.traverse((child) => {
-          if (child instanceof THREE.Mesh || child instanceof THREE.Line) {
-            child.geometry?.dispose();
-            if (Array.isArray(child.material)) {
-              child.material.forEach((m) => m.dispose());
-            } else if (child.material) {
-              child.material.dispose();
-            }
-          }
-        });
-      }
-      spacecraftMeshes.clear();
 
       const list = spacecraftListRef.current;
       const selectedId = selectedSpacecraftIdRef.current;
@@ -724,13 +718,62 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
             ? [selectedCraftRef.current]
             : []);
 
+      const activeIds = new Set<string>();
+
       craftsToRender.forEach((craft) => {
+        activeIds.add(craft.id);
         const isSelected = craft.id === selectedId;
         const elem = craft.elements || DEFAULT_ELEMENTS[craft.id] || DEFAULT_ELEMENTS['AURA-1'];
         if (!elem) return;
 
-        const { points, currentNode } = computeKeplerianCartesian(elem, EARTH_RADIUS_UNITS, EARTH_RADIUS_KM);
+        const scale = EARTH_RADIUS_UNITS / EARTH_RADIUS_KM;
+        let targetPosition: THREE.Vector3;
+        if (
+          craft.positionKm &&
+          Number.isFinite(craft.positionKm.x) &&
+          Number.isFinite(craft.positionKm.y) &&
+          Number.isFinite(craft.positionKm.z)
+        ) {
+          targetPosition = new THREE.Vector3(
+            craft.positionKm.x * scale,
+            craft.positionKm.z * scale,
+            -craft.positionKm.y * scale
+          );
+        } else {
+          const { currentNode } = computeKeplerianCartesian(elem, EARTH_RADIUS_UNITS, EARTH_RADIUS_KM);
+          targetPosition = currentNode;
+        }
 
+        const elementsKey = `${elem.semiMajorAxisKm.toFixed(1)}_${elem.eccentricity.toFixed(4)}_${elem.inclinationDeg.toFixed(2)}`;
+        const existingNode = craftRenderNodes.get(craft.id);
+
+        if (existingNode && existingNode.elementsKey === elementsKey && existingNode.isSelected === isSelected) {
+          existingNode.craftGroup.position.copy(targetPosition);
+          spacecraftMeshes.set(craft.id, existingNode.coreMesh);
+          return;
+        }
+
+        if (existingNode) {
+          trajectoryGroup.remove(existingNode.trajLine);
+          trajectoryGroup.remove(existingNode.craftGroup);
+          existingNode.trajLine.geometry?.dispose();
+          if (existingNode.trajLine.material instanceof THREE.Material) {
+            existingNode.trajLine.material.dispose();
+          }
+          existingNode.coreMesh.geometry?.dispose();
+          if (existingNode.coreMesh.material instanceof THREE.Material) {
+            existingNode.coreMesh.material.dispose();
+          }
+          if (existingNode.haloMesh) {
+            existingNode.haloMesh.geometry?.dispose();
+            if (existingNode.haloMesh.material instanceof THREE.Material) {
+              existingNode.haloMesh.material.dispose();
+            }
+          }
+          craftRenderNodes.delete(craft.id);
+        }
+
+        const { points } = computeKeplerianCartesian(elem, EARTH_RADIUS_UNITS, EARTH_RADIUS_KM);
         const trajGeometry = new THREE.BufferGeometry().setFromPoints(points);
         const trajMaterial = new THREE.LineBasicMaterial({
           color: isSelected ? 0x00e5ff : 0x475569,
@@ -742,7 +785,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
         trajectoryGroup.add(trajLine);
 
         const craftGroup = new THREE.Group();
-        craftGroup.position.copy(currentNode);
+        craftGroup.position.copy(targetPosition);
 
         // Spacecraft Core Node
         const coreGeometry = new THREE.SphereGeometry(isSelected ? 0.09 : 0.06, 16, 16);
@@ -753,6 +796,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
         craftGroup.add(coreMesh);
 
         // Selected Spacecraft Glowing Halo
+        let haloMesh: THREE.Mesh | undefined = undefined;
         if (isSelected) {
           const haloGeometry = new THREE.SphereGeometry(0.18, 16, 16);
           const haloMaterial = new THREE.MeshBasicMaterial({
@@ -760,13 +804,45 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
             transparent: true,
             opacity: 0.35,
           });
-          const haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
+          haloMesh = new THREE.Mesh(haloGeometry, haloMaterial);
           craftGroup.add(haloMesh);
         }
 
         trajectoryGroup.add(craftGroup);
         spacecraftMeshes.set(craft.id, coreMesh);
+        craftRenderNodes.set(craft.id, {
+          craftGroup,
+          coreMesh,
+          haloMesh,
+          trajLine,
+          elementsKey,
+          isSelected,
+        });
       });
+
+      // Thoroughly dispose any craft nodes that are no longer part of active destination
+      for (const [id, node] of Array.from(craftRenderNodes.entries())) {
+        if (!activeIds.has(id)) {
+          trajectoryGroup.remove(node.trajLine);
+          trajectoryGroup.remove(node.craftGroup);
+          node.trajLine.geometry?.dispose();
+          if (node.trajLine.material instanceof THREE.Material) {
+            node.trajLine.material.dispose();
+          }
+          node.coreMesh.geometry?.dispose();
+          if (node.coreMesh.material instanceof THREE.Material) {
+            node.coreMesh.material.dispose();
+          }
+          if (node.haloMesh) {
+            node.haloMesh.geometry?.dispose();
+            if (node.haloMesh.material instanceof THREE.Material) {
+              node.haloMesh.material.dispose();
+            }
+          }
+          craftRenderNodes.delete(id);
+          spacecraftMeshes.delete(id);
+        }
+      }
     };
 
     updateOrbitsRef.current = updateOrbits;

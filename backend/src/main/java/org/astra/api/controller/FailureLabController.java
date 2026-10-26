@@ -87,6 +87,7 @@ public class FailureLabController {
 
         Instant epoch = simulationEngine.getCurrentEpoch();
         FaultRecord fault = failureLabService.injectFault(request, epoch, scOpt.get());
+        simulationEngine.syncSpacecraftTelemetry(scOpt.get());
         return ResponseEntity.status(HttpStatus.CREATED).body(fault);
     }
 
@@ -112,6 +113,7 @@ public class FailureLabController {
         Instant epoch = simulationEngine.getCurrentEpoch();
         try {
             FaultRecord recovered = failureLabService.recoverFault(id, request, epoch, scOpt.get());
+            simulationEngine.syncSpacecraftTelemetry(scOpt.get());
             return ResponseEntity.ok(recovered);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());

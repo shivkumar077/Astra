@@ -149,7 +149,10 @@ export interface TelemetrySnapshot {
   batterySocPercent: number;
   solarArrayWatts: number;
   elements: KeplerianElements;
+  subsystems?: SpacecraftSubsystems;
 }
+
+export type TelemetryFreshness = 'LIVE' | 'STALE' | 'DISCONNECTED' | 'MISSING';
 
 export interface FleetTelemetryFrame {
   simulationEpoch: string;
