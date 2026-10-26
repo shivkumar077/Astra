@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: astra-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: singapore
+    plan: free
+    branch: feature/production-readiness
+    healthCheckPath: /actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://ep-long-tooth-a1c9y5y7.ap-southeast-1.aws.neon.tech/astra?sslmode=require
+      - key: SPRING_DATASOURCE_USERNAME
+        value: astra_admin
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://*.pages.dev,http://localhost:5173
+      - key: ASTRA_SECURITY_OPERATOR_PASSWORD
+        value: operator123
+      - key: ASTRA_SECURITY_DIRECTOR_PASSWORD
+        value: director123
+      - key: ASTRA_SECURITY_ADMIN_PASSWORD
+        value: admin123
+      - key: ASTRA_SECURITY_VIEWER_PASSWORD
+        value: viewer123
