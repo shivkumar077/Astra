@@ -281,3 +281,39 @@ export const ObservatoryTelescope: React.FC<IconProps> = ({
   </svg>
 );
 
+/**
+ * Systems Architect: Fine-line engineering insignia with compass core and telemetry node
+ */
+export const SystemsArchitect: React.FC<IconProps> = ({
+  size = 24,
+  color = 'currentColor',
+  strokeWidth = 1.25,
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    {...props}
+  >
+    <circle cx="12" cy="8" r="4" stroke={color} strokeWidth={strokeWidth} />
+    <path
+      d="M5 20C5 16.5 8 14.5 12 14.5C16 14.5 19 16.5 19 20"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+    />
+    <path
+      d="M12 2V4M12 20V22M2 12H4M20 12H22"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      opacity="0.5"
+    />
+  </svg>
+);
+
+

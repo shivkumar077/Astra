@@ -16,20 +16,18 @@ beforeEach(() => {
 
 describe('ASTRA Refinements & NASA Imagery Suite', () => {
   describe('Requirement 1 & 2: Responsive Landing & ABOUT Navigation', () => {
-    it('renames the landing-page navigation item to "About" without "Engineer Dossier"', () => {
+    it('moves About Me into the four-destination screen and removes duplicate header About', () => {
       render(<App />);
 
-      // Settled / landing page About button
+      // Settled / landing page About Me destination card
       const aboutBtn = screen.getByTestId('entry-about-me');
       expect(aboutBtn).toBeInTheDocument();
-      expect(aboutBtn).toHaveTextContent(/ABOUT/i);
+      expect(aboutBtn).toHaveTextContent(/IV\. ABOUT ME/i);
       expect(aboutBtn).not.toHaveTextContent(/ENGINEER DOSSIER/i);
       expect(aboutBtn).not.toHaveTextContent(/SYSTEMS ARCHITECT/i);
 
-      // Header About button
-      const headerAboutBtn = screen.getByTestId('header-about-btn');
-      expect(headerAboutBtn).toBeInTheDocument();
-      expect(headerAboutBtn).toHaveTextContent(/ABOUT/i);
+      // Header About button removed completely
+      expect(screen.queryByTestId('header-about-btn')).not.toBeInTheDocument();
     });
 
     it('clicking About opens the About page at top-level heading without jumping to projects', async () => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Spacecraft, OpticalAperture, SignatureStar, ObservatoryTelescope } from '../common/CelestialIcons';
+import { Spacecraft, OpticalAperture, SignatureStar, ObservatoryTelescope, SystemsArchitect } from '../common/CelestialIcons';
 import { AstraWordmark } from '../common/AstraBrand';
 import { WordmarkDissolutionField } from './WordmarkDissolutionField';
 import { DestinationType } from './EntryModal';
@@ -331,15 +331,9 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             </p>
           </div>
 
-          {/* EXACTLY TWO PROMINENT, BEAUTIFUL DESTINATION PANELS */}
+          {/* FOUR RESPONSIVE DESTINATION PANELS: MISSION CONTROL, SPACE IMAGERY, NASA ARCHIVE, ABOUT ME */}
           <div
             className="astra-destination-grid"
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '20px',
-              marginTop: '6px',
-            }}
             data-testid="primary-entry-points"
           >
             {/* Destination 1: Mission Control */}
@@ -659,21 +653,111 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <span className="astra-action-arrow" style={{ transition: 'transform 200ms ease' }}>&rarr;</span>
               </div>
             </button>
-          </div>
 
-          {/* Subtle Systems Architect / About Me Access Entry */}
-          <div className="astra-about-access-row">
+            {/* Destination 4: About Me */}
             <button
               onClick={() => onSelectDestination('about')}
-              className="astra-about-access-btn"
+              className="astra-destination-panel"
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '24px 22px',
+                backgroundColor: 'rgba(7, 10, 16, 0.72)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.45)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '2px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'all 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+                outline: 'none',
+              }}
+              aria-label="About Me: Systems architect profile, engineering projects, and contact channels"
               data-testid="entry-about-me"
-              aria-label="About"
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <span className="astra-about-dot" />
-                <span className="astra-about-label">ABOUT</span>
+              {/* Prominent Celestial Icon Anchor */}
+              <div
+                className="astra-panel-icon-wrap"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'var(--color-star-ivory)',
+                  marginBottom: '16px',
+                  transition: 'transform 240ms ease, border-color 240ms ease',
+                }}
+              >
+                <SystemsArchitect size={24} strokeWidth={1.3} />
+              </div>
+
+              {/* Destination Name Immediately Positioned Below Icon */}
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10px',
+                  color: 'var(--color-text-ghost)',
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  marginBottom: '4px',
+                }}
+              >
+                [ DESTINATION 04 ]
               </span>
-              <span style={{ color: 'var(--color-text-ghost)', fontSize: '12px' }}>&rarr;</span>
+
+              <h3
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--color-text-display)',
+                  margin: 0,
+                  textTransform: 'uppercase',
+                }}
+              >
+                IV. ABOUT ME
+              </h3>
+
+              {/* Concise Supporting Copy */}
+              <p
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12.5px',
+                  lineHeight: 1.55,
+                  color: 'var(--color-text-muted)',
+                  marginTop: '10px',
+                  marginBottom: '20px',
+                  flexGrow: 1,
+                }}
+              >
+                Personal dossier, mission software engineering profile, 
+                verified flight directives, and official contact channels.
+              </p>
+
+              {/* Elegant Interactive Affordance */}
+              <div
+                className="astra-panel-action"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--color-star-ivory)',
+                  letterSpacing: '0.08em',
+                  marginTop: 'auto',
+                }}
+              >
+                <span>READ DOSSIER</span>
+                <span className="astra-action-arrow" style={{ transition: 'transform 200ms ease' }}>&rarr;</span>
+              </div>
             </button>
           </div>
         </div>

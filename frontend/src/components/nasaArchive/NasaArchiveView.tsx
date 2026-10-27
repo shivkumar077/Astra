@@ -11,12 +11,20 @@ interface NasaArchiveViewProps {
   reducedMotion?: boolean;
 }
 
+const CATEGORY_TERMS: Record<NasaArchiveCategory, string[]> = {
+  all: ['deep space', 'nebula', 'galaxy', 'hubble', 'webb', 'supernova'],
+  nebula: ['nebula', 'carina nebula', 'crab nebula', 'orion nebula'],
+  galaxy: ['galaxy', 'andromeda', 'spiral galaxy'],
+  planetary: ['jupiter', 'saturn', 'mars', 'earth', 'europa'],
+  spacecraft: ['spacecraft', 'voyager', 'curiosity rover', 'apollo'],
+};
+
 const CATEGORIES: NasaCategoryFilter[] = [
-  { id: 'all', label: 'All Observations', query: 'space nebula galaxy astronomy spacecraft hubble webb' },
-  { id: 'nebula', label: 'Nebulae & Stars', query: 'nebula interstellar cosmic dust emission reflection' },
-  { id: 'galaxy', label: 'Deep Galaxies', query: 'galaxy spiral andromeda hubble deep field webb' },
-  { id: 'planetary', label: 'Planets & Moons', query: 'jupiter saturn mars europa titan cassini new horizons' },
-  { id: 'spacecraft', label: 'Spacecraft & Probes', query: 'spacecraft voyager curiosity perseverance apollo hubble webb' },
+  { id: 'all', label: 'All Observations', query: 'deep space' },
+  { id: 'nebula', label: 'Nebulae & Stars', query: 'nebula' },
+  { id: 'galaxy', label: 'Deep Galaxies', query: 'galaxy' },
+  { id: 'planetary', label: 'Planets & Moons', query: 'jupiter' },
+  { id: 'spacecraft', label: 'Spacecraft & Probes', query: 'spacecraft' },
 ];
 
 export const NasaArchiveView: React.FC<NasaArchiveViewProps> = ({
@@ -71,10 +79,13 @@ export const NasaArchiveView: React.FC<NasaArchiveViewProps> = ({
     async (category: NasaArchiveCategory, forceRandomize = false) => {
       setLoading(true);
       setError(null);
-      const catConfig = CATEGORIES.find((c) => c.id === category) || CATEGORIES[0];
+      const terms = CATEGORY_TERMS[category] || ['deep space'];
+      const query = forceRandomize
+        ? terms[Math.floor(Math.random() * terms.length)]
+        : (CATEGORIES.find((c) => c.id === category)?.query || terms[0]);
 
       try {
-        const results = await fetchNasaArchiveItems(catConfig.query, forceRandomize);
+        const results = await fetchNasaArchiveItems(query, forceRandomize);
         setItems(results);
       } catch (err: any) {
         console.warn('NASA archive sync notice:', err);
