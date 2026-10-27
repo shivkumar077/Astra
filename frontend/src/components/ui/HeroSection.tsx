@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Spacecraft, OpticalAperture, SignatureStar } from '../common/CelestialIcons';
+import { Spacecraft, OpticalAperture, SignatureStar, ObservatoryTelescope } from '../common/CelestialIcons';
 import { AstraWordmark } from '../common/AstraBrand';
 import { WordmarkDissolutionField } from './WordmarkDissolutionField';
 import { DestinationType } from './EntryModal';
@@ -553,6 +553,112 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <span className="astra-action-arrow" style={{ transition: 'transform 200ms ease' }}>&rarr;</span>
               </div>
             </button>
+
+            {/* Destination 3: NASA Image Archive */}
+            <button
+              onClick={() => onSelectDestination('nasa-archive')}
+              className="astra-destination-panel"
+              style={{
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'flex-start',
+                padding: '24px 22px',
+                backgroundColor: 'rgba(7, 10, 16, 0.72)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.45)',
+                backdropFilter: 'blur(20px)',
+                borderRadius: '2px',
+                textAlign: 'left',
+                cursor: 'pointer',
+                transition: 'all 240ms cubic-bezier(0.16, 1, 0.3, 1)',
+                outline: 'none',
+              }}
+              aria-label="Explore NASA Image Archive: View real space, nebulae, galaxies, and spacecraft photography"
+              data-testid="entry-nasa-archive"
+            >
+              {/* Prominent Celestial Icon Anchor */}
+              <div
+                className="astra-panel-icon-wrap"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '46px',
+                  height: '46px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  color: 'var(--color-star-ivory)',
+                  marginBottom: '16px',
+                  transition: 'transform 240ms ease, border-color 240ms ease',
+                }}
+              >
+                <ObservatoryTelescope size={24} strokeWidth={1.3} />
+              </div>
+
+              {/* Destination Name Immediately Positioned Below Icon */}
+              <span
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '10px',
+                  color: 'var(--color-text-ghost)',
+                  letterSpacing: '0.14em',
+                  textTransform: 'uppercase',
+                  marginBottom: '4px',
+                }}
+              >
+                [ DESTINATION 03 ]
+              </span>
+
+              <h3
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '20px',
+                  fontWeight: 600,
+                  letterSpacing: '0.04em',
+                  color: 'var(--color-text-display)',
+                  margin: 0,
+                  textTransform: 'uppercase',
+                }}
+              >
+                III. NASA IMAGE ARCHIVE
+              </h3>
+
+              {/* Concise Supporting Copy */}
+              <p
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: '12.5px',
+                  lineHeight: 1.55,
+                  color: 'var(--color-text-muted)',
+                  marginTop: '10px',
+                  marginBottom: '20px',
+                  flexGrow: 1,
+                }}
+              >
+                Explore dynamically randomized deep space imagery, nebulae, galaxies, 
+                and astronomical observations from the official NASA Image Library.
+              </p>
+
+              {/* Elegant Interactive Affordance */}
+              <div
+                className="astra-panel-action"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: '11px',
+                  color: 'var(--color-star-ivory)',
+                  letterSpacing: '0.08em',
+                  marginTop: 'auto',
+                }}
+              >
+                <span>OPEN ARCHIVE</span>
+                <span className="astra-action-arrow" style={{ transition: 'transform 200ms ease' }}>&rarr;</span>
+              </div>
+            </button>
           </div>
 
           {/* Subtle Systems Architect / About Me Access Entry */}
@@ -561,11 +667,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
               onClick={() => onSelectDestination('about')}
               className="astra-about-access-btn"
               data-testid="entry-about-me"
-              aria-label="View Systems Engineer and Architecture Dossier (About Me)"
+              aria-label="About"
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                 <span className="astra-about-dot" />
-                <span className="astra-about-label">SYSTEMS ARCHITECT // ENGINEERING DOSSIER</span>
+                <span className="astra-about-label">ABOUT</span>
               </span>
               <span style={{ color: 'var(--color-text-ghost)', fontSize: '12px' }}>&rarr;</span>
             </button>

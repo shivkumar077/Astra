@@ -89,8 +89,10 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
     getPlanetaryDestinations()
       .then((data) => {
         if (data && Array.isArray(data) && data.length > 0) {
-          setDestinations(data);
-          setActiveDestinationId(data[0].id);
+          const sorted = [...data].sort((a, b) => a.orbitalOrder - b.orbitalOrder);
+          setDestinations(sorted);
+          setActiveDestinationId(sorted[0].id);
+          activeDestinationIdRef.current = sorted[0].id;
         }
         setLoading(false);
       })
@@ -102,6 +104,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadDestinations();
   }, []);
 
@@ -152,6 +155,16 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       window.requestAnimationFrame(() => {
         const vh = window.innerHeight;
         const vCenter = vh * 0.5;
+
+        // Near top of page, lock strictly to Sun
+        if (window.scrollY <= 140) {
+          if (activeDestinationIdRef.current !== 'sun') {
+            activeDestinationIdRef.current = 'sun';
+            setActiveDestinationId('sun');
+          }
+          ticking = false;
+          return;
+        }
 
         let closestId = activeDestinationIdRef.current;
         let minDistance = Infinity;

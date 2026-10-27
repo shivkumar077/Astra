@@ -7,6 +7,7 @@ import { EntryModal, DestinationType } from './components/ui/EntryModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SpaceImageryView } from './components/imagery/SpaceImageryView';
 import { MissionControlView } from './components/missionControl/MissionControlView';
+import { NasaArchiveView } from './components/nasaArchive/NasaArchiveView';
 import { AboutMeView } from './components/about/AboutMeView';
 import { NotFoundView } from './components/common/NotFoundView';
 import { navigationHistory, NavigationLocation } from './utils/navigationHistory';
@@ -27,18 +28,25 @@ export const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Guarantee that switching view modes always starts at the top of the new view
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [navLocation.viewMode]);
+
   useEffect(() => {
     // Detect operating-system reduced motion preference silently for accessibility
-    if (typeof window !== 'undefined' && window.matchMedia) {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
       const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-      setReducedMotion(mediaQuery.matches);
+      if (mediaQuery) {
+        setReducedMotion(Boolean(mediaQuery.matches));
 
-      const handleChange = (e: MediaQueryListEvent) => {
-        setReducedMotion(e.matches);
-      };
+        const handleChange = (e: MediaQueryListEvent) => {
+          setReducedMotion(Boolean(e?.matches));
+        };
 
-      mediaQuery.addEventListener?.('change', handleChange);
-      return () => mediaQuery.removeEventListener?.('change', handleChange);
+        mediaQuery.addEventListener?.('change', handleChange);
+        return () => mediaQuery.removeEventListener?.('change', handleChange);
+      }
     }
   }, []);
 
@@ -68,6 +76,8 @@ export const App: React.FC = () => {
       navigationHistory.push({ viewMode: 'space-imagery' });
     } else if (dest === 'mission-control') {
       navigationHistory.push({ viewMode: 'mission-control', mcModeView: 'cockpit' });
+    } else if (dest === 'nasa-archive') {
+      navigationHistory.push({ viewMode: 'nasa-archive' });
     } else if (dest === 'about') {
       navigationHistory.push({ viewMode: 'about' });
     } else {
@@ -101,6 +111,17 @@ export const App: React.FC = () => {
           onReturnHome={handleReturnHome}
           reducedMotion={reducedMotion}
           navLocation={navLocation}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (navLocation.viewMode === 'nasa-archive') {
+    return (
+      <ErrorBoundary fallbackTitle="NASA IMAGE ARCHIVE ENCOUNTERED AN UNEXPECTED FAULT" onReset={handleReturnHome}>
+        <NasaArchiveView
+          onReturnHome={handleReturnHome}
+          reducedMotion={reducedMotion}
         />
       </ErrorBoundary>
     );
@@ -148,7 +169,7 @@ export const App: React.FC = () => {
       <EarthCanvas scrollProgress={scrollProgress} reducedMotion={reducedMotion} />
 
       {/* Primary Structural Layout */}
-      <Header />
+      <Header onSelectDestination={handleSelectDestination} />
 
       <HeroSection
         scrollProgress={scrollProgress}

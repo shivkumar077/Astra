@@ -3,7 +3,6 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { navigationHistory } from '../utils/navigationHistory';
 import { NotFoundView } from '../components/common/NotFoundView';
 import { AboutMeView } from '../components/about/AboutMeView';
-import { ABOUT_PROFILE_CONFIG } from '../config/aboutConfig';
 import { DEFAULT_PLANETARY_DESTINATIONS } from '../utils/planetaryCatalog';
 
 describe('Phase 3: Custom ASTRA 404 Routing & View', () => {
@@ -61,8 +60,10 @@ describe('Phase 4: About Me Experience & Verified Links', () => {
       />
     );
 
-    // Identity verification
-    expect(screen.getByTestId('about-name')).toHaveTextContent(ABOUT_PROFILE_CONFIG.name);
+    // Identity verification: distinct two-line styling for Shiv and Kumar
+    const nameEl = screen.getByTestId('about-name');
+    expect(nameEl.querySelector('.astra-name-first')).toHaveTextContent('Shiv');
+    expect(nameEl.querySelector('.astra-name-last')).toHaveTextContent('Kumar');
     expect(screen.getByTestId('about-tagline')).toBeInTheDocument();
     expect(screen.getByText(/Computer Science & Engineering Student/i)).toBeInTheDocument();
     expect(screen.getByText(/Cloud Computing Specialization/i)).toBeInTheDocument();

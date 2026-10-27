@@ -6,7 +6,7 @@
 
 import { DestinationFilter } from './destinationModel';
 
-export type AppViewMode = 'landing' | 'space-imagery' | 'mission-control' | 'about' | 'not-found';
+export type AppViewMode = 'landing' | 'space-imagery' | 'mission-control' | 'nasa-archive' | 'about' | 'not-found';
 export type McModeView = 'cockpit' | 'universe' | 'diagnostics';
 export type UniverseTab = 'catalogue' | 'briefing' | 'history';
 
@@ -204,6 +204,8 @@ class NavigationHistoryManager {
       hash = '#about';
     } else if (location.viewMode === 'not-found') {
       hash = '#404';
+    } else if (location.viewMode === 'nasa-archive') {
+      hash = '#nasa-archive';
     } else if (location.viewMode === 'space-imagery') {
       hash = '#space-imagery';
       if (location.imageryDestinationId) {
@@ -279,6 +281,9 @@ class NavigationHistoryManager {
     if (pathname === '/about') {
       return { viewMode: 'about' };
     }
+    if (pathname === '/nasa-archive') {
+      return { viewMode: 'nasa-archive' };
+    }
     if (pathname === '/space-imagery') {
       return { viewMode: 'space-imagery' };
     }
@@ -302,6 +307,10 @@ class NavigationHistoryManager {
 
     if (hashPart === '#about') {
       return { viewMode: 'about' };
+    }
+
+    if (hashPart === '#nasa-archive') {
+      return { viewMode: 'nasa-archive' };
     }
 
     if (hashPart === '#404' || hashPart === '#not-found') {

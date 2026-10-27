@@ -226,12 +226,12 @@ export const PlanetaryDossierDrawer: React.FC<PlanetaryDossierDrawerProps> = ({
 
           <button
             onClick={onClose}
-            className="astra-collapse-pill-btn"
+            className="astra-collapse-pill-btn astra-dossier-close-icon-btn"
             data-testid={`collapse-world-${destKey}`}
-            aria-label="Close dossier and return to planetary journey"
+            aria-label="Close dossier"
+            title="Close dossier [Esc]"
           >
-            <X size={14} />
-            <span>CLOSE DOSSIER [ESC]</span>
+            <X size={18} strokeWidth={2} />
           </button>
         </div>
 

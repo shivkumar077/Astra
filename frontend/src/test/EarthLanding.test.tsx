@@ -59,13 +59,20 @@ describe('ASTRA Landing Experience — Prompt 6 Responsive & Celestial Journey',
       expect.stringContaining('Explore Space Imagery')
     );
 
-    // Verify exactly two destination panels are rendered, with no competing tertiary cards
-    const allPanels = entryContainer.querySelectorAll('.astra-destination-panel');
-    expect(allPanels.length).toBe(2);
+    const nasaArchiveBtn = screen.getByTestId('entry-nasa-archive');
+    expect(nasaArchiveBtn).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('Explore NASA Image Archive')
+    );
 
-    // Verify destination name is positioned immediately below icon
+    // Verify 3 destination panels are rendered
+    const allPanels = entryContainer.querySelectorAll('.astra-destination-panel');
+    expect(allPanels.length).toBe(3);
+
+    // Verify destination names are positioned immediately below icon
     expect(within(missionControlBtn).getByText(/I\. MISSION CONTROL/i)).toBeInTheDocument();
     expect(within(spaceImageryBtn).getByText(/II\. SPACE IMAGERY/i)).toBeInTheDocument();
+    expect(within(nasaArchiveBtn).getByText(/III\. NASA IMAGE ARCHIVE/i)).toBeInTheDocument();
   });
 
   it('transitions to mission control operations console and space imagery exploration', () => {

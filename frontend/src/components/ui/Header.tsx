@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { SignatureStar } from '../common/CelestialIcons';
+import { DestinationType } from './EntryModal';
 
 interface HeaderProps {
   visible?: boolean;
+  onSelectDestination?: (dest: DestinationType) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   visible = true,
+  onSelectDestination,
 }) => {
   const [utcTime, setUtcTime] = useState<string>('');
 
@@ -43,8 +46,16 @@ export const Header: React.FC<HeaderProps> = ({
         <span className="status-short">ORBIT: SYNC</span>
       </div>
 
-      {/* Quiet Telemetry: UTC Timekeeper */}
+      {/* Quiet Telemetry: UTC Timekeeper & Direct About Navigation */}
       <div className="astra-header-telemetry">
+        <button
+          onClick={() => onSelectDestination?.('about')}
+          className="astra-header-about-btn"
+          aria-label="About"
+          data-testid="header-about-btn"
+        >
+          [ ABOUT ]
+        </button>
         <span data-telemetry="utc-clock" style={{ letterSpacing: '0.06em' }}>
           {utcTime || 'SYNCHRONIZING UTC...'}
         </span>

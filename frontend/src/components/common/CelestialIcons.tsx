@@ -248,3 +248,36 @@ export const OpticalAperture: React.FC<IconProps> = ({
     <line x1="19" y1="12" x2="22" y2="12" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
   </svg>
 );
+
+/**
+ * Observatory Telescope: Multi-spectral space observatory telescope aperture
+ */
+export const ObservatoryTelescope: React.FC<IconProps> = ({
+  size = 24,
+  color = 'currentColor',
+  strokeWidth = 1.25,
+  ...props
+}) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    {...props}
+  >
+    {/* Hexagonal segmented aperture (James Webb / deep space telescope) */}
+    <path
+      d="M12 2.5L18.5 6.25V13.75L12 17.5L5.5 13.75V6.25L12 2.5Z"
+      stroke={color}
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="10" r="2.8" stroke={color} strokeWidth={strokeWidth} />
+    <line x1="12" y1="17.5" x2="12" y2="21.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    <line x1="8" y1="21.5" x2="16" y2="21.5" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+  </svg>
+);
+

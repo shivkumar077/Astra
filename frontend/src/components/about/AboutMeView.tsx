@@ -42,7 +42,7 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
   onEnterMissionControl,
   reducedMotion = false,
 }) => {
-  const { name, tagline, specialization, academicBackground, coreInterests, biography, socialLinks, featuredProject, additionalProjects } = ABOUT_PROFILE_CONFIG;
+  const { tagline, specialization, academicBackground, coreInterests, biography, socialLinks, featuredProject, additionalProjects } = ABOUT_PROFILE_CONFIG;
 
   // Global Escape key returns home
   useEffect(() => {
@@ -55,13 +55,18 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onReturnHome]);
 
+  // Always reset scroll to top on mount (prevents jumping to projects)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   // Filter verified social links (only render configured non-empty links)
   const availableSocials = [
-    { id: 'github', label: 'GitHub', url: socialLinks.github, icon: <GithubIcon size={15} /> },
-    { id: 'linkedin', label: 'LinkedIn', url: socialLinks.linkedin, icon: <LinkedinIcon size={15} /> },
-    { id: 'email', label: 'Email', url: socialLinks.email ? `mailto:${socialLinks.email}` : '', icon: <Mail size={15} /> },
-    { id: 'x', label: 'X (Twitter)', url: socialLinks.x, icon: <XIcon size={15} /> },
-    { id: 'instagram', label: 'Instagram', url: socialLinks.instagram, icon: <InstagramIcon size={15} /> },
+    { id: 'github', label: 'GitHub', url: socialLinks.github, icon: <GithubIcon size={15} />, isMail: false },
+    { id: 'linkedin', label: 'LinkedIn', url: socialLinks.linkedin, icon: <LinkedinIcon size={15} />, isMail: false },
+    { id: 'email', label: 'Email', url: socialLinks.email ? (socialLinks.email.startsWith('mailto:') ? socialLinks.email : `mailto:${socialLinks.email}`) : '', icon: <Mail size={15} />, isMail: true },
+    { id: 'x', label: 'Twitter / X', url: socialLinks.x, icon: <XIcon size={15} />, isMail: false },
+    { id: 'instagram', label: 'Instagram', url: socialLinks.instagram, icon: <InstagramIcon size={15} />, isMail: false },
   ].filter((s) => s.url && s.url.trim().length > 0);
 
   // Filter additional projects that have valid URLs
@@ -210,18 +215,43 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
           </div>
 
           <h1
+            className="astra-about-name"
             style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(36px, 6vw, 56px)',
-              fontWeight: 600,
-              letterSpacing: '0.02em',
-              lineHeight: 1.05,
-              color: 'var(--color-text-display)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '4px',
               margin: 0,
             }}
             data-testid="about-name"
           >
-            {name}
+            <span
+              className="astra-name-first"
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(22px, 3.2vw, 30px)',
+                fontWeight: 400,
+                letterSpacing: '0.12em',
+                lineHeight: 1.15,
+                color: 'var(--color-text-muted)',
+                textTransform: 'uppercase',
+              }}
+            >
+              Shiv
+            </span>
+            <span
+              className="astra-name-last"
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'clamp(42px, 7vw, 64px)',
+                fontWeight: 700,
+                letterSpacing: '0.03em',
+                lineHeight: 1.0,
+                color: 'var(--color-text-display)',
+                textTransform: 'uppercase',
+              }}
+            >
+              Kumar
+            </span>
           </h1>
 
           <p
@@ -290,8 +320,8 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
                 <a
                   key={social.id}
                   href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  target={social.isMail ? undefined : '_blank'}
+                  rel={social.isMail ? undefined : 'noopener noreferrer'}
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -307,13 +337,14 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
                     textTransform: 'uppercase',
                     transition: 'all 160ms ease',
                     minHeight: '40px',
+                    textDecoration: 'none',
                   }}
                   data-testid={`social-link-${social.id}`}
-                  aria-label={`Open ${social.label} profile`}
+                  aria-label={social.isMail ? 'Send email to Shivkumar' : `Open ${social.label} profile`}
                 >
                   {social.icon}
                   <span>{social.label}</span>
-                  <ExternalLink size={11} style={{ opacity: 0.6 }} />
+                  {!social.isMail && <ExternalLink size={11} style={{ opacity: 0.6 }} />}
                 </a>
               ))}
             </div>

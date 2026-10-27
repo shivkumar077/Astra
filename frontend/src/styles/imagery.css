@@ -674,6 +674,31 @@
   color: var(--color-star-warm);
 }
 
+.astra-dossier-close-icon-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.astra-dossier-close-icon-btn:hover {
+  transform: scale(1.08) !important;
+  border-color: var(--color-star-warm) !important;
+  box-shadow: 0 0 16px rgba(251, 191, 36, 0.25) !important;
+}
+
+.astra-dossier-close-icon-btn:focus-visible {
+  outline: 2px solid var(--color-star-warm);
+  outline-offset: 2px;
+}
+
 /* Hero Briefing (Spacious, clean editorial without miniature box crowding) */
 .astra-dossier-hero-briefing {
   display: flex;
