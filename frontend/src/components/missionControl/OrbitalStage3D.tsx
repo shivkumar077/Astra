@@ -121,6 +121,7 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   destinationFilter,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const [webglAvailable, setWebglAvailable] = useState<boolean>(true);
   
   const craftList = spacecraftList || [];
   const selectedCraft =
@@ -207,8 +208,16 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure = 1.15;
       container.appendChild(renderer.domElement);
+
+      const handleContextLost = (e: Event) => {
+        e.preventDefault();
+        console.warn('[ASTRA] WebGL context lost in OrbitalStage3D. Reverting to 2D orbital projection.');
+        setWebglAvailable(false);
+      };
+      renderer.domElement.addEventListener('webglcontextlost', handleContextLost, false);
     } catch (e) {
       console.warn('WebGL init failed in OrbitalStage3D', e);
+      setWebglAvailable(false);
       return;
     }
 
@@ -1022,6 +1031,56 @@ export const OrbitalStage3D: React.FC<OrbitalStage3DProps> = ({
   return (
     <div className="astra-mc-center-viewport" data-testid="orbital-stage-3d">
       <div ref={mountRef} className="astra-mc-canvas-container" />
+
+      {/* 2D Tactical Orbital Projection Fallback for WebGL Context Loss or Unsupported GPUs */}
+      {!webglAvailable && (
+        <div
+          data-testid="orbital-stage-2d-fallback"
+          className="astra-mc-stage-2d-fallback"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'radial-gradient(circle at center, rgba(14, 45, 84, 0.45) 0%, rgba(2, 4, 9, 0.98) 75%)',
+            color: 'var(--color-text-display)',
+            fontFamily: 'var(--font-mono)',
+            zIndex: 1,
+            pointerEvents: 'none',
+          }}
+        >
+          <div
+            style={{
+              width: '220px',
+              height: '220px',
+              borderRadius: '50%',
+              border: '1px dashed rgba(56, 189, 248, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}
+          >
+            <div
+              style={{
+                width: '110px',
+                height: '110px',
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(56, 189, 248, 0.5) 0%, rgba(14, 165, 233, 0.1) 70%, transparent 100%)',
+                border: '1px solid rgba(56, 189, 248, 0.6)',
+              }}
+            />
+            <span style={{ position: 'absolute', top: '10px', fontSize: '9px', color: 'var(--color-earth-cyan)' }}>
+              {selectedCraft ? selectedCraft.callSign : 'AURA-1'} // ORBIT TRACK
+            </span>
+          </div>
+          <div style={{ marginTop: '14px', fontSize: '11px', letterSpacing: '0.12em', color: 'var(--color-text-muted)' }}>
+            [ 2D TACTICAL ORBITAL PROJECTION ACTIVE ]
+          </div>
+        </div>
+      )}
 
       {/* Top HUD: Target Telemetry Badge & Control Toolbar */}
       <div className="astra-mc-viewport-hud">

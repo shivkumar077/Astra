@@ -30,49 +30,21 @@ export const Header: React.FC<HeaderProps> = ({
     <header
       className="astra-header"
       style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '24px 44px',
         opacity: visible ? 1 : 0,
         transform: visible ? 'translateY(0)' : 'translateY(-10px)',
-        transition: 'opacity 600ms cubic-bezier(0.19, 1, 0.22, 1), transform 600ms cubic-bezier(0.19, 1, 0.22, 1)',
         pointerEvents: visible ? 'auto' : 'none',
       }}
       data-testid="astra-header"
     >
-      {/* Subtle Orbital Interface Indicator (Single Primary ASTRA Wordmark preserved in Hero) */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {/* Subtle Orbital Interface Indicator */}
+      <div className="astra-header-status">
         <SignatureStar size={11} color="var(--color-star-warm)" strokeWidth={1.5} />
-        <span
-          style={{
-            fontFamily: 'var(--font-mono)',
-            fontSize: '10px',
-            color: 'var(--color-text-ghost)',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-          }}
-        >
-          ORBITAL POSITION: SYNCHRONIZED
-        </span>
+        <span className="status-full">ORBITAL POSITION: SYNCHRONIZED</span>
+        <span className="status-short">ORBIT: SYNC</span>
       </div>
 
       {/* Quiet Telemetry: UTC Timekeeper */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '16px',
-          fontFamily: 'var(--font-mono)',
-          fontSize: '11px',
-          color: 'var(--color-text-muted)',
-        }}
-      >
+      <div className="astra-header-telemetry">
         <span data-telemetry="utc-clock" style={{ letterSpacing: '0.06em' }}>
           {utcTime || 'SYNCHRONIZING UTC...'}
         </span>

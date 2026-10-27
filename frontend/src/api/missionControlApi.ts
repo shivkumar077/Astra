@@ -26,8 +26,11 @@ export function getApiBaseUrl(): string {
   if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
     return envUrl.trim().replace(/\/+$/, '');
   }
-  if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== 'null' && window.location.origin.startsWith('http')) {
-    return `${window.location.origin}/api/v1`;
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const host = window.location.hostname;
+    if (host !== 'localhost' && host !== '127.0.0.1' && !host.startsWith('192.168.') && !host.startsWith('10.')) {
+      return 'https://astra-backend1-k9qe.onrender.com/api/v1';
+    }
   }
   return 'http://localhost:8080/api/v1';
 }

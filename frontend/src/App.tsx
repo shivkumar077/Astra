@@ -7,6 +7,8 @@ import { EntryModal, DestinationType } from './components/ui/EntryModal';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { SpaceImageryView } from './components/imagery/SpaceImageryView';
 import { MissionControlView } from './components/missionControl/MissionControlView';
+import { AboutMeView } from './components/about/AboutMeView';
+import { NotFoundView } from './components/common/NotFoundView';
 import { navigationHistory, NavigationLocation } from './utils/navigationHistory';
 
 export const App: React.FC = () => {
@@ -66,6 +68,8 @@ export const App: React.FC = () => {
       navigationHistory.push({ viewMode: 'space-imagery' });
     } else if (dest === 'mission-control') {
       navigationHistory.push({ viewMode: 'mission-control', mcModeView: 'cockpit' });
+    } else if (dest === 'about') {
+      navigationHistory.push({ viewMode: 'about' });
     } else {
       setMissionControlModalOpen(true);
     }
@@ -73,6 +77,10 @@ export const App: React.FC = () => {
 
   const handleReturnHome = () => {
     navigationHistory.push({ viewMode: 'landing' });
+  };
+
+  const handleEnterMissionControl = () => {
+    navigationHistory.push({ viewMode: 'mission-control', mcModeView: 'cockpit' });
   };
 
   if (navLocation.viewMode === 'space-imagery') {
@@ -93,6 +101,30 @@ export const App: React.FC = () => {
           onReturnHome={handleReturnHome}
           reducedMotion={reducedMotion}
           navLocation={navLocation}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (navLocation.viewMode === 'about') {
+    return (
+      <ErrorBoundary fallbackTitle="SYSTEMS ARCHITECT DOSSIER ENCOUNTERED AN UNEXPECTED FAULT" onReset={handleReturnHome}>
+        <AboutMeView
+          onReturnHome={handleReturnHome}
+          onEnterMissionControl={handleEnterMissionControl}
+          reducedMotion={reducedMotion}
+        />
+      </ErrorBoundary>
+    );
+  }
+
+  if (navLocation.viewMode === 'not-found') {
+    return (
+      <ErrorBoundary fallbackTitle="NAVIGATION SUBSYSTEM ENCOUNTERED AN UNEXPECTED FAULT" onReset={handleReturnHome}>
+        <NotFoundView
+          onReturnHome={handleReturnHome}
+          onEnterMissionControl={handleEnterMissionControl}
+          reducedMotion={reducedMotion}
         />
       </ErrorBoundary>
     );

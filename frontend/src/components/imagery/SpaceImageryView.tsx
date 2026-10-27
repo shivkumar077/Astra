@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { PlanetaryDestination, SpaceImageryItem } from '../../types/imagery';
 import { getPlanetaryDestinations } from '../../api/imageryApi';
+import { DEFAULT_PLANETARY_DESTINATIONS } from '../../utils/planetaryCatalog';
 import { SolarSystemNavigator } from './SolarSystemNavigator';
 import { PlanetaryScrollSection } from './PlanetaryScrollSection';
 import { PlanetaryDossierDrawer } from './PlanetaryDossierDrawer';
@@ -31,7 +32,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   onReturnHome,
   reducedMotion = false,
 }) => {
-  const [destinations, setDestinations] = useState<PlanetaryDestination[]>([]);
+  const [destinations, setDestinations] = useState<PlanetaryDestination[]>(DEFAULT_PLANETARY_DESTINATIONS);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,18 +84,19 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
   const [drawerQuery, setDrawerQuery] = useState<string | undefined>(undefined);
 
   const loadDestinations = () => {
-    setLoading(true);
     setError(null);
+    setLoading(true);
     getPlanetaryDestinations()
       .then((data) => {
-        setDestinations(data);
-        if (data.length > 0) {
+        if (data && Array.isArray(data) && data.length > 0) {
+          setDestinations(data);
           setActiveDestinationId(data[0].id);
         }
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message || 'Failed to load planetary catalog from ASTRA gateway.');
+        console.warn('Planetary catalog live sync notice:', err);
+        setError(err.message || 'Connecting to NASA Data Gateway...');
         setLoading(false);
       });
   };
@@ -418,11 +420,14 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       {/* 5. DESTINATIONS SKELETON LOADING */}
       {loading && (
         <div style={{ maxWidth: '1200px', margin: '140px auto 40px', padding: '0 40px' }} data-testid="destinations-loading">
-          <div className="astra-skeleton" style={{ width: '100%', height: '480px', marginBottom: '32px' }} />
+          <div className="astra-skeleton-loader">
+            <span className="astra-skeleton-pulse" />
+            <span>SYNCHRONIZING CELESTIAL WORLDS CATALOGUE...</span>
+          </div>
         </div>
       )}
 
-      {/* 6. CONNECTION ERROR BANNER */}
+      {/* 6. CONNECTION NOTICE BANNER (NON-BLOCKING) */}
       {error && (
         <div style={{ maxWidth: '1000px', margin: '140px auto 40px', padding: '0 24px' }}>
           <div className="astra-error-banner" data-testid="destinations-error">
@@ -439,7 +444,7 @@ export const SpaceImageryView: React.FC<SpaceImageryViewProps> = ({
       )}
 
       {/* 7. CONTINUOUS SOLAR SYSTEM SCROLL JOURNEY (Sun through Neptune) */}
-      {!loading && !error && destinations.length > 0 && (
+      {destinations.length > 0 && (
         <main className="astra-celestial-journey" data-testid="planetary-journey">
           {destinations.map((dest) => (
             <PlanetaryScrollSection

@@ -247,18 +247,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
       <div
         className="astra-settled-frame"
         style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          width: '100%',
-          maxWidth: '1440px',
-          margin: '0 auto',
-          height: '100vh',
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 80px',
           opacity: settledOpacity,
           transform: `translateY(${settledTranslateY}px)`,
           pointerEvents: settledOpacity > 0.1 ? 'auto' : 'none',
@@ -564,6 +552,22 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                 <span>EXPLORE ARCHIVE</span>
                 <span className="astra-action-arrow" style={{ transition: 'transform 200ms ease' }}>&rarr;</span>
               </div>
+            </button>
+          </div>
+
+          {/* Subtle Systems Architect / About Me Access Entry */}
+          <div className="astra-about-access-row">
+            <button
+              onClick={() => onSelectDestination('about')}
+              className="astra-about-access-btn"
+              data-testid="entry-about-me"
+              aria-label="View Systems Engineer and Architecture Dossier (About Me)"
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                <span className="astra-about-dot" />
+                <span className="astra-about-label">SYSTEMS ARCHITECT // ENGINEERING DOSSIER</span>
+              </span>
+              <span style={{ color: 'var(--color-text-ghost)', fontSize: '12px' }}>&rarr;</span>
             </button>
           </div>
         </div>

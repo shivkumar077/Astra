@@ -6,7 +6,7 @@
 
 import { DestinationFilter } from './destinationModel';
 
-export type AppViewMode = 'landing' | 'space-imagery' | 'mission-control';
+export type AppViewMode = 'landing' | 'space-imagery' | 'mission-control' | 'about' | 'not-found';
 export type McModeView = 'cockpit' | 'universe' | 'diagnostics';
 export type UniverseTab = 'catalogue' | 'briefing' | 'history';
 
@@ -200,7 +200,11 @@ class NavigationHistoryManager {
     let hash = '';
     const params = new URLSearchParams();
 
-    if (location.viewMode === 'space-imagery') {
+    if (location.viewMode === 'about') {
+      hash = '#about';
+    } else if (location.viewMode === 'not-found') {
+      hash = '#404';
+    } else if (location.viewMode === 'space-imagery') {
       hash = '#space-imagery';
       if (location.imageryDestinationId) {
         params.set('dest', location.imageryDestinationId);
@@ -242,14 +246,67 @@ class NavigationHistoryManager {
     } catch (_) {}
   }
 
-  public parseUrlHash(): NavigationLocation {
-    if (typeof window === 'undefined' || !window.location) return { viewMode: 'landing' };
+  public parseUrlHash(overrideUrl?: string): NavigationLocation {
+    if (typeof window === 'undefined' && !overrideUrl) return { viewMode: 'landing' };
 
-    const fullHash = window.location.hash || '';
-    if (!fullHash) return { viewMode: 'landing' };
+    let fullHash = '';
+    let rawPath = '/';
+
+    if (overrideUrl) {
+      if (overrideUrl.startsWith('#')) {
+        fullHash = overrideUrl;
+        rawPath = '/';
+      } else if (overrideUrl.startsWith('/')) {
+        const hashIdx = overrideUrl.indexOf('#');
+        if (hashIdx !== -1) {
+          rawPath = overrideUrl.substring(0, hashIdx);
+          fullHash = overrideUrl.substring(hashIdx);
+        } else {
+          rawPath = overrideUrl;
+          fullHash = '';
+        }
+      } else {
+        fullHash = '#' + overrideUrl;
+      }
+    } else if (typeof window !== 'undefined' && window.location) {
+      fullHash = window.location.hash || '';
+      rawPath = window.location.pathname || '/';
+    }
+
+    const pathname = rawPath.replace(/\/+$/, '') || '/';
+
+    // 1. Path-based route checks
+    if (pathname === '/about') {
+      return { viewMode: 'about' };
+    }
+    if (pathname === '/space-imagery') {
+      return { viewMode: 'space-imagery' };
+    }
+    if (pathname === '/mission-control') {
+      return { viewMode: 'mission-control', mcModeView: 'cockpit' };
+    }
+    if (pathname === '/404') {
+      return { viewMode: 'not-found' };
+    }
+    if (pathname !== '/' && pathname !== '/index.html' && !pathname.startsWith('/assets') && !pathname.startsWith('/api')) {
+      return { viewMode: 'not-found' };
+    }
+
+    // 2. Hash-based route checks
+    if (!fullHash || fullHash === '#' || fullHash === '#/' || fullHash === '#landing') {
+      return { viewMode: 'landing' };
+    }
 
     const [hashPart, queryPart] = fullHash.split('?');
     const params = new URLSearchParams(queryPart || '');
+
+    if (hashPart === '#about') {
+      return { viewMode: 'about' };
+    }
+
+    if (hashPart === '#404' || hashPart === '#not-found') {
+      return { viewMode: 'not-found' };
+    }
 
     if (hashPart === '#space-imagery') {
       return {
@@ -275,7 +332,8 @@ class NavigationHistoryManager {
       };
     }
 
-    return { viewMode: 'landing' };
+    // Unknown hash route triggers 404
+    return { viewMode: 'not-found' };
   }
 }
 

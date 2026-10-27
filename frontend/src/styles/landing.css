@@ -1,0 +1,301 @@
+/* ==============================================================================
+   ASTRA LANDING PAGE & RESPONSIVE COMPOSITION
+   Art Direction: Cinematic Aerospace Editorial × Responsive Mobile Architecture
+   ============================================================================== */
+
+/* ------------------------------------------------------------------------------
+   1. FIXED HEADER RESPONSIVENESS
+   ------------------------------------------------------------------------------ */
+.astra-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 44px;
+  box-sizing: border-box;
+  transition: opacity 600ms cubic-bezier(0.19, 1, 0.22, 1), transform 600ms cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.astra-header-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-ghost);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.astra-header-telemetry {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 768px) {
+  .astra-header {
+    padding: 12px 16px;
+    background: rgba(3, 5, 10, 0.78);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .astra-header-status {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .astra-header-telemetry {
+    font-size: 9.5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .astra-header-status span.status-full {
+    display: none;
+  }
+
+  .astra-header-status span.status-short {
+    display: inline;
+  }
+}
+
+@media (min-width: 481px) {
+  .astra-header-status span.status-full {
+    display: inline;
+  }
+
+  .astra-header-status span.status-short {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   2. HERO SECTION & OPENING DEPTH PLANE
+   ------------------------------------------------------------------------------ */
+.astra-hero-stage {
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.astra-intro-depth-plane {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: left;
+  padding: 0 80px;
+  max-width: 1440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  transition: opacity 250ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (max-width: 768px) {
+  .astra-intro-depth-plane {
+    padding: 0 20px;
+    justify-content: center;
+  }
+}
+
+/* ------------------------------------------------------------------------------
+   3. SETTLED OPERATIONAL FRAME (Desktop: Fixed Split; Mobile: Vertical Scroll)
+   ------------------------------------------------------------------------------ */
+.astra-settled-frame {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 0 80px;
+  box-sizing: border-box;
+  transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.astra-settled-left {
+  width: 100%;
+  max-width: 740px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  box-sizing: border-box;
+}
+
+.astra-destination-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.astra-destination-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 24px 22px;
+  background-color: rgba(7, 10, 16, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 8px 32px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  border-radius: 2px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  outline: none;
+  min-height: 230px;
+  box-sizing: border-box;
+}
+
+.astra-destination-panel:hover {
+  background-color: rgba(12, 18, 30, 0.85);
+  border-color: rgba(56, 189, 248, 0.35);
+  transform: translateY(-2px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 36px rgba(0, 0, 0, 0.6), 0 0 20px rgba(56, 189, 248, 0.15);
+}
+
+.astra-destination-panel:focus-visible {
+  outline: 2px solid var(--color-earth-cyan);
+  outline-offset: 2px;
+}
+
+/* Subtle Engineering Dossier / About Me Access Row */
+.astra-about-access-row {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.astra-about-access-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 180ms ease;
+  min-height: 38px;
+}
+
+.astra-about-access-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: var(--color-star-warm);
+  color: var(--color-star-warm);
+  transform: translateX(2px);
+}
+
+.astra-about-access-btn:focus-visible {
+  outline: 2px solid var(--color-earth-cyan);
+  outline-offset: 2px;
+}
+
+.astra-about-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--color-star-warm);
+  display: inline-block;
+}
+
+/* ------------------------------------------------------------------------------
+   4. DELIBERATE MOBILE VERTICAL COMPOSITION (max-width: 768px)
+   ------------------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  .astra-settled-frame {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: calc(env(safe-area-inset-top, 0px) + 68px) 16px calc(env(safe-area-inset-bottom, 0px) + 36px) 16px;
+    z-index: 10;
+  }
+
+  .astra-settled-left {
+    max-width: 100%;
+    gap: 16px;
+  }
+
+  .astra-destination-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 4px;
+  }
+
+  .astra-destination-panel {
+    padding: 20px 18px;
+    min-height: unset;
+  }
+
+  .astra-destination-panel p {
+    margin-bottom: 14px !important;
+  }
+
+  .astra-about-access-row {
+    width: 100%;
+    margin-top: 8px;
+    margin-bottom: 24px;
+  }
+
+  .astra-about-access-btn {
+    width: 100%;
+    justify-content: space-between;
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .astra-settled-frame {
+    padding: calc(env(safe-area-inset-top, 0px) + 60px) 14px calc(env(safe-area-inset-bottom, 0px) + 28px) 14px;
+  }
+
+  .astra-destination-panel {
+    padding: 18px 14px;
+  }
+}

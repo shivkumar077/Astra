@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   MissionResponse,
   MissionRun,
@@ -88,7 +88,18 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedMission, setSelectedMission] = useState<MissionResponse | null>(null);
   const [activeTab, setActiveTab] = useState<'catalogue' | 'briefing' | 'history'>('catalogue');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const isSyncingRef = useRef<boolean>(false);
+  const isMountedRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
   const [isActionRunning, setIsActionRunning] = useState<boolean>(false);
   const [expandedGatesMissionId, setExpandedGatesMissionId] = useState<string | null>(null);
   const [showSwitchConfirmModal, setShowSwitchConfirmModal] = useState<MissionResponse | null>(null);
@@ -204,7 +215,9 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
   };
 
   const loadMissionsData = useCallback(async () => {
-    setIsLoading(true);
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    setIsSyncing(true);
     setLoadError(null);
     setLoadErrorType(null);
     try {
@@ -212,21 +225,20 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
         listMissions(),
         getMissionHistory().catch(() => []),
       ]);
-      if (mList.length === 0 || (import.meta as any).env?.MODE === 'test') {
-        setMissions(mList);
-      } else {
-        // Some local/backend deployments have a stale or partially seeded catalogue.
-        // Keep the curated baseline visible and let server definitions override by ID.
-        const mergedMissions = new Map(FALLBACK_MISSION_CATALOG.map((mission) => [mission.id, mission]));
-        mList.forEach((mission) => mergedMissions.set(mission.id, mission));
-        setMissions(Array.from(mergedMissions.values()));
-      }
-      setHistory(hList);
+
+      if (!isMountedRef.current) return;
+
+      const validMList = Array.isArray(mList) ? mList : [];
+      const validHList = Array.isArray(hList) ? hList : [];
+
+      setMissions(validMList);
+      setHistory(validHList);
       if (selectedMission) {
-        const updated = mList.find((m) => m.id === selectedMission.id);
+        const updated = validMList.find((m) => m.id === selectedMission.id);
         if (updated) setSelectedMission(updated);
       }
     } catch (e: unknown) {
+      if (!isMountedRef.current) return;
       console.warn('Failed loading mission catalogue', e);
       if (e instanceof MissionControlApiError) {
         if (e.status === 401 || e.status === 403) {
@@ -235,16 +247,23 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
         } else if (e.status === 0) {
           setLoadErrorType('NETWORK');
           setLoadError(`Network connection to ASTRA server failed: ${e.message}`);
+          setMissions((curr) => (curr.length === 0 ? FALLBACK_MISSION_CATALOG : curr));
         } else {
           setLoadErrorType('SERVER');
           setLoadError(`Server error (${e.status}): ${e.message}`);
+          setMissions((curr) => (curr.length === 0 ? FALLBACK_MISSION_CATALOG : curr));
         }
       } else {
         const msg = e instanceof Error ? e.message : 'Failed to establish connection to mission catalogue service.';
         setLoadError(msg);
+        setMissions((curr) => (curr.length === 0 ? FALLBACK_MISSION_CATALOG : curr));
       }
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+        setIsSyncing(false);
+      }
+      isSyncingRef.current = false;
     }
   }, [selectedMission]);
 
@@ -688,8 +707,42 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
             </div>
           </div>
 
+          {/* Non-destructive sync banner if error occurs while missions are present */}
+          {loadError && missions.length > 0 && (
+            <div
+              className="astra-mc-sync-notice-banner"
+              data-testid="missions-sync-notice"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                background: 'rgba(245, 158, 11, 0.08)',
+                border: '1px solid rgba(245, 158, 11, 0.25)',
+                borderRadius: 'var(--radius-xs)',
+                marginBottom: '16px',
+                fontSize: '12px',
+                color: 'var(--color-text-display)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={14} color="var(--color-star-warm)" />
+                <span>Sync notice: {loadError} (Operating on verified baseline)</span>
+              </div>
+              <button
+                onClick={loadMissionsData}
+                className="astra-mc-btn-secondary"
+                style={{ padding: '4px 10px', fontSize: '10px' }}
+                data-testid="missions-sync-retry-btn"
+              >
+                <RefreshCw size={11} />
+                <span>RETRY SYNC</span>
+              </button>
+            </div>
+          )}
+
           {/* Missions Grid or Empty States */}
-          {isLoading ? (
+          {isLoading && missions.length === 0 ? (
             <div className="astra-mc-empty-state astra-mc-state-loading" data-testid="missions-loading-state">
               <div className="astra-mc-empty-icon-wrap">
                 <Activity size={26} className="astra-mc-spinning-icon" />
@@ -699,7 +752,7 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                 Querying orbital telemetry nodes and active mission scenario registry.
               </p>
             </div>
-          ) : loadError ? (
+          ) : loadError && missions.length === 0 ? (
             <div className="astra-mc-empty-state astra-mc-state-error" data-testid="missions-error-state">
               <div className="astra-mc-empty-icon-wrap astra-mc-icon-danger">
                 {loadErrorType === 'AUTH' ? <Shield size={26} /> : <AlertTriangle size={26} />}
@@ -1115,12 +1168,12 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
               <button
                 type="button"
                 onClick={loadMissionsData}
-                disabled={isLoading}
+                disabled={isLoading || isSyncing}
                 className="astra-mc-history-refresh-btn"
                 title="Refresh history from authoritative backend"
               >
-                <RefreshCw size={12} className={isLoading ? 'spin' : ''} />
-                <span>SYNC LOG</span>
+                <RefreshCw size={12} className={isLoading || isSyncing ? 'spin' : ''} />
+                <span>{isSyncing ? 'SYNCING...' : 'SYNC LOG'}</span>
               </button>
             </div>
           </div>

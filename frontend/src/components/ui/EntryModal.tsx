@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { X, ShieldAlert } from 'lucide-react';
 import { Spacecraft, OpticalAperture, SignatureStar, OrbitalTrajectory } from '../common/CelestialIcons';
 
-export type DestinationType = 'mission-control' | 'space-imagery';
+export type DestinationType = 'mission-control' | 'space-imagery' | 'about';
 
 interface EntryModalProps {
   destination: DestinationType | null;

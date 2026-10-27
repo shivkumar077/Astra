@@ -351,6 +351,13 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
       renderer.domElement.style.border = 'none';
       renderer.domElement.style.background = 'transparent';
       container.appendChild(renderer.domElement);
+
+      const handleContextLost = (e: Event) => {
+        e.preventDefault();
+        console.warn(`[ASTRA] WebGL context lost on ${normId}. Reverting to resilient 2D visual.`);
+        setWebglAvailable(false);
+      };
+      renderer.domElement.addEventListener('webglcontextlost', handleContextLost, false);
     } catch {
       setWebglAvailable(false);
       return;
@@ -584,8 +591,13 @@ export const PlanetVisual: React.FC<PlanetVisualProps> = ({
         ringMesh.rotation.z += rotationSpeed * 0.3;
       }
 
-      renderer.render(scene, camera);
-      animId = requestAnimationFrame(animate);
+      try {
+        renderer.render(scene, camera);
+        animId = requestAnimationFrame(animate);
+      } catch (renderError) {
+        console.warn(`[ASTRA] Render exception caught in ${normId}:`, renderError);
+        setWebglAvailable(false);
+      }
     };
 
     // 7. Visibility Culling via IntersectionObserver (Instant render on viewport entry)
