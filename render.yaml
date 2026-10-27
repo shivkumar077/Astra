@@ -6,7 +6,7 @@ services:
     dockerContext: ./backend
     region: singapore
     plan: free
-    branch: feature/production-readiness
+    branch: main
     healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
@@ -18,7 +18,7 @@ services:
       - key: SPRING_DATASOURCE_PASSWORD
         sync: false
       - key: CORS_ALLOWED_ORIGINS
-        value: https://*.pages.dev,http://localhost:5173
+        value: https://*.vercel.app,https://*.pages.dev,http://localhost:5173,http://localhost:3000
       - key: ASTRA_SECURITY_OPERATOR_PASSWORD
         value: operator123
       - key: ASTRA_SECURITY_DIRECTOR_PASSWORD
