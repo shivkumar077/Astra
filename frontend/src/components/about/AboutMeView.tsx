@@ -18,8 +18,8 @@ const LinkedinIcon: React.FC<{ size?: number }> = ({ size = 15 }) => (
 );
 
 const XIcon: React.FC<{ size?: number }> = ({ size = 15 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M4 4l16 16M4 20L20 4" />
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
   </svg>
 );
 
@@ -322,6 +322,7 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
                   href={social.url}
                   target={social.isMail ? undefined : '_blank'}
                   rel={social.isMail ? undefined : 'noopener noreferrer'}
+                  className="astra-about-social-link"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -670,6 +671,20 @@ export const AboutMeView: React.FC<AboutMeViewProps> = ({
           )}
         </section>
       </main>
+
+      <style>{`
+        .astra-about-social-link:hover {
+          background: rgba(56, 189, 248, 0.12) !important;
+          border-color: var(--color-earth-cyan) !important;
+          color: var(--color-earth-cyan) !important;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(56, 189, 248, 0.15);
+        }
+        .astra-about-social-link:focus-visible {
+          outline: 2px solid var(--color-earth-cyan);
+          outline-offset: 2px;
+        }
+      `}</style>
     </div>
   );
 };

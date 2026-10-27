@@ -59,10 +59,10 @@ export const ABOUT_PROFILE_CONFIG: AboutProfileConfig = {
   ],
   socialLinks: {
     github: 'https://github.com/shivkumar077',
-    email: '', // Configurable: Add verified email address here
-    linkedin: '', // Configurable: Add verified LinkedIn profile URL here
-    instagram: '', // Configurable: Add verified Instagram handle URL here
-    x: '', // Configurable: Add verified X / Twitter URL here
+    email: 'shivkumar6990655@gmail.com',
+    linkedin: 'https://www.linkedin.com/in/shiv-kumar-399a32231/',
+    instagram: 'https://www.instagram.com/nightcore_077/',
+    x: 'https://x.com/nightcore_077',
   },
   featuredProject: {
     id: 'astra',

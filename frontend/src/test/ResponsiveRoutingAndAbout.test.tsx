@@ -78,13 +78,26 @@ describe('Phase 4: About Me Experience & Verified Links', () => {
     expect(astraLink).toHaveAttribute('href', 'https://github.com/shivkumar077/Astra');
     expect(astraLink).toHaveAttribute('target', '_blank');
 
-    // Verified GitHub profile link is present
+    // Verified real social and contact links
     const githubLink = screen.getByTestId('social-link-github');
     expect(githubLink).toHaveAttribute('href', 'https://github.com/shivkumar077');
+    expect(githubLink).toHaveAttribute('target', '_blank');
 
-    // Unconfigured social links must NOT be rendered with empty hrefs
-    const emptyLinks = screen.queryAllByRole('link').filter((l) => !l.getAttribute('href') || l.getAttribute('href') === '');
-    expect(emptyLinks.length).toBe(0);
+    const linkedinLink = screen.getByTestId('social-link-linkedin');
+    expect(linkedinLink).toHaveAttribute('href', 'https://www.linkedin.com/in/shiv-kumar-399a32231/');
+    expect(linkedinLink).toHaveAttribute('target', '_blank');
+
+    const instaLink = screen.getByTestId('social-link-instagram');
+    expect(instaLink).toHaveAttribute('href', 'https://www.instagram.com/nightcore_077/');
+    expect(instaLink).toHaveAttribute('target', '_blank');
+
+    const twitterLink = screen.getByTestId('social-link-x');
+    expect(twitterLink).toHaveAttribute('href', 'https://x.com/nightcore_077');
+    expect(twitterLink).toHaveAttribute('target', '_blank');
+
+    const emailLink = screen.getByTestId('social-link-email');
+    expect(emailLink).toHaveAttribute('href', 'mailto:shivkumar6990655@gmail.com');
+    expect(emailLink).not.toHaveAttribute('target');
 
     // Return to command action
     const returnBtn = screen.getByTestId('about-return-btn');
