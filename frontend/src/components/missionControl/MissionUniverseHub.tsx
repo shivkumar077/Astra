@@ -247,16 +247,13 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
         } else if (e.status === 0) {
           setLoadErrorType('NETWORK');
           setLoadError(`Network connection to ASTRA server failed: ${e.message}`);
-          setMissions((curr) => (curr.length === 0 ? FALLBACK_MISSION_CATALOG : curr));
         } else {
           setLoadErrorType('SERVER');
           setLoadError(`Server error (${e.status}): ${e.message}`);
-          setMissions((curr) => (curr.length === 0 ? FALLBACK_MISSION_CATALOG : curr));
         }
       } else {
         const msg = e instanceof Error ? e.message : 'Failed to establish connection to mission catalogue service.';
         setLoadError(msg);
-        setMissions((curr) => (curr.length === 0 ? FALLBACK_MISSION_CATALOG : curr));
       }
     } finally {
       if (isMountedRef.current) {
@@ -779,6 +776,18 @@ export const MissionUniverseHub: React.FC<MissionUniverseHubProps> = ({
                 >
                   <Plus size={12} />
                   <span>NEW MISSION</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setMissions(FALLBACK_MISSION_CATALOG);
+                    setLoadError(null);
+                  }}
+                  className="astra-mc-btn-secondary"
+                  data-testid="error-load-baseline-btn"
+                  title="Load verified offline solar system operations catalogue"
+                >
+                  <Layers size={12} />
+                  <span>LOAD VERIFIED BASELINE</span>
                 </button>
               </div>
             </div>

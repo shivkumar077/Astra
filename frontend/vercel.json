@@ -1,7 +1,15 @@
 {
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/api/:path*",
+      "destination": "https://astra-backend1-k9qe.onrender.com/api/:path*"
+    },
+    {
+      "source": "/actuator/:path*",
+      "destination": "https://astra-backend1-k9qe.onrender.com/actuator/:path*"
+    },
+    {
+      "source": "/((?!api|actuator).*)",
       "destination": "/index.html"
     }
   ]

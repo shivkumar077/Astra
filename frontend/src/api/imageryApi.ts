@@ -86,6 +86,15 @@ export async function request<T>(endpoint: string, options?: RequestInit): Promi
     throw new ImageryApiError(response.status, errorMessage, endpoint);
   }
 
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new ImageryApiError(
+      response.status,
+      `Expected application/json response from ASTRA Gateway at ${endpoint}, but received '${contentType}'`,
+      endpoint
+    );
+  }
+
   try {
     return (await response.json()) as T;
   } catch (err: unknown) {

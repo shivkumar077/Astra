@@ -98,9 +98,17 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status} ${response.statusText}`;
     try {
-      const errBody = await response.json();
-      if (errBody && errBody.message) {
-        errorMessage = errBody.message;
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const errBody = await response.json();
+        if (errBody && errBody.message) {
+          errorMessage = errBody.message;
+        }
+      } else {
+        const text = await response.text();
+        if (text && text.length > 0 && text.length < 300) {
+          errorMessage = text;
+        }
       }
     } catch {
       // Use standard status text
@@ -113,7 +121,24 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     return {} as T;
   }
 
-  return response.json() as Promise<T>;
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    throw new MissionControlApiError(
+      response.status,
+      `Expected application/json response from ASTRA Mission Control Server at ${endpoint}, but received '${contentType}'`,
+      endpoint
+    );
+  }
+
+  try {
+    return (await response.json()) as T;
+  } catch (err: unknown) {
+    throw new MissionControlApiError(
+      response.status,
+      `Malformed JSON response from ASTRA Mission Control Server at ${endpoint}: ${err instanceof Error ? err.message : String(err)}`,
+      endpoint
+    );
+  }
 }
 
 // --- Simulation Lifecycle ---
